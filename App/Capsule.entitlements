@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Capsule runs UNSANDBOXED: there is intentionally NO `com.apple.security.app-sandbox`
+	  key here, so the app can drive the `container` CLI via Process and reach the local
+	  system and network freely (sandbox network entitlements would be inert and are
+	  deliberately omitted). Hardened Runtime is enabled at sign time
+	  (ENABLE_HARDENED_RUNTIME); add any Hardened-Runtime exceptions
+	  (e.g. com.apple.security.cs.*) here if a future dependency requires them.
+	-->
+</dict>
+</plist>

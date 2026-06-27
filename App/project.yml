@@ -1,0 +1,79 @@
+# XcodeGen spec for the Capsule macOS app target.
+#
+# Generates Capsule.xcodeproj at the repository root from a thin app target that
+# consumes the strictly-layered SwiftPM modules in this repo. Regenerate with:
+#
+#     make xcodeproj      # xcodegen generate --spec App/project.yml --project-root . --project .
+#
+# The generated project is git-ignored; the package + this spec are the sources of truth.
+name: Capsule
+options:
+  bundleIdPrefix: com.capsule
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    ARCHS: arm64
+    ONLY_ACTIVE_ARCH: YES
+    DEAD_CODE_STRIPPING: YES
+    # Unsandboxed + Hardened Runtime (notarizable distribution).
+    ENABLE_APP_SANDBOX: NO
+    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+
+packages:
+  Capsule:
+    path: .
+
+targets:
+  Capsule:
+    type: application
+    platform: macOS
+    sources:
+      - path: App/Sources
+      - path: App/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_NAME: Capsule
+        PRODUCT_BUNDLE_IDENTIFIER: com.capsule.app
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/Capsule.entitlements
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: NO
+        COMBINE_HIDPI_IMAGES: YES
+    dependencies:
+      - package: Capsule
+        product: CapsuleApp
+
+  CapsuleUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: App/CapsuleUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.capsule.app.uitests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: Capsule
+
+schemes:
+  Capsule:
+    build:
+      targets:
+        Capsule: all
+        CapsuleUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - CapsuleUITests

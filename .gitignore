@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# SwiftPM
+/.build/
+/.swiftpm/
+Package.resolved
+
+# Xcode
+/DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# XcodeGen output — the project is generated from App/project.yml (`make xcodeproj`).
+# The package + spec are the sources of truth, so the generated project is not committed.
+/Capsule.xcodeproj/
+
+# Distribution artifacts
+/build/
+*.xcarchive
+*.dmg
+*.zip

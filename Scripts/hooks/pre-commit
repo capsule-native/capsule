@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#
+# pre-commit
+# Capsule
+#
+# Copyright © 2026 Capsule. All rights reserved.
+#
+# Installed via `make hooks` (sets core.hooksPath -> Scripts/hooks).
+# Enforces formatting and license headers on staged Swift files before each commit.
+
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
+
+staged_swift="$(git diff --cached --name-only --diff-filter=ACM -- '*.swift' || true)"
+
+if [ -n "$staged_swift" ]; then
+  echo "pre-commit: swift-format lint"
+  # shellcheck disable=SC2086
+  swift format lint --strict --configuration .swift-format $staged_swift
+fi
+
+echo "pre-commit: license headers"
+./Scripts/check-headers.sh
