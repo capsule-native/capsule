@@ -4,8 +4,8 @@
 //
 //  Copyright © 2026 Capsule. All rights reserved.
 //
-//  The optional attach sheet for Start. Explains the read-only attach interim and the
-//  disabled exec-shell, then starts (with or without attaching).
+//  The optional attach sheet for Start. Offers read-only attach (logs --follow) and an
+//  interactive "Start in Terminal" (start -ai in the embedded terminal).
 
 import SwiftUI
 
@@ -13,6 +13,7 @@ struct StartAttachSheet: View {
     let containerName: String
     let terminalAvailable: Bool
     let onStart: (_ attach: Bool) -> Void
+    let onStartInTerminal: () -> Void
     let onCancel: () -> Void
 
     var body: some View {
@@ -22,7 +23,7 @@ struct StartAttachSheet: View {
 
             Text(
                 "Attaching streams the container's output here, read-only. "
-                    + "An interactive shell arrives with the embedded terminal update."
+                    + "Start in Terminal runs it interactively in the embedded terminal."
             )
             .font(.callout)
             .foregroundStyle(.secondary)
@@ -34,7 +35,10 @@ struct StartAttachSheet: View {
                 Spacer()
                 Button("Start") { onStart(false) }
                 Button("Start and Attach") { onStart(true) }
-                    .keyboardShortcut(.defaultAction)
+                if terminalAvailable {
+                    Button("Start in Terminal", action: onStartInTerminal)
+                        .keyboardShortcut(.defaultAction)
+                }
             }
         }
         .padding(20)

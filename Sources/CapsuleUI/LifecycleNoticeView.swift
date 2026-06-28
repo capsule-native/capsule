@@ -28,7 +28,7 @@ struct LifecycleNoticeView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if notice.offersShellHint {
-                    Text("An interactive shell arrives with the embedded terminal update.")
+                    Text("Open a shell from the read-only console to investigate.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }

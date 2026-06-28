@@ -10,6 +10,7 @@ import CapsuleBackend
 import CapsuleCLIBackend
 import CapsuleDiagnostics
 import CapsuleDomain
+import CapsuleTerminal
 import CapsuleUI
 import Foundation
 
@@ -30,6 +31,7 @@ public struct AppEnvironment {
     public var statsModel: ContainerStatsModel
     public var actions: ShellActions
     public var updater: any UpdaterController
+    public var terminalSurfaceProvider: any TerminalSurfaceProviding
 
     public init(
         shell: ShellState,
@@ -39,7 +41,8 @@ public struct AppEnvironment {
         lifecycleModel: ContainerLifecycleModel,
         statsModel: ContainerStatsModel,
         actions: ShellActions,
-        updater: any UpdaterController
+        updater: any UpdaterController,
+        terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
     ) {
         self.shell = shell
         self.systemModel = systemModel
@@ -49,11 +52,13 @@ public struct AppEnvironment {
         self.statsModel = statsModel
         self.actions = actions
         self.updater = updater
+        self.terminalSurfaceProvider = terminalSurfaceProvider
     }
 
     /// The production environment: CLI backend, normalized errors, and a wired shell.
     public static func live() -> AppEnvironment {
-        let backend: any ContainerBackend = CLIContainerBackend()
+        let cliBackend = CLIContainerBackend()
+        let backend: any ContainerBackend = cliBackend
         let shell = ShellState()
         let systemModel = SystemStatusModel(
             backend: backend,
@@ -76,15 +81,19 @@ public struct AppEnvironment {
             currentState: { id in
                 browserModel.allContainers.first { $0.id == id }?.state ?? .unknown
             },
-            terminalAvailable: { false },
+            terminalAvailable: { true },
             copyCommand: { argv in
                 let command = argv.joined(separator: " ")
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 pasteboard.setString(command, forType: .string)
                 shell.appendActivity("Copied to clipboard: \(command)")
-            }
+            },
+            launchTerminal: { request in shell.openTerminal(request) }
         )
+        let terminalSurfaceProvider = SwiftTermSurfaceProvider(executablePath: { name in
+            name == "container" ? cliBackend.executableURL.path : name
+        })
         let actions = makeActions(systemModel: systemModel, shell: shell)
         return AppEnvironment(
             shell: shell,
@@ -94,7 +103,8 @@ public struct AppEnvironment {
             lifecycleModel: lifecycleModel,
             statsModel: statsModel,
             actions: actions,
-            updater: NoopUpdaterController()
+            updater: NoopUpdaterController(),
+            terminalSurfaceProvider: terminalSurfaceProvider
         )
     }
 

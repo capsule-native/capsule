@@ -24,6 +24,7 @@ public struct CapsuleScene: Scene {
     @State private var statsModel: ContainerStatsModel
     private let actions: ShellActions
     private let updater: any UpdaterController
+    private let terminalSurfaceProvider: any TerminalSurfaceProviding
 
     public init() {
         self.init(environment: .live())
@@ -38,6 +39,7 @@ public struct CapsuleScene: Scene {
         self._statsModel = State(initialValue: environment.statsModel)
         self.actions = environment.actions
         self.updater = environment.updater
+        self.terminalSurfaceProvider = environment.terminalSurfaceProvider
     }
 
     public var body: some Scene {
@@ -49,7 +51,8 @@ public struct CapsuleScene: Scene {
                 browserModel: browserModel,
                 lifecycleModel: lifecycleModel,
                 statsModel: statsModel,
-                actions: actions
+                actions: actions,
+                terminalSurfaceProvider: terminalSurfaceProvider
             )
         }
         .commands {

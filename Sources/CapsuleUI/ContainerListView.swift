@@ -60,7 +60,12 @@ struct ContainerListView: View {
                         onStart: { attach in
                             activeSheet = nil
                             Task { _ = await lifecycle.start(id: id, attach: attach) }
-                        }, onCancel: { activeSheet = nil })
+                        },
+                        onStartInTerminal: {
+                            activeSheet = nil
+                            lifecycle.attachInteractively(id: id)
+                        },
+                        onCancel: { activeSheet = nil })
                 case let .stopOptions(id, name):
                     StopOptionsSheet(
                         containerName: name,

@@ -66,9 +66,6 @@ public final class ContainerLifecycleModel {
     /// Whether interactive affordances (Open Shell, real attach) are available yet.
     public var isTerminalAvailable: Bool { terminalAvailable() }
 
-    /// Copies a command to the clipboard (the retry-in-terminal interim until M6).
-    public func copyToTerminal(_ argv: [String]) { copyCommand(argv) }
-
     /// Opens an interactive shell (`exec -it … sh`) in the embedded terminal, or copies the
     /// command to the clipboard when the terminal is unavailable.
     public func openShell(id: String) {

@@ -31,8 +31,9 @@ public struct LogLine: Sendable, Equatable, Identifiable {
     }
 }
 
-/// A read-only attach session (interim until the embedded-terminal milestone, M6).
-/// `isReadOnly` is the seam M6 flips. `lines` is a capped ring buffer.
+/// A read-only attach session: a live `logs --follow` stream. Interactive shells are a
+/// separate facility (the embedded terminal); this stays read-only by design. `lines` is a
+/// capped ring buffer.
 public struct AttachSession: Sendable, Equatable {
     public enum Phase: Sendable, Equatable { case streaming, ended, failed(ErrorDetail) }
     public var phase: Phase
