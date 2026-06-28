@@ -1,0 +1,198 @@
+//
+//  TaskCenter.swift
+//  Capsule
+//
+//  Copyright © 2026 Capsule. All rights reserved.
+//
+//  NOTE: This module must remain free of UI and of `Foundation.Process`. The backing for
+//  the Activity pane's Tasks/Progress tabs: long image operations (pull/push/save/load)
+//  register an ``OperationTask`` that accumulates a transcript, records success/failure, and
+//  can be retried. Milestone 7 will expand this into the full activity surface.
+
+import CapsuleBackend
+import Foundation
+import Observation
+
+/// The kind of long-running operation a task represents.
+public enum OperationKind: String, Sendable, CaseIterable {
+    case pull
+    case push
+    case save
+    case load
+
+    public var title: String {
+        switch self {
+        case .pull: return "Pull"
+        case .push: return "Push"
+        case .save: return "Save"
+        case .load: return "Load"
+        }
+    }
+
+    public var symbolName: String {
+        switch self {
+        case .pull: return "arrow.down.circle"
+        case .push: return "arrow.up.circle"
+        case .save: return "square.and.arrow.down"
+        case .load: return "square.and.arrow.up"
+        }
+    }
+}
+
+/// One long-running operation: its live state, the accumulated transcript (UI-safe
+/// ``LogLine``s, so the UI never sees a backend type), and a stable id.
+@MainActor
+@Observable
+public final class OperationTask: Identifiable {
+    public let id: String
+    public let title: String
+    public let kind: OperationKind
+    public internal(set) var state: TaskState = .running(progress: nil)
+    public internal(set) var transcript: [LogLine] = []
+
+    private var nextLineID = 0
+    /// The Swift task currently driving this operation; `wait()` awaits it (used by tests
+    /// and any caller that needs to act on completion).
+    fileprivate var driver: Task<Void, Never>?
+
+    init(id: String, title: String, kind: OperationKind) {
+        self.id = id
+        self.title = title
+        self.kind = kind
+    }
+
+    /// The transcript joined into a single copyable string.
+    public var transcriptText: String {
+        transcript.map(\.text).joined(separator: "\n")
+    }
+
+    fileprivate func append(source: OutputLine.Source, text: String) {
+        nextLineID += 1
+        transcript.append(LogLine(id: nextLineID, source: source, text: text))
+    }
+
+    fileprivate func resetForRetry() {
+        transcript = []
+        nextLineID = 0
+        state = .running(progress: nil)
+    }
+
+    /// Awaits the operation's completion.
+    public func wait() async {
+        await driver?.value
+    }
+}
+
+@MainActor
+@Observable
+public final class TaskCenter {
+    public private(set) var tasks: [OperationTask] = []
+
+    private let normalize: @Sendable (any Error) -> CapsuleError
+    private var streams: [String: @Sendable () -> AsyncThrowingStream<OutputLine, Error>] = [:]
+    private var operations: [String: @Sendable () async throws -> Void] = [:]
+    private var successHandlers: [String: @MainActor () async -> Void] = [:]
+    private var counter = 0
+
+    public init(
+        normalize: @escaping @Sendable (any Error) -> CapsuleError = SystemStatusModel
+            .defaultNormalize
+    ) {
+        self.normalize = normalize
+    }
+
+    /// The tasks still queued or running — the Progress tab's source.
+    public var activeTasks: [OperationTask] { tasks.filter { $0.state.isActive } }
+
+    /// Registers and starts a streaming operation (pull/push). Each yielded line is appended
+    /// to the transcript; completion flips the state to succeeded/failed.
+    @discardableResult
+    public func runStreaming(
+        kind: OperationKind,
+        title: String,
+        onSuccess: (@MainActor () async -> Void)? = nil,
+        _ stream: @escaping @Sendable () -> AsyncThrowingStream<OutputLine, Error>
+    ) -> OperationTask {
+        let task = makeTask(kind: kind, title: title)
+        streams[task.id] = stream
+        successHandlers[task.id] = onSuccess
+        tasks.append(task)
+        drive(task)
+        return task
+    }
+
+    /// Registers and starts a non-streaming operation (save/load). A thrown error is
+    /// captured in the transcript and the state flips to failed.
+    @discardableResult
+    public func runAsync(
+        kind: OperationKind,
+        title: String,
+        onSuccess: (@MainActor () async -> Void)? = nil,
+        _ operation: @escaping @Sendable () async throws -> Void
+    ) -> OperationTask {
+        let task = makeTask(kind: kind, title: title)
+        operations[task.id] = operation
+        successHandlers[task.id] = onSuccess
+        tasks.append(task)
+        drive(task)
+        return task
+    }
+
+    /// Re-runs a finished (typically failed) task using its original operation.
+    public func retry(_ task: OperationTask) {
+        task.resetForRetry()
+        drive(task)
+    }
+
+    /// Drops every finished task (and its retained operation), leaving active ones.
+    public func clearFinished() {
+        let removed = tasks.filter { !$0.state.isActive }.map(\.id)
+        for id in removed {
+            streams[id] = nil
+            operations[id] = nil
+            successHandlers[id] = nil
+        }
+        tasks.removeAll { !$0.state.isActive }
+    }
+
+    // MARK: - Internals
+
+    private func makeTask(kind: OperationKind, title: String) -> OperationTask {
+        counter += 1
+        return OperationTask(id: "task-\(counter)", title: title, kind: kind)
+    }
+
+    private func drive(_ task: OperationTask) {
+        if let stream = streams[task.id] {
+            task.driver = Task { @MainActor [weak self] in
+                task.state = .running(progress: nil)
+                do {
+                    for try await line in stream() {
+                        task.append(source: line.source, text: line.text)
+                    }
+                    await self?.successHandlers[task.id]?()
+                    task.state = .succeeded
+                } catch {
+                    self?.recordFailure(error, on: task)
+                }
+            }
+        } else if let operation = operations[task.id] {
+            task.driver = Task { @MainActor [weak self] in
+                task.state = .running(progress: nil)
+                do {
+                    try await operation()
+                    await self?.successHandlers[task.id]?()
+                    task.state = .succeeded
+                } catch {
+                    self?.recordFailure(error, on: task)
+                }
+            }
+        }
+    }
+
+    private func recordFailure(_ error: any Error, on task: OperationTask) {
+        let detail = normalize(error).detail
+        task.append(source: .stderr, text: detail.explanation)
+        task.state = .failed(detail.diagnosticInfo)
+    }
+}

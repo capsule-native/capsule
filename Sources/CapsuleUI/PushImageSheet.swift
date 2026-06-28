@@ -1,0 +1,100 @@
+//
+//  PushImageSheet.swift
+//  Capsule
+//
+//  Copyright © 2026 Capsule. All rights reserved.
+//
+//  Push an image to its registry. The destination is shown prominently and a confirmation
+//  step guards against an accidental push to the wrong repository. The live transcript stays
+//  in the sheet so auth/registry errors are visible.
+
+import CapsuleDomain
+import SwiftUI
+
+struct PushImageSheet: View {
+    let initialReference: String
+    let initialDigest: String
+    let onPush: (String, String?) -> OperationTask
+    let onRetry: (OperationTask) -> Void
+    let onClose: () -> Void
+
+    @State private var reference: String
+    @State private var platform = ""
+    @State private var confirming = false
+    @State private var task: OperationTask?
+
+    init(
+        initialReference: String,
+        initialDigest: String,
+        onPush: @escaping (String, String?) -> OperationTask,
+        onRetry: @escaping (OperationTask) -> Void,
+        onClose: @escaping () -> Void
+    ) {
+        self.initialReference = initialReference
+        self.initialDigest = initialDigest
+        self.onPush = onPush
+        self.onRetry = onRetry
+        self.onClose = onClose
+        _reference = State(initialValue: initialReference)
+    }
+
+    private var trimmedReference: String {
+        reference.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var destination: String {
+        let firstComponent = trimmedReference.split(separator: "/").first.map(String.init) ?? ""
+        return firstComponent.contains(".") || firstComponent.contains(":")
+            ? firstComponent : "docker.io"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Push Image", systemImage: "arrow.up.circle")
+                .font(.headline)
+
+            if let task {
+                TaskTranscriptView(task: task, onRetry: { onRetry(task) })
+                HStack {
+                    Spacer()
+                    Button("Done", action: onClose).keyboardShortcut(.defaultAction)
+                }
+            } else {
+                Form {
+                    LabeledContent("Digest") {
+                        Text(initialDigest).font(.system(.callout, design: .monospaced))
+                            .lineLimit(1).truncationMode(.middle)
+                    }
+                    TextField("Reference (tag) to push", text: $reference)
+                    TextField(
+                        "Platform (optional)", text: $platform, prompt: Text("e.g. linux/amd64"))
+                    LabeledContent("Destination", value: destination)
+                }
+                .formStyle(.grouped)
+
+                HStack {
+                    Button("Cancel", role: .cancel, action: onClose)
+                        .keyboardShortcut(.cancelAction)
+                    Spacer()
+                    Button("Push…") { confirming = true }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(trimmedReference.isEmpty)
+                }
+            }
+        }
+        .padding(20)
+        .frame(width: 480)
+        .confirmationDialog(
+            "Push “\(trimmedReference)” to \(destination)?",
+            isPresented: $confirming, titleVisibility: .visible
+        ) {
+            Button("Push to \(destination)") {
+                let plat = platform.trimmingCharacters(in: .whitespacesAndNewlines)
+                task = onPush(trimmedReference, plat.isEmpty ? nil : plat)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Make sure the destination repository is correct before continuing.")
+        }
+    }
+}
