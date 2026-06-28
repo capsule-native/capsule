@@ -331,4 +331,69 @@ final class MockBackendTests: XCTestCase {
             XCTAssertEqual(stderr, "boom")
         }
     }
+
+    // MARK: - M7 methods
+
+    func testRunContainerRecordsConfigAndCreatesRunningContainer() async throws {
+        let backend = MockBackend()
+        let before = try await backend.listContainers(all: true).count
+        let id = try await backend.runContainer(RunConfiguration(image: "nginx", name: "web"))
+        XCTAssertEqual(backend.lastRunConfig?.image, "nginx")
+        XCTAssertFalse(id.isEmpty)
+        let after = try await backend.listContainers(all: true)
+        XCTAssertEqual(after.count, before + 1)
+        XCTAssertTrue(after.contains { $0.id == id && $0.state == "running" })
+    }
+
+    func testBuildImageRecordsConfigAndStreams() async throws {
+        let backend = MockBackend()
+        var lines = 0
+        for try await _ in backend.buildImage(
+            BuildConfiguration(contextDirectory: URL(fileURLWithPath: "/p"), tag: "t:1"))
+        {
+            lines += 1
+        }
+        XCTAssertEqual(backend.lastBuildConfig?.tag, "t:1")
+        XCTAssertGreaterThan(lines, 0)
+    }
+
+    func testCopyRecordsEndpoints() async throws {
+        let backend = MockBackend()
+        try await backend.copyToContainer(
+            source: URL(fileURLWithPath: "/h/f"), containerID: "c1", containerPath: "/app/f")
+        XCTAssertEqual(backend.lastCopy?.direction, .toContainer)
+        XCTAssertEqual(backend.lastCopy?.containerID, "c1")
+        XCTAssertEqual(backend.lastCopy?.containerPath, "/app/f")
+
+        try await backend.copyFromContainer(
+            containerID: "c2", containerPath: "/var/log", destination: URL(fileURLWithPath: "/h/l"))
+        XCTAssertEqual(backend.lastCopy?.direction, .fromContainer)
+        XCTAssertEqual(backend.lastCopy?.containerID, "c2")
+    }
+
+    func testListContainerDirectoryReturnsSeededAndRecordsPath() async throws {
+        let backend = MockBackend()
+        let rows = try await backend.listContainerDirectory(id: "c1", path: "/etc")
+        XCTAssertEqual(backend.lastListedDirectory?.path, "/etc")
+        XCTAssertFalse(rows.isEmpty)
+    }
+
+    func testFetchLogsTails() async throws {
+        let backend = MockBackend(
+            logLines: [
+                OutputLine(source: .stdout, text: "a"), OutputLine(source: .stdout, text: "b"),
+                OutputLine(source: .stdout, text: "c"),
+            ])
+        let tailed = try await backend.fetchLogs(container: "c1", tail: 2, boot: false)
+        XCTAssertEqual(tailed.map(\.text), ["b", "c"])
+    }
+
+    func testM7MethodsHonorInjectedFailure() async {
+        let backend = MockBackend()
+        backend.failure = BackendError.nonZeroExit(command: "x", code: 1, stderr: "boom")
+        do {
+            _ = try await backend.runContainer(RunConfiguration(image: "nginx"))
+            XCTFail("expected failure")
+        } catch {}
+    }
 }

@@ -75,6 +75,25 @@ public protocol ContainerBackend: Sendable {
     /// Streams a container's logs line-by-line, following until cancelled.
     func followLogs(container id: String) -> AsyncThrowingStream<OutputLine, Error>
 
+    /// Fetches a snapshot of a container's logs (no follow). `tail` limits to the last N
+    /// lines; `boot` requests the boot log instead of stdio.
+    func fetchLogs(container id: String, tail: Int?, boot: Bool) async throws -> [OutputLine]
+
+    /// Runs a container. Only the **detached** path goes through the port (interactive
+    /// `run -it` is a terminal session); returns the new container id (parsed from stdout).
+    func runContainer(_ config: RunConfiguration) async throws -> String
+
+    /// Copies a host file/folder into a running container (`copy <src> <id>:<path>`).
+    func copyToContainer(source: URL, containerID: String, containerPath: String) async throws
+
+    /// Copies a path out of a running container to the host (`copy <id>:<path> <dst>`).
+    func copyFromContainer(
+        containerID: String, containerPath: String, destination: URL
+    ) async throws
+
+    /// Lists a directory inside a running container (best-effort `exec <id> ls -la <path>`).
+    func listContainerDirectory(id: String, path: String) async throws -> [ContainerFileEntry]
+
     // MARK: Images
 
     func listImages() async throws -> [ImageSummary]
@@ -99,6 +118,10 @@ public protocol ContainerBackend: Sendable {
     /// Removes dangling images (or all unused when `all` is true); returns the CLI's
     /// best-effort reclaimed summary.
     func pruneImages(all: Bool) async throws -> PruneResult
+
+    /// Builds an image from a Dockerfile/Containerfile, streaming progress line-by-line. The
+    /// raw transcript is the source of truth — build logs are never collapsed or hidden.
+    func buildImage(_ config: BuildConfiguration) -> AsyncThrowingStream<OutputLine, Error>
 
     // MARK: Volumes / networks / registries / machines / builder
 

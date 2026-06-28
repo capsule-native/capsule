@@ -360,4 +360,91 @@ final class CLIContainerBackendTests: XCTestCase {
         try await makeBackend(stub).registryLogout(server: "ghcr.io")
         XCTAssertEqual(stub.lastCall, ["registry", "logout", "ghcr.io"])
     }
+
+    // MARK: - M7: run / build / copy / logs / listDirectory
+
+    func testRunContainerReturnsParsedIDAndBuildsArgv() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(exitCode: 0, stdout: "abc123def\n", stderr: "")
+        let id = try await makeBackend(stub).runContainer(
+            RunConfiguration(image: "nginx", detach: true))
+        XCTAssertEqual(id, "abc123def")
+        XCTAssertEqual(stub.lastCall, ["run", "-d", "nginx"])
+    }
+
+    func testRunContainerTakesLastStdoutLineAsID() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(
+            exitCode: 0, stdout: "pulling image\nstarting\nc0ffee01\n", stderr: "")
+        let id = try await makeBackend(stub).runContainer(RunConfiguration(image: "img"))
+        XCTAssertEqual(id, "c0ffee01")
+    }
+
+    func testBuildImageStreamsAndBuildsArgv() async throws {
+        let stub = StubProcessRunner()
+        stub.streamLines = [OutputLine(source: .stdout, text: "Step 1/2")]
+        var got: [String] = []
+        for try await line in makeBackend(stub).buildImage(
+            BuildConfiguration(contextDirectory: URL(fileURLWithPath: "/p"), tag: "t:1"))
+        {
+            got.append(line.text)
+        }
+        XCTAssertEqual(got, ["Step 1/2"])
+        XCTAssertEqual(stub.lastCall, ["build", "--tag", "t:1", "/p"])
+    }
+
+    func testCopyToContainerComposesEndpointAndBuildsArgv() async throws {
+        let stub = StubProcessRunner()
+        try await makeBackend(stub).copyToContainer(
+            source: URL(fileURLWithPath: "/local/file.txt"), containerID: "c1",
+            containerPath: "/app/file.txt")
+        XCTAssertEqual(stub.lastCall, ["copy", "/local/file.txt", "c1:/app/file.txt"])
+    }
+
+    func testCopyFromContainerComposesEndpointAndBuildsArgv() async throws {
+        let stub = StubProcessRunner()
+        try await makeBackend(stub).copyFromContainer(
+            containerID: "c1", containerPath: "/app/file.txt",
+            destination: URL(fileURLWithPath: "/local/file.txt"))
+        XCTAssertEqual(stub.lastCall, ["copy", "c1:/app/file.txt", "/local/file.txt"])
+    }
+
+    func testFetchLogsSplitsStdoutAndBuildsArgv() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(exitCode: 0, stdout: "line one\nline two", stderr: "")
+        let lines = try await makeBackend(stub).fetchLogs(container: "c1", tail: 50, boot: false)
+        XCTAssertEqual(lines.map(\.text), ["line one", "line two"])
+        XCTAssertEqual(stub.lastCall, ["logs", "-n", "50", "c1"])
+    }
+
+    func testListDirectoryParsesLsLeniently() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(
+            exitCode: 0,
+            stdout: """
+                total 8
+                drwxr-xr-x 2 root root 4096 Jun 1 00:00 bin
+                -rw-r--r-- 1 root root 220 Jun 1 00:00 .bashrc
+                lrwxrwxrwx 1 root root 7 Jun 1 00:00 sh -> busybox
+                """, stderr: "")
+        let rows = try await makeBackend(stub).listContainerDirectory(id: "c1", path: "/")
+        XCTAssertEqual(stub.lastCall, ["exec", "c1", "ls", "-la", "/"])
+        XCTAssertTrue(rows.contains { $0.name == "bin" && $0.isDirectory && $0.size == 4096 })
+        XCTAssertTrue(rows.contains { $0.name == ".bashrc" && !$0.isDirectory })
+        XCTAssertTrue(rows.contains { $0.name == "sh" && !$0.isDirectory })
+    }
+
+    func testListDirectoryThrowsOnNonZeroExit() async {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(exitCode: 1, stdout: "", stderr: "no such file or directory")
+        do {
+            _ = try await makeBackend(stub).listContainerDirectory(id: "c1", path: "/nope")
+            XCTFail("expected a thrown error on non-zero exit")
+        } catch let BackendError.nonZeroExit(_, code, stderr) {
+            XCTAssertEqual(code, 1)
+            XCTAssertTrue(stderr.contains("no such file"))
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
 }

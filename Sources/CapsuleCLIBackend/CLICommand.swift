@@ -84,7 +84,37 @@ public enum CLICommand {
         ArgumentBuilder("logs").option("--follow", enabled: true).adding(id).arguments
     }
 
+    public static func fetchLogs(container id: String, tail: Int?, boot: Bool) -> [String] {
+        ArgumentBuilder("logs")
+            .option("--boot", enabled: boot)
+            .flag("-n", tail.map(String.init))
+            .adding(id)
+            .arguments
+    }
+
+    /// Detached/interactive run argv comes straight from the typed configuration, the single
+    /// source of truth shared with the domain's terminal-request builder.
+    public static func run(_ config: RunConfiguration) -> [String] {
+        config.arguments
+    }
+
+    /// Canonical `copy` subcommand (not the `cp` alias). Endpoints are `container:path` or a
+    /// local path, already composed by the caller.
+    public static func copy(source: String, destination: String) -> [String] {
+        ArgumentBuilder("copy").adding(source, destination).arguments
+    }
+
+    /// Lists a directory inside a running container; apple/container has no file-listing verb,
+    /// so we exec `ls -la` and parse it leniently.
+    public static func listDirectory(id: String, path: String) -> [String] {
+        ArgumentBuilder("exec").adding(id, "ls", "-la", path).arguments
+    }
+
     // MARK: - Images
+
+    public static func build(_ config: BuildConfiguration) -> [String] {
+        config.arguments
+    }
 
     public static func listImages() -> [String] {
         ArgumentBuilder("image", "list").flag("--format", "json").arguments

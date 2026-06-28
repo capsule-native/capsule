@@ -144,6 +144,57 @@ public struct CLIContainerBackend: ContainerBackend {
         runner.stream(CLICommand.followLogs(container: id), environment: [:])
     }
 
+    public func fetchLogs(container id: String, tail: Int?, boot: Bool) async throws -> [OutputLine]
+    {
+        let output = try await runChecked(
+            CLICommand.fetchLogs(container: id, tail: tail, boot: boot))
+        return output.stdout
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { OutputLine(source: .stdout, text: String($0)) }
+    }
+
+    public func runContainer(_ config: RunConfiguration) async throws -> String {
+        // apple/container prints the new container id on stdout for a detached run; take the
+        // last non-empty line as the id (any progress lines precede it).
+        let output = try await runChecked(CLICommand.run(config))
+        let id =
+            output.stdout
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .last
+            .map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
+        return id
+    }
+
+    public func copyToContainer(
+        source: URL, containerID: String, containerPath: String
+    ) async throws {
+        _ = try await runChecked(
+            CLICommand.copy(source: source.path, destination: "\(containerID):\(containerPath)"))
+    }
+
+    public func copyFromContainer(
+        containerID: String, containerPath: String, destination: URL
+    ) async throws {
+        _ = try await runChecked(
+            CLICommand.copy(
+                source: "\(containerID):\(containerPath)", destination: destination.path))
+    }
+
+    public func listContainerDirectory(
+        id: String, path: String
+    ) async throws -> [ContainerFileEntry] {
+        // Use the non-throwing escape hatch so a non-zero exit (no such path / no `ls` / not
+        // running) surfaces a typed error the domain can degrade gracefully on, with the raw
+        // stderr preserved for diagnosis.
+        let output = try await runRaw(CLICommand.listDirectory(id: id, path: path))
+        guard output.exitCode == 0 else {
+            throw BackendError.nonZeroExit(
+                command: commandDescription(CLICommand.listDirectory(id: id, path: path)),
+                code: output.exitCode, stderr: output.stderr)
+        }
+        return OutputParser.parseDirectoryListing(output.stdout)
+    }
+
     // MARK: - Images
 
     public func listImages() async throws -> [ImageSummary] {
@@ -173,6 +224,10 @@ public struct CLIContainerBackend: ContainerBackend {
     ) -> AsyncThrowingStream<OutputLine, Error> {
         runner.stream(
             CLICommand.pushImage(reference: reference, platform: platform), environment: [:])
+    }
+
+    public func buildImage(_ config: BuildConfiguration) -> AsyncThrowingStream<OutputLine, Error> {
+        runner.stream(CLICommand.build(config), environment: [:])
     }
 
     public func saveImage(references: [String], to url: URL, platform: String?) async throws {

@@ -35,6 +35,35 @@ public enum OutputParser {
         }
     }
 
+    // MARK: - Container files
+
+    /// Parses `ls -la` output into directory entries. Lenient: skips the `total N` header
+    /// and any line that is not an ls long-format row. The mode column's leading character
+    /// distinguishes directories (`d`) and symlinks (`l`); size is column 5; the name is
+    /// everything after the date columns (so names with spaces survive). `.`/`..` are
+    /// dropped; a symlink's `name -> target` keeps just the link name.
+    public static func parseDirectoryListing(_ text: String) -> [ContainerFileEntry] {
+        var entries: [ContainerFileEntry] = []
+        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: true) {
+            let line = String(rawLine)
+            if line.hasPrefix("total ") { continue }
+            let fields = line.split(separator: " ", omittingEmptySubsequences: true).map(
+                String.init)
+            guard fields.count >= 9, let first = fields[0].first, "dlbcps-".contains(first) else {
+                continue
+            }
+            var name = fields[8...].joined(separator: " ")
+            if first == "l", let arrow = name.range(of: " -> ") {
+                name = String(name[..<arrow.lowerBound])
+            }
+            if name == "." || name == ".." { continue }
+            entries.append(
+                ContainerFileEntry(
+                    name: name, isDirectory: first == "d", size: Int64(fields[4]), mode: fields[0]))
+        }
+        return entries
+    }
+
     // MARK: - Containers
 
     /// Decodes `container ls --format json` into container rows, skipping any element

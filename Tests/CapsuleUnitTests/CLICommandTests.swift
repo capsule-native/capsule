@@ -59,6 +59,34 @@ final class CLICommandTests: XCTestCase {
             ["stats", "--no-stream", "--format", "json"])
     }
 
+    func testRunAndBuildDelegateToConfigurationArguments() {
+        let run = RunConfiguration(image: "nginx", detach: true)
+        XCTAssertEqual(CLICommand.run(run), run.arguments)
+        let build = BuildConfiguration(contextDirectory: URL(fileURLWithPath: "/p"), tag: "t:1")
+        XCTAssertEqual(CLICommand.build(build), build.arguments)
+    }
+
+    func testCopyUsesCanonicalSubcommandNotAlias() {
+        XCTAssertEqual(
+            CLICommand.copy(source: "/h/f.txt", destination: "c1:/app/f.txt"),
+            ["copy", "/h/f.txt", "c1:/app/f.txt"])
+    }
+
+    func testFetchLogsArgv() {
+        XCTAssertEqual(
+            CLICommand.fetchLogs(container: "c1", tail: nil, boot: false), ["logs", "c1"])
+        XCTAssertEqual(
+            CLICommand.fetchLogs(container: "c1", tail: 100, boot: false),
+            ["logs", "-n", "100", "c1"])
+        XCTAssertEqual(
+            CLICommand.fetchLogs(container: "c1", tail: nil, boot: true), ["logs", "--boot", "c1"])
+    }
+
+    func testListDirectoryArgvUsesExecLs() {
+        XCTAssertEqual(
+            CLICommand.listDirectory(id: "c1", path: "/etc"), ["exec", "c1", "ls", "-la", "/etc"])
+    }
+
     func testImages() {
         XCTAssertEqual(CLICommand.listImages(), ["image", "list", "--format", "json"])
         XCTAssertEqual(
