@@ -33,6 +33,7 @@ public struct AppEnvironment {
     public var imageActionsModel: ImageActionsModel
     public var taskCenter: TaskCenter
     public var registriesModel: RegistriesModel
+    public var runModel: RunModel
     public var actions: ShellActions
     public var updater: any UpdaterController
     public var terminalSurfaceProvider: any TerminalSurfaceProviding
@@ -48,6 +49,7 @@ public struct AppEnvironment {
         imageActionsModel: ImageActionsModel,
         taskCenter: TaskCenter,
         registriesModel: RegistriesModel,
+        runModel: RunModel,
         actions: ShellActions,
         updater: any UpdaterController,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
@@ -62,6 +64,7 @@ public struct AppEnvironment {
         self.imageActionsModel = imageActionsModel
         self.taskCenter = taskCenter
         self.registriesModel = registriesModel
+        self.runModel = runModel
         self.actions = actions
         self.updater = updater
         self.terminalSurfaceProvider = terminalSurfaceProvider
@@ -72,10 +75,12 @@ public struct AppEnvironment {
         let cliBackend = CLIContainerBackend()
         let backend: any ContainerBackend = cliBackend
         let shell = ShellState()
+        let taskCenter = TaskCenter(normalize: { ErrorNormalizer.normalize($0) })
         let systemModel = SystemStatusModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
-            onActivity: { line in shell.appendActivity(line) }
+            onActivity: { line in shell.appendActivity(line) },
+            taskCenter: taskCenter
         )
         let workspaceModel = WorkspaceModel(backend: backend)
         let browserModel = ContainerBrowserModel(
@@ -90,7 +95,6 @@ public struct AppEnvironment {
             normalize: { ErrorNormalizer.normalize($0) },
             onActivity: { line in shell.appendActivity(line) }
         )
-        let taskCenter = TaskCenter(normalize: { ErrorNormalizer.normalize($0) })
         let registriesModel = RegistriesModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
@@ -103,6 +107,13 @@ public struct AppEnvironment {
             reloadList: { await imageBrowserModel.refresh() },
             taskCenter: taskCenter
         )
+        let copyCommandToClipboard: @MainActor ([String]) -> Void = { argv in
+            let command = argv.joined(separator: " ")
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(command, forType: .string)
+            shell.appendActivity("Copied to clipboard: \(command)")
+        }
         let lifecycleModel = ContainerLifecycleModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
@@ -112,14 +123,19 @@ public struct AppEnvironment {
                 browserModel.allContainers.first { $0.id == id }?.state ?? .unknown
             },
             terminalAvailable: { true },
-            copyCommand: { argv in
-                let command = argv.joined(separator: " ")
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(command, forType: .string)
-                shell.appendActivity("Copied to clipboard: \(command)")
-            },
-            launchTerminal: { request in shell.openTerminal(request) }
+            copyCommand: copyCommandToClipboard,
+            launchTerminal: { request in shell.openTerminal(request) },
+            taskCenter: taskCenter
+        )
+        let runModel = RunModel(
+            backend: backend,
+            taskCenter: taskCenter,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) },
+            reloadList: { await browserModel.refresh() },
+            terminalAvailable: { true },
+            launchTerminal: { request in shell.openTerminal(request) },
+            copyCommand: copyCommandToClipboard
         )
         let terminalSurfaceProvider = SwiftTermSurfaceProvider(executablePath: { name in
             name == "container" ? cliBackend.executableURL.path : name
@@ -136,6 +152,7 @@ public struct AppEnvironment {
             imageActionsModel: imageActionsModel,
             taskCenter: taskCenter,
             registriesModel: registriesModel,
+            runModel: runModel,
             actions: actions,
             updater: NoopUpdaterController(),
             terminalSurfaceProvider: terminalSurfaceProvider

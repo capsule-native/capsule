@@ -20,12 +20,14 @@ private typealias Image = CapsuleDomain.Image
 struct ImageListView: View {
     @Bindable var model: ImageBrowserModel
     let actions: ImageActionsModel
+    @Bindable var runModel: RunModel
 
     @State private var activeSheet: ImageSheet?
 
-    init(model: ImageBrowserModel, actions: ImageActionsModel) {
+    init(model: ImageBrowserModel, actions: ImageActionsModel, runModel: RunModel) {
         self.model = model
         self.actions = actions
+        self.runModel = runModel
     }
 
     var body: some View {
@@ -68,6 +70,13 @@ struct ImageListView: View {
                         }, onCancel: { activeSheet = nil })
                 case .prune:
                     ImagePruneSheet(actions: actions, onClose: { activeSheet = nil })
+                case let .run(image):
+                    QuickRunSheet(
+                        model: runModel,
+                        onResolveImage: { _ in activeSheet = .pull },
+                        onClose: { activeSheet = nil }
+                    )
+                    .onAppear { runModel.reset(image: image) }
                 }
             }
     }
@@ -144,6 +153,9 @@ struct ImageListView: View {
     private func rowMenu(for ids: Set<Image.ID>) -> some View {
         let targets = images(for: ids)
         if let single = targets.first, targets.count == 1 {
+            Button("Run Image…") { activeSheet = .run(image: single.reference) }
+                .disabled(single.isDangling)
+            Divider()
             Button("Copy Digest") { Pasteboard.copy(single.digest) }
             Button("Copy Reference") { Pasteboard.copy(single.reference) }
                 .disabled(single.isDangling)
@@ -166,6 +178,13 @@ struct ImageListView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup {
+            Button {
+                activeSheet = .run(image: selectedReference ?? "")
+            } label: {
+                Label("Run", systemImage: "play.rectangle")
+            }
+            .help("Run a container from an image")
+
             Button {
                 activeSheet = .pull
             } label: {
@@ -245,6 +264,13 @@ struct ImageListView: View {
     private func images(for ids: Set<Image.ID>) -> [Image] {
         model.allImages.filter { ids.contains($0.id) }
     }
+
+    /// The reference of the single selected, non-dangling image (prefills the Run sheet).
+    private var selectedReference: String? {
+        let targets = images(for: model.selection)
+        guard targets.count == 1, let single = targets.first, !single.isDangling else { return nil }
+        return single.reference
+    }
 }
 
 /// Which image sheet is presented.
@@ -255,6 +281,7 @@ enum ImageSheet: Identifiable {
     case load
     case confirm(ConfirmationRequest)
     case prune
+    case run(image: String)
 
     var id: String {
         switch self {
@@ -264,6 +291,7 @@ enum ImageSheet: Identifiable {
         case .load: return "load"
         case let .confirm(request): return "confirm-\(request.id)"
         case .prune: return "prune"
+        case let .run(image): return "run-\(image)"
         }
     }
 }

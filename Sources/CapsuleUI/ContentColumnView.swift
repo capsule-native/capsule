@@ -20,6 +20,7 @@ struct ContentColumnView: View {
     let statsModel: ContainerStatsModel
     let imageBrowserModel: ImageBrowserModel
     let imageActionsModel: ImageActionsModel
+    let runModel: RunModel
 
     private var onRecover: (RecoveryAction) -> Void { actions.recover }
 
@@ -44,7 +45,7 @@ struct ContentColumnView: View {
         case .containers:
             ContainerListView(model: browserModel, lifecycle: lifecycleModel, stats: statsModel)
         case .images:
-            ImageListView(model: imageBrowserModel, actions: imageActionsModel)
+            ImageListView(model: imageBrowserModel, actions: imageActionsModel, runModel: runModel)
         default:
             resourcePlaceholder
         }
