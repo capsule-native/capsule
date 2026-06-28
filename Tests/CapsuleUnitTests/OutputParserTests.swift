@@ -34,6 +34,17 @@ final class OutputParserTests: XCTestCase {
 
     // MARK: - Containers
 
+    func testParseContainersExtractsCreationDate() throws {
+        let json = """
+            [{"id":"abc","configuration":{"id":"web",\
+            "image":{"reference":"docker.io/library/alpine:latest"},\
+            "creationDate":"2026-06-20T09:15:00Z"},\
+            "status":{"state":"running","networks":[]}}]
+            """
+        let rows = try OutputParser.parseContainers(Data(json.utf8))
+        XCTAssertEqual(rows.first?.createdAt, "2026-06-20T09:15:00Z")
+    }
+
     func testParsesContainerListIntoRows() throws {
         let rows = try OutputParser.parseContainers(Fixture.data("containers-ls"))
 
