@@ -15,6 +15,7 @@ struct ContentColumnView: View {
     let section: SidebarSection
     let health: SystemHealth
     let actions: ShellActions
+    let browserModel: ContainerBrowserModel
 
     private var onRecover: (RecoveryAction) -> Void { actions.recover }
 
@@ -23,12 +24,23 @@ struct ContentColumnView: View {
             if section == .system {
                 SystemDetailView(health: health, actions: actions)
             } else if health.isRunning {
-                resourcePlaceholder
+                runningContent
             } else {
                 healthState
             }
         }
         .navigationTitle(section.title)
+    }
+
+    /// The content shown for a running service. Containers get the live browser; other
+    /// sections keep the friendly placeholder until their milestones land.
+    @ViewBuilder
+    private var runningContent: some View {
+        if section == .containers {
+            ContainerListView(model: browserModel)
+        } else {
+            resourcePlaceholder
+        }
     }
 
     /// Until real lists land (later milestones), a running service shows a friendly

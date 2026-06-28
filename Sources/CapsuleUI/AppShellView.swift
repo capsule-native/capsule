@@ -16,17 +16,20 @@ public struct AppShellView: View {
     @Bindable var shell: ShellState
     let systemModel: SystemStatusModel
     let workspaceModel: WorkspaceModel
+    let browserModel: ContainerBrowserModel
     let actions: ShellActions
 
     public init(
         shell: ShellState,
         systemModel: SystemStatusModel,
         workspaceModel: WorkspaceModel,
+        browserModel: ContainerBrowserModel,
         actions: ShellActions
     ) {
         self.shell = shell
         self.systemModel = systemModel
         self.workspaceModel = workspaceModel
+        self.browserModel = browserModel
         self.actions = actions
     }
 
@@ -57,7 +60,8 @@ public struct AppShellView: View {
             ContentColumnView(
                 section: shell.selection,
                 health: systemModel.health,
-                actions: actions
+                actions: actions,
+                browserModel: browserModel
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -66,8 +70,14 @@ public struct AppShellView: View {
             }
         }
         .inspector(isPresented: $shell.inspectorPresented) {
-            InspectorView(section: shell.selection)
-                .inspectorColumnWidth(min: 240, ideal: 320, max: 420)
+            Group {
+                if shell.selection == .containers {
+                    ContainerInspectorView(model: browserModel)
+                } else {
+                    InspectorView(section: shell.selection)
+                }
+            }
+            .inspectorColumnWidth(min: 240, ideal: 320, max: 420)
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {

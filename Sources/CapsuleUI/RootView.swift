@@ -18,6 +18,7 @@ public struct RootView: View {
     private let shell: ShellState
     private let systemModel: SystemStatusModel
     private let workspaceModel: WorkspaceModel
+    private let browserModel: ContainerBrowserModel
     private let actions: ShellActions
 
     @AppStorage("capsule.hasCompletedOnboarding") private var hasCompletedOnboarding = false
@@ -26,11 +27,13 @@ public struct RootView: View {
         shell: ShellState,
         systemModel: SystemStatusModel,
         workspaceModel: WorkspaceModel,
+        browserModel: ContainerBrowserModel,
         actions: ShellActions
     ) {
         self.shell = shell
         self.systemModel = systemModel
         self.workspaceModel = workspaceModel
+        self.browserModel = browserModel
         self.actions = actions
     }
 
@@ -39,6 +42,7 @@ public struct RootView: View {
             shell: shell,
             systemModel: systemModel,
             workspaceModel: workspaceModel,
+            browserModel: browserModel,
             actions: actions
         )
         .sheet(isPresented: showOnboarding) {
