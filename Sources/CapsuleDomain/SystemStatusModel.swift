@@ -63,7 +63,10 @@ public final class SystemStatusModel {
                 compatibilityWarning = CapsuleDomain.compatibilityWarning(
                     forClient: version.client, server: version.server)
                 health = .running(
-                    version: SystemVersion(client: version.client, server: version.server),
+                    version: SystemVersion(
+                        client: Self.concise(version.client),
+                        server: version.server.map(Self.concise)
+                    ),
                     features: Self.features(from: capabilities)
                 )
                 onActivity("System running (client \(version.client)).")
@@ -101,5 +104,13 @@ public final class SystemStatusModel {
     /// Maps backend capability flags into the UI-facing feature mirror by raw value.
     private static func features(from capabilities: BackendCapabilities) -> Set<SystemFeature> {
         Set(capabilities.features.compactMap { SystemFeature(rawValue: $0.rawValue) })
+    }
+
+    /// Reduces a possibly-noisy version string ("container-apiserver version 1.0.0 (build:
+    /// release, commit: …)") to a concise "major.minor.patch" for the banner, falling back
+    /// to the original text when no version-like substring is present.
+    private static func concise(_ raw: String) -> String {
+        guard let version = SemanticVersion(parsing: raw) else { return raw }
+        return "\(version.major).\(version.minor).\(version.patch)"
     }
 }
