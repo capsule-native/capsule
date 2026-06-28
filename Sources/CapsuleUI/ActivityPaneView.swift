@@ -138,7 +138,7 @@ struct ActivityPaneView: View {
                         .makeSurface(for: session.request) { status in
                             session.exit = status
                         }
-                        .id(session.generation)
+                        .id(session.surfaceID)
                 } else {
                     placeholder("Terminal unavailable", systemImage: "terminal")
                 }

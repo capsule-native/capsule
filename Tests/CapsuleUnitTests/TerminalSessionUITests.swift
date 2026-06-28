@@ -53,4 +53,13 @@ final class TerminalSessionUITests: XCTestCase {
         XCTAssertEqual(
             TerminalExitStatus.exited(code: 3).bannerText, "Session ended (exit 3).")
     }
+
+    func testSurfaceIDIsUniquePerInstanceAndChangesOnRestart() {
+        let a = TerminalSessionState(request: request())
+        let b = TerminalSessionState(request: request())
+        XCTAssertNotEqual(a.surfaceID, b.surfaceID)
+        let beforeRestart = a.surfaceID
+        a.restart()
+        XCTAssertNotEqual(a.surfaceID, beforeRestart)
+    }
 }
