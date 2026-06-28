@@ -25,6 +25,7 @@ public struct CapsuleScene: Scene {
     @State private var imageBrowserModel: ImageBrowserModel
     @State private var imageActionsModel: ImageActionsModel
     @State private var taskCenter: TaskCenter
+    @State private var registriesModel: RegistriesModel
     private let actions: ShellActions
     private let updater: any UpdaterController
     private let terminalSurfaceProvider: any TerminalSurfaceProviding
@@ -43,6 +44,7 @@ public struct CapsuleScene: Scene {
         self._imageBrowserModel = State(initialValue: environment.imageBrowserModel)
         self._imageActionsModel = State(initialValue: environment.imageActionsModel)
         self._taskCenter = State(initialValue: environment.taskCenter)
+        self._registriesModel = State(initialValue: environment.registriesModel)
         self.actions = environment.actions
         self.updater = environment.updater
         self.terminalSurfaceProvider = environment.terminalSurfaceProvider
@@ -71,6 +73,10 @@ public struct CapsuleScene: Scene {
                 systemModel: systemModel,
                 actions: actions
             )
+        }
+
+        Settings {
+            PreferencesView(registriesModel: registriesModel)
         }
     }
 }
