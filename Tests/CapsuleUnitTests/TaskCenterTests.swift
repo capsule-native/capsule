@@ -105,6 +105,83 @@ final class TaskCenterTests: XCTestCase {
         XCTAssertTrue(task.transcript.contains { $0.text.contains("invalid archive") })
     }
 
+    func testCancelledStateIsNotActive() {
+        XCTAssertFalse(TaskState.cancelled.isActive)
+        XCTAssertTrue(TaskState.running(progress: nil).isActive)
+    }
+
+    func testNewOperationKindsHaveTitlesAndSymbols() {
+        for kind in [OperationKind.build, .run, .export, .systemStart, .copy] {
+            XCTAssertFalse(kind.title.isEmpty)
+            XCTAssertFalse(kind.symbolName.isEmpty)
+        }
+        XCTAssertEqual(OperationKind.build.title, "Build")
+        XCTAssertEqual(OperationKind.run.title, "Run")
+    }
+
+    func testCancelStopsRunningTaskAndMarksCancelled() async {
+        let center = TaskCenter()
+        let gate = AsyncStream<OutputLine>.makeStream()
+        let task = center.runStreaming(kind: .build, title: "build") {
+            AsyncThrowingStream { continuation in
+                let pump = Task {
+                    for await line in gate.stream { continuation.yield(line) }
+                    continuation.finish()
+                }
+                continuation.onTermination = { _ in pump.cancel() }
+            }
+        }
+        await Task.yield()
+        center.cancel(task)
+        await task.wait()
+
+        XCTAssertEqual(task.state, .cancelled)
+        XCTAssertFalse(task.state.isActive)
+    }
+
+    func testStreamingUpdatesDeterminateProgress() async {
+        let center = TaskCenter()
+        let task = center.runStreaming(kind: .pull, title: "pull") {
+            AsyncThrowingStream { continuation in
+                continuation.yield(OutputLine(source: .stdout, text: "Downloading 50%"))
+                continuation.finish()
+            }
+        }
+        await task.wait()
+        XCTAssertTrue(task.transcriptText.contains("50%"))
+        XCTAssertEqual(task.state, .succeeded)
+    }
+
+    func testRetryOfCancelledTaskReRunsToSuccess() async {
+        let center = TaskCenter()
+        let flip = Flip(true)
+        let gate = AsyncStream<OutputLine>.makeStream()
+        let task = center.runStreaming(kind: .build, title: "build") {
+            AsyncThrowingStream { continuation in
+                if flip.shouldFail {
+                    let pump = Task {
+                        for await line in gate.stream { continuation.yield(line) }
+                        continuation.finish()
+                    }
+                    continuation.onTermination = { _ in pump.cancel() }
+                } else {
+                    continuation.yield(OutputLine(source: .stdout, text: "built"))
+                    continuation.finish()
+                }
+            }
+        }
+        await Task.yield()
+        center.cancel(task)
+        await task.wait()
+        XCTAssertEqual(task.state, .cancelled)
+
+        flip.shouldFail = false
+        center.retry(task)
+        await task.wait()
+        XCTAssertEqual(task.state, .succeeded)
+        XCTAssertEqual(task.transcript.map(\.text), ["built"])
+    }
+
     func testClearFinishedRemovesOnlyCompletedTasks() async {
         let center = TaskCenter()
         let done = center.runAsync(kind: .save, title: "Save") {}

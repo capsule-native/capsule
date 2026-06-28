@@ -202,7 +202,10 @@ struct ActivityPaneView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(tasks) { task in
-                            TaskTranscriptView(task: task, onRetry: { taskCenter?.retry(task) })
+                            TaskTranscriptView(
+                                task: task,
+                                onRetry: { taskCenter?.retry(task) },
+                                onCancel: { taskCenter?.cancel(task) })
                             Divider()
                         }
                     }
@@ -225,7 +228,17 @@ struct ActivityPaneView: View {
                             Label(task.title, systemImage: task.kind.symbolName)
                                 .font(.caption)
                             Spacer()
-                            ProgressView().controlSize(.small)
+                            if case let .running(progress) = task.state, let progress {
+                                ProgressView(value: progress)
+                                    .progressViewStyle(.linear)
+                                    .frame(width: 120)
+                            } else {
+                                ProgressView().controlSize(.small)
+                            }
+                            if task.isCancellable {
+                                Button("Stop", role: .destructive) { taskCenter?.cancel(task) }
+                                    .controlSize(.small)
+                            }
                         }
                     }
                 }
