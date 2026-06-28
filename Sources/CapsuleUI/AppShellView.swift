@@ -134,7 +134,8 @@ public struct AppShellView: View {
     }
 
     /// Routes a notice's recovery action. `.retry` is container-scoped — it refreshes the
-    /// container list, never the system status. The terminal interim copies the command.
+    /// container list, never the system status. The `.retryInTerminal` case runs the command
+    /// in the embedded terminal.
     private func handleNoticeAction(_ action: RecoveryAction) {
         switch action {
         case .retry:

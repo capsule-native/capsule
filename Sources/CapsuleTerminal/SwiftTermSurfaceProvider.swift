@@ -56,6 +56,10 @@ private struct SwiftTermSurface: NSViewRepresentable {
 
     func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {}
 
+    static func dismantleNSView(_ nsView: LocalProcessTerminalView, coordinator: Coordinator) {
+        nsView.terminate()
+    }
+
     final class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
         private let onExit: (TerminalExitStatus) -> Void
 
@@ -64,11 +68,11 @@ private struct SwiftTermSurface: NSViewRepresentable {
         }
 
         func processTerminated(source: TerminalView, exitCode: Int32?) {
-            if let exitCode {
-                onExit(.exited(code: exitCode))
-            } else {
+            guard let exitCode else {
                 onExit(.failed("The process ended unexpectedly."))
+                return
             }
+            onExit(TerminalExitStatus.from(rawWaitpidStatus: exitCode))
         }
 
         func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}

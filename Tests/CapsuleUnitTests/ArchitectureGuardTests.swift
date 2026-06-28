@@ -68,6 +68,20 @@ final class ArchitectureGuardTests: XCTestCase {
         }
     }
 
+    func testTerminalEngineDoesNotImportBackendModules() throws {
+        for file in try swiftFiles(inModule: "CapsuleTerminal") {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            XCTAssertFalse(
+                source.contains("import CapsuleBackend"),
+                "CapsuleTerminal must not import CapsuleBackend (\(file.lastPathComponent))"
+            )
+            XCTAssertFalse(
+                source.contains("import CapsuleCLIBackend"),
+                "CapsuleTerminal must not import CapsuleCLIBackend (\(file.lastPathComponent))"
+            )
+        }
+    }
+
     func testGuardActuallyFoundSources() throws {
         // Guards the guard: if path resolution breaks, the loops above would pass
         // vacuously. Make sure we are really scanning files.

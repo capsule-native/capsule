@@ -30,6 +30,19 @@ public enum TerminalExitStatus: Sendable, Equatable {
     }
 }
 
+extension TerminalExitStatus {
+    /// Decodes a raw `waitpid(2)` status word into an exit status.
+    /// `status & 0x7f == 0` ⇒ normal exit, code = `(status >> 8) & 0xff`; otherwise the
+    /// low 7 bits hold the terminating signal.
+    public static func from(rawWaitpidStatus status: Int32) -> TerminalExitStatus {
+        if status & 0x7f == 0 {
+            return .exited(code: (status >> 8) & 0xff)
+        } else {
+            return .signalled(signal: status & 0x7f)
+        }
+    }
+}
+
 /// Produces an embeddable terminal surface that spawns a `TerminalRequest`'s command in a
 /// PTY. The concrete engine (SwiftTerm) lives in `CapsuleTerminal`; tests/previews use
 /// `StubTerminalSurfaceProvider`.
