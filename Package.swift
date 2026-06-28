@@ -50,7 +50,7 @@ let package = Package(
         .target(name: "CapsuleDomain", dependencies: ["CapsuleBackend"]),
 
         // MARK: - Leaf / side modules
-        .target(name: "CapsuleDiagnostics", dependencies: ["CapsuleDomain"]),
+        .target(name: "CapsuleDiagnostics", dependencies: ["CapsuleDomain", "CapsuleBackend"]),
         .target(name: "CapsuleAutomation", dependencies: ["CapsuleDomain"]),
 
         // MARK: - CLI adapter (conforms to the backend port; the only Process user)

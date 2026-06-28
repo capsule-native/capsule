@@ -5,6 +5,7 @@
 //  Copyright © 2026 Capsule. All rights reserved.
 //
 
+import CapsuleBackend
 import CapsuleDomain
 import XCTest
 
@@ -56,5 +57,53 @@ final class ErrorNormalizerTests: XCTestCase {
         let info = ErrorNormalizer.diagnosticInfo(for: SampleLocalizedError())
         XCTAssertEqual(info.summary, "Something went wrong")
         XCTAssertEqual(info.detail, "a localized message")
+    }
+
+    // MARK: - BackendError mapping
+
+    func testNonZeroExitWithDaemonSignatureBecomesDaemonUnavailable() {
+        let error = BackendError.nonZeroExit(
+            command: "container system status", code: 1, stderr: "Connection refused")
+        guard case let .daemonUnavailable(_, recovery) = ErrorNormalizer.normalize(error) else {
+            return XCTFail("expected .daemonUnavailable")
+        }
+        XCTAssertTrue(recovery.contains(.startServices))
+        XCTAssertTrue(recovery.contains(.openLogs))
+    }
+
+    func testNonZeroExitWithXPCSignatureBecomesDaemonUnavailable() {
+        let error = BackendError.nonZeroExit(
+            command: "container system start", code: 1,
+            stderr: "failed to connect to XPC service")
+        guard case .daemonUnavailable = ErrorNormalizer.normalize(error) else {
+            return XCTFail("expected .daemonUnavailable for an XPC failure")
+        }
+    }
+
+    func testNonZeroExitWithoutDaemonSignatureBecomesCommandFailed() {
+        let error = BackendError.nonZeroExit(
+            command: "container image delete alpine", code: 2, stderr: "no such image")
+        guard case let .commandFailed(command, exitCode, stderr) = ErrorNormalizer.normalize(error)
+        else {
+            return XCTFail("expected .commandFailed")
+        }
+        XCTAssertEqual(command, ["container", "image", "delete", "alpine"])
+        XCTAssertEqual(exitCode, 2)
+        XCTAssertEqual(stderr, "no such image")
+    }
+
+    func testExecutableNotFoundBecomesDaemonUnavailable() {
+        let error = BackendError.executableNotFound("/usr/local/bin/container")
+        guard case let .daemonUnavailable(message, recovery) = ErrorNormalizer.normalize(error)
+        else {
+            return XCTFail("expected .daemonUnavailable")
+        }
+        XCTAssertTrue(message.contains("/usr/local/bin/container"))
+        XCTAssertTrue(recovery.contains(.exportDiagnostics))
+    }
+
+    func testDecodingFailedBecomesUnknown() {
+        let error = BackendError.decodingFailed("bad json")
+        XCTAssertEqual(ErrorNormalizer.normalize(error), .unknown(message: "bad json"))
     }
 }
