@@ -150,6 +150,21 @@ final class ContainerLifecycleModelTests: XCTestCase {
         XCTAssertFalse(remaining.contains("a1b2c3d4"))
     }
 
+    func testDeleteOfAlreadyGoneContainerIsBenign() async {
+        let backend = MockBackend()
+        backend.failure = .nonZeroExit(
+            command: "delete", code: 1,
+            stderr: "internalError: \"failed to delete container\" "
+                + "(cause: \"notFound: container with ID a1b2c3d4 not found\")")
+        var activity: [String] = []
+        let m = ContainerLifecycleModel(
+            backend: backend, onActivity: { activity.append($0) }, settleAttempts: 1,
+            settleDelay: .zero)
+        await m.delete(id: "a1b2c3d4", force: false)
+        XCTAssertNil(m.notice, "a notFound delete is idempotent, not an error")
+        XCTAssertTrue(activity.contains { $0.contains("already removed") }, "got \(activity)")
+    }
+
     func testComputePruneTargetsAreStoppedOnly() async {
         let m = model(backend: MockBackend())
         let targets = await m.computePruneTargets()

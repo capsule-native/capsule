@@ -232,6 +232,18 @@ public final class ContainerLifecycleModel {
         return benign && !daemon
     }
 
+    /// Delete is idempotent: a `notFound` means the container is already gone, which is a
+    /// benign success — distinct from the "already stopped" check used by stop/kill (a
+    /// `notFound` on stop/kill stays a surfaced error). Daemon outages are never benign.
+    private func isBenignAlreadyRemoved(_ error: any Error) -> Bool {
+        guard case let BackendError.nonZeroExit(_, _, stderr) = error else { return false }
+        let s = stderr.lowercased()
+        let gone = s.contains("notfound") || s.contains("not found")
+        let daemon =
+            s.contains("xpc") || s.contains("launchd") || s.contains("connection refused")
+        return gone && !daemon
+    }
+
     // MARK: - Destructive (kill / delete / prune / export)
 
     /// Force-stops (kills) a container. The real destructive escalation for a hung stop.
@@ -267,7 +279,7 @@ public final class ContainerLifecycleModel {
             await reloadList()
             onActivity("Deleted “\(id)”.")
         } catch {
-            if isBenignAlreadyStopped(error) {
+            if isBenignAlreadyRemoved(error) {
                 await reloadList()
                 onActivity("“\(id)” was already removed.")
                 return
