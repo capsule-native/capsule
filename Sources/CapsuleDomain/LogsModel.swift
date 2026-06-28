@@ -61,7 +61,9 @@ public final class LogsModel {
                 } catch {
                     // Stream ended or was cancelled; the buffer keeps what it captured.
                 }
-                self.isStreaming = false
+                // Only a naturally-ended stream clears the flag. A cancelled task (replaced by
+                // a restart) must NOT clobber the successor's `isStreaming = true`.
+                if !Task.isCancelled { self.isStreaming = false }
             }
         } else {
             task = Task { [weak self, backend, tail, boot] in
