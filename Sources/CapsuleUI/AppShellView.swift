@@ -19,6 +19,7 @@ public struct AppShellView: View {
     @Bindable var browserModel: ContainerBrowserModel
     @Bindable var lifecycleModel: ContainerLifecycleModel
     let statsModel: ContainerStatsModel
+    @Bindable var imageBrowserModel: ImageBrowserModel
     let actions: ShellActions
     let terminalSurfaceProvider: any TerminalSurfaceProviding
 
@@ -29,6 +30,7 @@ public struct AppShellView: View {
         browserModel: ContainerBrowserModel,
         lifecycleModel: ContainerLifecycleModel,
         statsModel: ContainerStatsModel,
+        imageBrowserModel: ImageBrowserModel,
         actions: ShellActions,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
     ) {
@@ -38,6 +40,7 @@ public struct AppShellView: View {
         self.browserModel = browserModel
         self.lifecycleModel = lifecycleModel
         self.statsModel = statsModel
+        self.imageBrowserModel = imageBrowserModel
         self.actions = actions
         self.terminalSurfaceProvider = terminalSurfaceProvider
     }
@@ -86,7 +89,8 @@ public struct AppShellView: View {
                 actions: actions,
                 browserModel: browserModel,
                 lifecycleModel: lifecycleModel,
-                statsModel: statsModel
+                statsModel: statsModel,
+                imageBrowserModel: imageBrowserModel
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -106,9 +110,12 @@ public struct AppShellView: View {
         }
         .inspector(isPresented: $shell.inspectorPresented) {
             Group {
-                if shell.selection == .containers {
+                switch shell.selection {
+                case .containers:
                     ContainerInspectorView(model: browserModel, stats: statsModel)
-                } else {
+                case .images:
+                    ImageInspectorView(model: imageBrowserModel)
+                default:
                     InspectorView(section: shell.selection)
                 }
             }
