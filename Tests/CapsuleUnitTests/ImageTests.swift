@@ -43,7 +43,8 @@ final class ImageTests: XCTestCase {
         let image = Image(summary: summary(reference: "<none>:<none>", digest: "sha256:deadbeef"))
         XCTAssertTrue(image.isDangling)
         XCTAssertNil(image.tag)
-        XCTAssertEqual(image.id, "sha256:deadbeef", "a dangling row is identified by its digest")
+        XCTAssertEqual(
+            image.id, "sha256:deadbeef", "a dangling row is identified by its backend id")
     }
 
     func testNonDanglingIdIsTheReference() {
@@ -63,6 +64,16 @@ final class ImageTests: XCTestCase {
         let image = Image(
             summary: summary(reference: "alpine:latest", createdAt: "2026-06-16T00:00:15Z"))
         XCTAssertNotNil(image.createdAt)
+    }
+
+    func testDanglingImageIsAddressedByItsBackendID() {
+        let image = Image(
+            summary: ImageSummary(
+                id: "deadbeefcafe", reference: "<none>:<none>", sizeBytes: 1,
+                digest: "sha256:deadbeefcafe0000"))
+        XCTAssertEqual(image.imageID, "deadbeefcafe")
+        XCTAssertEqual(
+            image.id, "deadbeefcafe", "a dangling image is addressed by its backend id, not <none>")
     }
 
     private func summary(

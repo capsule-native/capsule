@@ -62,7 +62,11 @@ struct ImagePruneSheet: View {
                 }
                 .frame(maxHeight: 160)
                 Text(
-                    "Freed space can't be estimated in advance; the amount reclaimed is shown after."
+                    scope.isAll
+                        ? "This preview is best-effort; the runtime decides the final set. Freed "
+                            + "space is shown after cleanup."
+                        : "Freed space can't be estimated in advance; the amount reclaimed is "
+                            + "shown after."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -82,7 +86,9 @@ struct ImagePruneSheet: View {
                         }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(isLoading || targets.isEmpty || isPruning)
+                    // Dangling detection is reliable, so block on an empty preview there. The
+                    // all-unused preview is heuristic, so never block a prune the CLI would run.
+                    .disabled(isLoading || isPruning || (scope == .dangling && targets.isEmpty))
                 }
             }
         }

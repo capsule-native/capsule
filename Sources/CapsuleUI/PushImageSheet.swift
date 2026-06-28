@@ -42,10 +42,15 @@ struct PushImageSheet: View {
         reference.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// The registry host the push targets. A reference with no `/` is a Docker Hub image
+    /// (`alpine:latest`), so its leading segment is the repo, never the host — only treat the
+    /// first path segment as a host when it actually looks like one.
     private var destination: String {
-        let firstComponent = trimmedReference.split(separator: "/").first.map(String.init) ?? ""
-        return firstComponent.contains(".") || firstComponent.contains(":")
-            ? firstComponent : "docker.io"
+        guard let first = trimmedReference.split(separator: "/").first,
+            trimmedReference.contains("/")
+        else { return "docker.io" }
+        let host = String(first)
+        return host.contains(".") || host.contains(":") || host == "localhost" ? host : "docker.io"
     }
 
     var body: some View {

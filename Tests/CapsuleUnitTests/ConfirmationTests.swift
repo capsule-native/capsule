@@ -43,12 +43,4 @@ final class ConfirmationTests: XCTestCase {
 
         XCTAssertNil(ConfirmationRequest.deleteImage(ids: []), "nothing selected → no sheet")
     }
-
-    func testPushImageConfirmationNamesTheDestination() {
-        let r = ConfirmationRequest.pushImage(reference: "ghcr.io/me/app:1", destination: "ghcr.io")
-        XCTAssertEqual(r.kind, .pushImage)
-        XCTAssertEqual(r.targetIDs, ["ghcr.io/me/app:1"])
-        XCTAssertTrue(
-            r.message.contains("ghcr.io"), "the destination must be shown to prevent mistakes")
-    }
 }

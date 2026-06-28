@@ -189,14 +189,25 @@ struct ActivityPaneView: View {
         if tasks.isEmpty {
             placeholder("No tasks yet", systemImage: "checklist")
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(tasks) { task in
-                        TaskTranscriptView(task: task, onRetry: { taskCenter?.retry(task) })
-                        Divider()
-                    }
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    Button("Clear Finished") { taskCenter?.clearFinished() }
+                        .buttonStyle(.borderless)
+                        .font(.caption)
+                        .disabled(!tasks.contains { !$0.state.isActive })
                 }
-                .padding(10)
+                .padding(.horizontal, 10)
+                .padding(.top, 6)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(tasks) { task in
+                            TaskTranscriptView(task: task, onRetry: { taskCenter?.retry(task) })
+                            Divider()
+                        }
+                    }
+                    .padding(10)
+                }
             }
         }
     }

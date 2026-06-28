@@ -145,7 +145,7 @@ struct ImageInspectorView: View {
             return
         }
         isLoadingRaw = true
-        let inspection = await model.inspect(reference: image.reference)
+        let inspection = await model.inspect(reference: image.id)
         rawJSON = JSONPrettyPrinter.prettyPrint(inspection.rawJSON)
         isLoadingRaw = false
     }
