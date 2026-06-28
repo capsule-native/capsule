@@ -26,6 +26,11 @@ final class OutputParserTests: XCTestCase {
             "28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b"
         )
         XCTAssertEqual(alpine.sizeBytes, 9218)
+        XCTAssertEqual(
+            alpine.digest,
+            "sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b",
+            "the full descriptor digest is carried for digest-centric copy actions")
+        XCTAssertEqual(alpine.createdAt, "2026-06-16T00:00:15Z")
     }
 
     func testParsesEmptyImageList() throws {

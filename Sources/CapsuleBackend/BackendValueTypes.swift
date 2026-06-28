@@ -43,16 +43,25 @@ public struct ContainerSummary: Sendable, Equatable, Identifiable, Codable {
     }
 }
 
-/// A backend's lightweight view of an image.
+/// A backend's lightweight view of an image. `digest` is the full content digest
+/// (`sha256:…`) the UI uses for unambiguous, digest-centric copy actions; `createdAt` is
+/// the raw ISO-8601 string the CLI emits (the domain parses it into a `Date`).
 public struct ImageSummary: Sendable, Equatable, Identifiable, Codable {
     public var id: String
     public var reference: String
     public var sizeBytes: Int64
+    public var digest: String
+    public var createdAt: String?
 
-    public init(id: String, reference: String, sizeBytes: Int64) {
+    public init(
+        id: String, reference: String, sizeBytes: Int64,
+        digest: String = "", createdAt: String? = nil
+    ) {
         self.id = id
         self.reference = reference
         self.sizeBytes = sizeBytes
+        self.digest = digest
+        self.createdAt = createdAt
     }
 }
 

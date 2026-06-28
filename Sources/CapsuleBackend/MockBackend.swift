@@ -41,6 +41,20 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     public private(set) var lastKillSignal: String?
     /// The URL passed to the most recent `exportContainer` call.
     public private(set) var lastExportURL: URL?
+    /// The source/target of the most recent `tagImage` call.
+    public private(set) var lastTag: (source: String, target: String)?
+    /// The URL passed to the most recent `saveImage` call.
+    public private(set) var lastSavedURL: URL?
+    /// The URL passed to the most recent `loadImage` call.
+    public private(set) var lastLoadedURL: URL?
+    /// The `all` flag passed to the most recent `pruneImages` call.
+    public private(set) var prunedAll: Bool?
+    /// The server/username/password of the most recent `registryLogin` call.
+    public private(set) var lastLogin: (server: String, username: String?, password: String?)?
+    /// The server/username/password of the most recent `registryTest` call.
+    public private(set) var lastTest: (server: String, username: String?, password: String?)?
+    /// The server passed to the most recent `registryLogout` call.
+    public private(set) var lastLogout: String?
     /// How many times `containerStats` has been invoked (for stream-teardown tests).
     public private(set) var statsCallCount = 0
     /// How many `followLogs` streams have terminated (incl. via cancellation).
@@ -225,8 +239,52 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         }
     }
 
-    public func pullImage(reference: String) -> AsyncThrowingStream<OutputLine, Error> {
+    public func pullImage(
+        reference: String, platform: String?
+    ) -> AsyncThrowingStream<OutputLine, Error> {
         seededStream()
+    }
+
+    public func pushImage(
+        reference: String, platform: String?
+    ) -> AsyncThrowingStream<OutputLine, Error> {
+        seededStream()
+    }
+
+    public func saveImage(references: [String], to url: URL, platform: String?) async throws {
+        try withState { state in state.lastSavedURL = url }
+    }
+
+    public func loadImage(from url: URL) async throws {
+        try withState { state in state.lastLoadedURL = url }
+    }
+
+    public func tagImage(source: String, target: String) async throws {
+        try withState { state in
+            state.lastTag = (source: source, target: target)
+            if let original = state.images.first(where: { $0.reference == source }) {
+                state.images.append(
+                    ImageSummary(
+                        id: original.id, reference: target, sizeBytes: original.sizeBytes,
+                        digest: original.digest, createdAt: original.createdAt))
+            }
+        }
+    }
+
+    public func pruneImages(all: Bool) async throws -> PruneResult {
+        try withState { state in
+            state.prunedAll = all
+            let removed: Int
+            if all {
+                removed = state.images.count
+                state.images.removeAll()
+            } else {
+                let dangling = state.images.filter { $0.reference.contains("<none>") }
+                removed = dangling.count
+                state.images.removeAll { $0.reference.contains("<none>") }
+            }
+            return PruneResult(reclaimedDescription: "Reclaimed \(removed) image(s).", raw: "")
+        }
     }
 
     // MARK: - Volumes / networks / registries / machines / builder
@@ -235,6 +293,29 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     public func listNetworks() async throws -> [NetworkSummary] { try withState { $0.networks } }
     public func listRegistries() async throws -> [RegistrySummary] {
         try withState { $0.registries }
+    }
+
+    public func registryLogin(server: String, username: String?, password: String?) async throws {
+        try withState { state in
+            state.lastLogin = (server: server, username: username, password: password)
+            if !state.registries.contains(where: { $0.server == server }) {
+                state.registries.append(RegistrySummary(server: server))
+            }
+        }
+    }
+
+    public func registryLogout(server: String) async throws {
+        try withState { state in
+            state.lastLogout = server
+            state.registries.removeAll { $0.server == server }
+        }
+    }
+
+    public func registryTest(server: String, username: String?, password: String?) async throws {
+        // A test validates credentials but, unlike login, does not persist a registry entry.
+        try withState { state in
+            state.lastTest = (server: server, username: username, password: password)
+        }
     }
     public func listMachines() async throws -> [MachineSummary] { try withState { $0.machines } }
     public func builderStatus() async throws -> BuilderStatus { try withState { $0.builder } }
@@ -303,9 +384,14 @@ extension MockBackend {
     ]
 
     public static let sampleImages: [ImageSummary] = [
-        ImageSummary(id: "28bd5fe8", reference: "docker.io/library/alpine:latest", sizeBytes: 9218),
         ImageSummary(
-            id: "9c7a4f10", reference: "docker.io/library/postgres:16", sizeBytes: 138_412_032),
+            id: "28bd5fe8", reference: "docker.io/library/alpine:latest", sizeBytes: 9218,
+            digest: "sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b",
+            createdAt: "2026-06-16T00:00:15Z"),
+        ImageSummary(
+            id: "9c7a4f10", reference: "docker.io/library/postgres:16", sizeBytes: 138_412_032,
+            digest: "sha256:9c7a4f10e6d2b3a1c5f8e0d7b6a4938271605f4e3d2c1b0a9f8e7d6c5b4a3920",
+            createdAt: "2026-06-10T08:30:00Z"),
     ]
 
     public static let sampleNetworks: [NetworkSummary] = [

@@ -65,8 +65,59 @@ final class CLICommandTests: XCTestCase {
             CLICommand.inspectImage(reference: "alpine"),
             ["image", "inspect", "alpine"]
         )
-        XCTAssertEqual(CLICommand.pullImage(reference: "alpine"), ["image", "pull", "alpine"])
+        XCTAssertEqual(
+            CLICommand.pullImage(reference: "alpine", platform: nil), ["image", "pull", "alpine"])
         XCTAssertEqual(CLICommand.removeImage(reference: "alpine"), ["image", "delete", "alpine"])
+    }
+
+    func testImageTransferAndMaintenanceCommands() {
+        XCTAssertEqual(
+            CLICommand.pullImage(reference: "alpine", platform: "linux/arm64"),
+            ["image", "pull", "--platform", "linux/arm64", "alpine"])
+        XCTAssertEqual(
+            CLICommand.pushImage(reference: "ghcr.io/me/app:1", platform: nil),
+            ["image", "push", "ghcr.io/me/app:1"])
+        XCTAssertEqual(
+            CLICommand.pushImage(reference: "ghcr.io/me/app:1", platform: "linux/amd64"),
+            ["image", "push", "--platform", "linux/amd64", "ghcr.io/me/app:1"])
+        XCTAssertEqual(
+            CLICommand.saveImage(
+                references: ["alpine:latest"], to: URL(fileURLWithPath: "/tmp/a.tar"),
+                platform: nil),
+            ["image", "save", "--output", "/tmp/a.tar", "alpine:latest"])
+        XCTAssertEqual(
+            CLICommand.saveImage(
+                references: ["a", "b"], to: URL(fileURLWithPath: "/tmp/a.tar"),
+                platform: "linux/amd64"),
+            ["image", "save", "--output", "/tmp/a.tar", "--platform", "linux/amd64", "a", "b"])
+        XCTAssertEqual(
+            CLICommand.loadImage(from: URL(fileURLWithPath: "/tmp/a.tar")),
+            ["image", "load", "--input", "/tmp/a.tar"])
+        XCTAssertEqual(
+            CLICommand.tagImage(source: "alpine:latest", target: "ghcr.io/me/alpine:1"),
+            ["image", "tag", "alpine:latest", "ghcr.io/me/alpine:1"])
+        XCTAssertEqual(CLICommand.pruneImages(all: false), ["image", "prune"])
+        XCTAssertEqual(CLICommand.pruneImages(all: true), ["image", "prune", "--all"])
+    }
+
+    /// The login argv must carry `--password-stdin` and the username, but NEVER the
+    /// password — the secret is delivered through the child's stdin, so it cannot leak
+    /// via `ps`, the debug log line, an error's `command:`, or any task transcript.
+    func testRegistryLoginNeverPutsSecretOnArgv() {
+        let argv = CLICommand.registryLogin(server: "ghcr.io", username: "me")
+        XCTAssertEqual(
+            argv, ["registry", "login", "--username", "me", "--password-stdin", "ghcr.io"])
+        XCTAssertFalse(
+            argv.contains {
+                $0.localizedCaseInsensitiveContains("password") && $0 != "--password-stdin"
+            },
+            "no literal password may appear in argv")
+
+        XCTAssertEqual(
+            CLICommand.registryLogin(server: "ghcr.io", username: nil),
+            ["registry", "login", "--password-stdin", "ghcr.io"])
+        XCTAssertEqual(
+            CLICommand.registryLogout(server: "ghcr.io"), ["registry", "logout", "ghcr.io"])
     }
 
     func testOtherFamilies() {

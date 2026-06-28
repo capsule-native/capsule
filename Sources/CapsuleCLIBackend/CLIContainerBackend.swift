@@ -161,8 +161,42 @@ public struct CLIContainerBackend: ContainerBackend {
         _ = try await runChecked(CLICommand.removeImage(reference: reference))
     }
 
-    public func pullImage(reference: String) -> AsyncThrowingStream<OutputLine, Error> {
-        runner.stream(CLICommand.pullImage(reference: reference), environment: [:])
+    public func pullImage(
+        reference: String, platform: String?
+    ) -> AsyncThrowingStream<OutputLine, Error> {
+        runner.stream(
+            CLICommand.pullImage(reference: reference, platform: platform), environment: [:])
+    }
+
+    public func pushImage(
+        reference: String, platform: String?
+    ) -> AsyncThrowingStream<OutputLine, Error> {
+        runner.stream(
+            CLICommand.pushImage(reference: reference, platform: platform), environment: [:])
+    }
+
+    public func saveImage(references: [String], to url: URL, platform: String?) async throws {
+        _ = try await runChecked(
+            CLICommand.saveImage(references: references, to: url, platform: platform))
+    }
+
+    public func loadImage(from url: URL) async throws {
+        _ = try await runChecked(CLICommand.loadImage(from: url))
+    }
+
+    public func tagImage(source: String, target: String) async throws {
+        _ = try await runChecked(CLICommand.tagImage(source: source, target: target))
+    }
+
+    public func pruneImages(all: Bool) async throws -> PruneResult {
+        // Like `pruneContainers`: prune exits 0 and prints a human "Reclaimed …" line, so a
+        // non-empty stderr is not a failure — only a non-zero exit is a real error.
+        let result = try await runner.run(CLICommand.pruneImages(all: all), environment: [:])
+        guard result.isSuccess else {
+            throw BackendError.nonZeroExit(
+                command: "container image prune", code: result.exitCode, stderr: result.stderr)
+        }
+        return OutputParser.parsePruneResult(stdout: result.stdout, stderr: result.stderr)
     }
 
     // MARK: - Volumes / networks / registries / machines / builder
@@ -180,6 +214,32 @@ public struct CLIContainerBackend: ContainerBackend {
     public func listRegistries() async throws -> [RegistrySummary] {
         let output = try await runChecked(CLICommand.listRegistries())
         return try OutputParser.parseRegistries(Data(output.stdout.utf8))
+    }
+
+    public func registryLogin(server: String, username: String?, password: String?) async throws {
+        try await runLogin(server: server, username: username, password: password)
+    }
+
+    public func registryLogout(server: String) async throws {
+        _ = try await runChecked(CLICommand.registryLogout(server: server))
+    }
+
+    public func registryTest(server: String, username: String?, password: String?) async throws {
+        // apple/container has no dry-run verb; a real login validates the credentials.
+        try await runLogin(server: server, username: username, password: password)
+    }
+
+    /// Runs `registry login`, feeding the password through stdin (`--password-stdin`). The
+    /// password is never placed on argv, so it cannot leak via `ps`, the debug log line, or
+    /// the error's `command:` field. Only the argv (sans secret) is logged.
+    private func runLogin(server: String, username: String?, password: String?) async throws {
+        let argv = CLICommand.registryLogin(server: server, username: username)
+        Log.backend.debug("container \(argv.joined(separator: " "), privacy: .public)")
+        let result = try await runner.run(argv, environment: [:], standardInput: password ?? "")
+        guard result.isSuccess else {
+            throw BackendError.nonZeroExit(
+                command: commandDescription(argv), code: result.exitCode, stderr: result.stderr)
+        }
     }
 
     public func listMachines() async throws -> [MachineSummary] {

@@ -288,4 +288,76 @@ final class CLIContainerBackendTests: XCTestCase {
 
         XCTAssertEqual(stub.lastCall, ["image", "delete", "alpine"])
     }
+
+    func testImageMaintenanceCommandsIssueCorrectArgv() async throws {
+        let stub = StubProcessRunner()
+        let backend = makeBackend(stub)
+
+        try await backend.saveImage(
+            references: ["alpine:latest"], to: URL(fileURLWithPath: "/tmp/a.tar"), platform: nil)
+        XCTAssertEqual(stub.lastCall, ["image", "save", "--output", "/tmp/a.tar", "alpine:latest"])
+
+        try await backend.loadImage(from: URL(fileURLWithPath: "/tmp/a.tar"))
+        XCTAssertEqual(stub.lastCall, ["image", "load", "--input", "/tmp/a.tar"])
+
+        try await backend.tagImage(source: "alpine:latest", target: "ghcr.io/me/alpine:1")
+        XCTAssertEqual(stub.lastCall, ["image", "tag", "alpine:latest", "ghcr.io/me/alpine:1"])
+
+        stub.result = CommandResult(exitCode: 0, stdout: "Reclaimed 5 MB in disk space", stderr: "")
+        let pruned = try await backend.pruneImages(all: true)
+        XCTAssertEqual(stub.lastCall, ["image", "prune", "--all"])
+        XCTAssertEqual(pruned.reclaimedDescription, "Reclaimed 5 MB in disk space")
+    }
+
+    func testPushImageStreamsAndBuildsArgv() async throws {
+        let stub = StubProcessRunner()
+        stub.streamLines = [OutputLine(source: .stdout, text: "Pushing")]
+
+        var received: [String] = []
+        for try await line in makeBackend(stub).pushImage(
+            reference: "ghcr.io/me/app:1", platform: "linux/amd64")
+        {
+            received.append(line.text)
+        }
+
+        XCTAssertEqual(received, ["Pushing"])
+        XCTAssertEqual(
+            stub.lastCall, ["image", "push", "--platform", "linux/amd64", "ghcr.io/me/app:1"])
+    }
+
+    // MARK: - Registry credential safety
+
+    /// The defining secret-safety guarantee: the password reaches the CLI through stdin,
+    /// and NEVER appears anywhere in the argument vector.
+    func testRegistryLoginFeedsSecretThroughStdinNotArgv() async throws {
+        let stub = StubProcessRunner()
+
+        try await makeBackend(stub).registryLogin(
+            server: "ghcr.io", username: "me", password: "sup3r-s3cret")
+
+        XCTAssertEqual(
+            stub.lastCall, ["registry", "login", "--username", "me", "--password-stdin", "ghcr.io"])
+        XCTAssertFalse(
+            stub.lastCall?.contains("sup3r-s3cret") ?? false,
+            "the password must never appear on argv")
+        XCTAssertEqual(
+            stub.lastStandardInput, "sup3r-s3cret", "the password is delivered via stdin")
+    }
+
+    func testRegistryTestAlsoUsesStdinAndDoesNotLeakOnArgv() async throws {
+        let stub = StubProcessRunner()
+
+        try await makeBackend(stub).registryTest(
+            server: "ghcr.io", username: nil, password: "another-secret")
+
+        XCTAssertEqual(stub.lastCall, ["registry", "login", "--password-stdin", "ghcr.io"])
+        XCTAssertFalse(stub.lastCall?.contains("another-secret") ?? false)
+        XCTAssertEqual(stub.lastStandardInput, "another-secret")
+    }
+
+    func testRegistryLogoutBuildsArgv() async throws {
+        let stub = StubProcessRunner()
+        try await makeBackend(stub).registryLogout(server: "ghcr.io")
+        XCTAssertEqual(stub.lastCall, ["registry", "logout", "ghcr.io"])
+    }
 }

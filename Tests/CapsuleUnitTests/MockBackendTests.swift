@@ -211,6 +211,113 @@ final class MockBackendTests: XCTestCase {
         XCTAssertEqual(status, .stopped)
     }
 
+    // MARK: - Images (M6)
+
+    func testSeededImagesCarryDigestAndCreationDate() async throws {
+        let images = try await MockBackend().listImages()
+        XCTAssertTrue(images.allSatisfy { $0.digest.hasPrefix("sha256:") })
+        XCTAssertTrue(images.allSatisfy { $0.createdAt != nil })
+    }
+
+    func testTagAddsAReferenceAndRecordsArguments() async throws {
+        let backend = MockBackend()
+        try await backend.tagImage(
+            source: "docker.io/library/alpine:latest", target: "alpine:pinned")
+        XCTAssertEqual(backend.lastTag?.source, "docker.io/library/alpine:latest")
+        XCTAssertEqual(backend.lastTag?.target, "alpine:pinned")
+        let refs = try await backend.listImages().map(\.reference)
+        XCTAssertTrue(refs.contains("alpine:pinned"))
+    }
+
+    func testRemoveImageDropsItFromTheList() async throws {
+        let backend = MockBackend()
+        try await backend.removeImage(reference: "docker.io/library/alpine:latest")
+        let refs = try await backend.listImages().map(\.reference)
+        XCTAssertFalse(refs.contains("docker.io/library/alpine:latest"))
+    }
+
+    func testPruneImagesRemovesDanglingAndReportsReclaimed() async throws {
+        let backend = MockBackend(images: [
+            ImageSummary(id: "1", reference: "<none>:<none>", sizeBytes: 10, digest: "sha256:1"),
+            ImageSummary(id: "2", reference: "alpine:latest", sizeBytes: 20, digest: "sha256:2"),
+        ])
+        let result = try await backend.pruneImages(all: false)
+        XCTAssertEqual(backend.prunedAll, false)
+        let refs = try await backend.listImages().map(\.reference)
+        XCTAssertEqual(refs, ["alpine:latest"], "only the dangling image is removed")
+        XCTAssertNotNil(result.reclaimedDescription)
+    }
+
+    func testPruneImagesAllRemovesEverythingUnused() async throws {
+        let backend = MockBackend(images: [
+            ImageSummary(id: "1", reference: "<none>:<none>", sizeBytes: 10, digest: "sha256:1"),
+            ImageSummary(id: "2", reference: "alpine:latest", sizeBytes: 20, digest: "sha256:2"),
+        ])
+        _ = try await backend.pruneImages(all: true)
+        XCTAssertEqual(backend.prunedAll, true)
+        let remaining = try await backend.listImages()
+        XCTAssertTrue(remaining.isEmpty)
+    }
+
+    func testSaveAndLoadRecordTheirURLs() async throws {
+        let backend = MockBackend()
+        let out = URL(fileURLWithPath: "/tmp/a.tar")
+        try await backend.saveImage(references: ["alpine:latest"], to: out, platform: nil)
+        XCTAssertEqual(backend.lastSavedURL, out)
+        let inp = URL(fileURLWithPath: "/tmp/b.tar")
+        try await backend.loadImage(from: inp)
+        XCTAssertEqual(backend.lastLoadedURL, inp)
+    }
+
+    func testPushImageStreamsLines() async throws {
+        let backend = MockBackend(logLines: [OutputLine(source: .stdout, text: "pushing")])
+        var received: [String] = []
+        for try await line in backend.pushImage(reference: "ghcr.io/me/app:1", platform: nil) {
+            received.append(line.text)
+        }
+        XCTAssertEqual(received, ["pushing"])
+    }
+
+    // MARK: - Registries (M6)
+
+    func testLoginRecordsServerUsernameAndPasswordWithoutLeakingToArgv() async throws {
+        let backend = MockBackend()
+        try await backend.registryLogin(server: "ghcr.io", username: "me", password: "s3cret")
+        XCTAssertEqual(backend.lastLogin?.server, "ghcr.io")
+        XCTAssertEqual(backend.lastLogin?.username, "me")
+        XCTAssertEqual(backend.lastLogin?.password, "s3cret")
+        let servers = try await backend.listRegistries().map(\.server)
+        XCTAssertTrue(servers.contains("ghcr.io"))
+    }
+
+    func testLogoutRemovesTheRegistry() async throws {
+        let backend = MockBackend(registries: [RegistrySummary(server: "ghcr.io")])
+        try await backend.registryLogout(server: "ghcr.io")
+        XCTAssertEqual(backend.lastLogout, "ghcr.io")
+        let remaining = try await backend.listRegistries()
+        XCTAssertTrue(remaining.isEmpty)
+    }
+
+    func testRegistryTestDoesNotPersistButRecordsTheAttempt() async throws {
+        let backend = MockBackend()
+        try await backend.registryTest(server: "ghcr.io", username: "me", password: "s3cret")
+        XCTAssertEqual(backend.lastTest?.server, "ghcr.io")
+        let registries = try await backend.listRegistries()
+        XCTAssertTrue(registries.isEmpty, "a test must not add a persistent login in the mock")
+    }
+
+    func testImageOperationsHonourInjectedFailure() async throws {
+        let backend = MockBackend()
+        backend.failure = BackendError.nonZeroExit(
+            command: "container image tag", code: 1, stderr: "boom")
+        do {
+            try await backend.tagImage(source: "a", target: "b")
+            XCTFail("expected the injected failure to throw")
+        } catch let BackendError.nonZeroExit(_, code, _) {
+            XCTAssertEqual(code, 1)
+        }
+    }
+
     func testInjectedFailurePropagates() async throws {
         let backend = MockBackend()
         backend.failure = BackendError.nonZeroExit(

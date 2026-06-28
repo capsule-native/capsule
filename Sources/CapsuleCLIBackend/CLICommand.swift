@@ -95,8 +95,32 @@ public enum CLICommand {
         ArgumentBuilder("image", "inspect").adding(reference).arguments
     }
 
-    public static func pullImage(reference: String) -> [String] {
-        ArgumentBuilder("image", "pull").adding(reference).arguments
+    public static func pullImage(reference: String, platform: String?) -> [String] {
+        ArgumentBuilder("image", "pull").flag("--platform", platform).adding(reference).arguments
+    }
+
+    public static func pushImage(reference: String, platform: String?) -> [String] {
+        ArgumentBuilder("image", "push").flag("--platform", platform).adding(reference).arguments
+    }
+
+    public static func saveImage(references: [String], to url: URL, platform: String?) -> [String] {
+        ArgumentBuilder("image", "save")
+            .flag("--output", url.path)
+            .flag("--platform", platform)
+            .adding(contentsOf: references)
+            .arguments
+    }
+
+    public static func loadImage(from url: URL) -> [String] {
+        ArgumentBuilder("image", "load").flag("--input", url.path).arguments
+    }
+
+    public static func tagImage(source: String, target: String) -> [String] {
+        ArgumentBuilder("image", "tag").adding(source, target).arguments
+    }
+
+    public static func pruneImages(all: Bool) -> [String] {
+        ArgumentBuilder("image", "prune").option("--all", enabled: all).arguments
     }
 
     public static func removeImage(reference: String) -> [String] {
@@ -115,6 +139,21 @@ public enum CLICommand {
 
     public static func listRegistries() -> [String] {
         ArgumentBuilder("registry", "list").flag("--format", "json").arguments
+    }
+
+    /// The login argv carries `--password-stdin` and (optionally) the username, but never
+    /// the password itself — the secret is written to the child's stdin so it cannot leak
+    /// via `ps`, the debug log, an error's `command:` field, or any task transcript.
+    public static func registryLogin(server: String, username: String?) -> [String] {
+        ArgumentBuilder("registry", "login")
+            .flag("--username", username)
+            .option("--password-stdin", enabled: true)
+            .adding(server)
+            .arguments
+    }
+
+    public static func registryLogout(server: String) -> [String] {
+        ArgumentBuilder("registry", "logout").adding(server).arguments
     }
 
     public static func listMachines() -> [String] {
