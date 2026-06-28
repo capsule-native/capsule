@@ -45,6 +45,18 @@ final class CLIProcessRunnerTests: XCTestCase {
         XCTAssertEqual(result.stdout, "injected:has-home")
     }
 
+    func testRunReapsTheProcessWhenCancelled() async throws {
+        // A 5s sleep that must NOT block for 5s once the task is cancelled.
+        let start = Date()
+        let task = Task { try await runner.run(["-c", "sleep 5"]) }
+        // Give the process a moment to actually spawn before cancelling.
+        try await Task.sleep(for: .milliseconds(100))
+        task.cancel()
+        _ = try? await task.value
+        let elapsed = Date().timeIntervalSince(start)
+        XCTAssertLessThan(elapsed, 2.0, "cancelling run() should terminate the child promptly")
+    }
+
     // MARK: - Streaming
 
     func testStreamYieldsEachStdoutLine() async throws {
