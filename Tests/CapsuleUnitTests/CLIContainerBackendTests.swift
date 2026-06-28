@@ -187,6 +187,24 @@ final class CLIContainerBackendTests: XCTestCase {
         XCTAssertEqual(stub.lastCall, ["delete", "--force", "c1"])
     }
 
+    func testKillAndExportArgv() async throws {
+        let stub = StubProcessRunner()
+        let backend = makeBackend(stub)
+        try await backend.killContainer(id: "c1", signal: nil)
+        XCTAssertEqual(stub.lastCall, ["kill", "c1"])
+        try await backend.exportContainer(id: "c1", to: URL(fileURLWithPath: "/tmp/c1.tar"))
+        XCTAssertEqual(stub.lastCall, ["export", "--output", "/tmp/c1.tar", "c1"])
+    }
+
+    func testPruneParsesReclaimedLine() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(
+            exitCode: 0, stdout: "Reclaimed 12 MB in disk space\n", stderr: "")
+        let result = try await makeBackend(stub).pruneContainers()
+        XCTAssertEqual(result.reclaimedDescription, "Reclaimed 12 MB in disk space")
+        XCTAssertEqual(stub.lastCall, ["prune"])
+    }
+
     func testContainerStatsSnapshotArgvAndDecode() async throws {
         let stub = StubProcessRunner()
         stub.result = CommandResult(

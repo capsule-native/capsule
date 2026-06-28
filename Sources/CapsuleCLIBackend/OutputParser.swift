@@ -70,6 +70,22 @@ public enum OutputParser {
         }
     }
 
+    // MARK: - Prune
+
+    /// Extracts the "Reclaimed … in disk space" line from prune output (stdout or stderr; the
+    /// CLI's stream choice is unverified), keeping the full combined text in `raw`.
+    public static func parsePruneResult(stdout: String, stderr: String) -> PruneResult {
+        let combined = [stdout, stderr].filter { !$0.isEmpty }.joined(separator: "\n")
+        let line =
+            combined.split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first {
+                $0.range(of: "Reclaimed", options: .caseInsensitive) != nil
+                    && $0.range(of: "disk space", options: .caseInsensitive) != nil
+            }
+        return PruneResult(reclaimedDescription: line, raw: combined)
+    }
+
     // MARK: - System version
 
     /// Decodes `container system version --format json` into a `BackendVersion`, pairing

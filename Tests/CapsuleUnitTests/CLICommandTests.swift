@@ -40,6 +40,16 @@ final class CLICommandTests: XCTestCase {
         XCTAssertEqual(CLICommand.followLogs(container: "abc"), ["logs", "--follow", "abc"])
     }
 
+    func testDestructiveCommands() {
+        XCTAssertEqual(CLICommand.killContainer(id: "a", signal: nil), ["kill", "a"])
+        XCTAssertEqual(
+            CLICommand.killContainer(id: "a", signal: "TERM"), ["kill", "--signal", "TERM", "a"])
+        XCTAssertEqual(CLICommand.pruneContainers(), ["prune"])
+        XCTAssertEqual(
+            CLICommand.exportContainer(id: "a", to: URL(fileURLWithPath: "/tmp/x.tar")),
+            ["export", "--output", "/tmp/x.tar", "a"])
+    }
+
     func testStats() {
         XCTAssertEqual(
             CLICommand.containerStats(ids: ["a", "b"]),

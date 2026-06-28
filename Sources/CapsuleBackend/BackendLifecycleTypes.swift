@@ -27,6 +27,19 @@ public struct StopOptions: Sendable, Equatable {
     public static let forced = StopOptions(timeout: 0, signal: nil)
 }
 
+/// The result of `container prune`. The CLI prints a human "Reclaimed … in disk space" line
+/// (no JSON, no per-item breakdown), so `reclaimedDescription` is best-effort and `raw` keeps
+/// the full stdout+stderr for display/diagnostics.
+public struct PruneResult: Sendable, Equatable {
+    public var reclaimedDescription: String?
+    public var raw: String
+
+    public init(reclaimedDescription: String? = nil, raw: String = "") {
+        self.reclaimedDescription = reclaimedDescription
+        self.raw = raw
+    }
+}
+
 /// An all-optional mirror of the CLI's `ContainerStats` (verified against apple/container
 /// source: only `id` is required; every metric is an optional cumulative `UInt64`). Carries
 /// no CPU% and no timestamp — the domain computes/stamps both.

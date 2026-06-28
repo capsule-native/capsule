@@ -43,6 +43,18 @@ final class OutputParserTests: XCTestCase {
         XCTAssertEqual(alpine.sizeBytes, 9218)
     }
 
+    func testParsePruneResultFindsReclaimedOnEitherStream() {
+        let a = OutputParser.parsePruneResult(
+            stdout: "Reclaimed 75 MB in disk space\n", stderr: "")
+        XCTAssertEqual(a.reclaimedDescription, "Reclaimed 75 MB in disk space")
+        let b = OutputParser.parsePruneResult(
+            stdout: "", stderr: "Reclaimed Zero KB in disk space")
+        XCTAssertEqual(b.reclaimedDescription, "Reclaimed Zero KB in disk space")
+        let c = OutputParser.parsePruneResult(stdout: "noise", stderr: "")
+        XCTAssertNil(c.reclaimedDescription)
+        XCTAssertTrue(c.raw.contains("noise"))
+    }
+
     // MARK: - Containers
 
     func testParseContainersExtractsCreationDate() throws {

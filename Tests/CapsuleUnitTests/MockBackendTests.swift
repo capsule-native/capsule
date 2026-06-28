@@ -65,6 +65,29 @@ final class MockBackendTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(batches, 2)
     }
 
+    func testKillRecordsSignalAndStops() async throws {
+        let backend = MockBackend()
+        try await backend.killContainer(id: "a1b2c3d4", signal: "TERM")
+        XCTAssertEqual(backend.lastKillSignal, "TERM")
+        let c = try await backend.listContainers(all: true).first { $0.id == "a1b2c3d4" }
+        XCTAssertEqual(c?.state, "stopped")
+    }
+
+    func testPruneRemovesStoppedAndReportsReclaimed() async throws {
+        let backend = MockBackend()
+        let result = try await backend.pruneContainers()
+        let all = try await backend.listContainers(all: true)
+        XCTAssertFalse(all.contains { $0.state == "stopped" })
+        XCTAssertNotNil(result.reclaimedDescription)
+    }
+
+    func testExportRecordsURL() async throws {
+        let backend = MockBackend()
+        let url = URL(fileURLWithPath: "/tmp/x.tar")
+        try await backend.exportContainer(id: "a1b2c3d4", to: url)
+        XCTAssertEqual(backend.lastExportURL, url)
+    }
+
     func testSampleContainersAreRicherForBrowser() async throws {
         let all = try await MockBackend().listContainers(all: true)
         XCTAssertGreaterThanOrEqual(all.count, 3)

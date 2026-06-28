@@ -37,6 +37,10 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     public var neverEndingLogStream = false
     /// The options passed to the most recent `stopContainer` call.
     public private(set) var lastStopOptions: StopOptions?
+    /// The signal passed to the most recent `killContainer` call.
+    public private(set) var lastKillSignal: String?
+    /// The URL passed to the most recent `exportContainer` call.
+    public private(set) var lastExportURL: URL?
     /// How many times `containerStats` has been invoked (for stream-teardown tests).
     public private(set) var statsCallCount = 0
     /// How many `followLogs` streams have terminated (incl. via cancellation).
@@ -160,6 +164,28 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         try withState { state in
             state.containers.removeAll { $0.id == id }
         }
+    }
+
+    public func killContainer(id: String, signal: String?) async throws {
+        try withState { state in
+            state.lastKillSignal = signal
+            state.mutateContainer(id) {
+                $0.state = "stopped"
+                $0.ip = nil
+            }
+        }
+    }
+
+    public func pruneContainers() async throws -> PruneResult {
+        try withState { state in
+            let removed = state.containers.filter { $0.state != "running" }.count
+            state.containers.removeAll { $0.state != "running" }
+            return PruneResult(reclaimedDescription: "Reclaimed \(removed) item(s).", raw: "")
+        }
+    }
+
+    public func exportContainer(id: String, to url: URL) async throws {
+        try withState { state in state.lastExportURL = url }
     }
 
     public func followLogs(container id: String) -> AsyncThrowingStream<OutputLine, Error> {

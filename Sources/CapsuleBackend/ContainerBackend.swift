@@ -53,6 +53,15 @@ public protocol ContainerBackend: Sendable {
     func stopContainer(id: String, options: StopOptions) async throws
     func removeContainer(id: String, force: Bool) async throws
 
+    /// Sends a signal (default KILL when `signal` is nil) to a running container.
+    func killContainer(id: String, signal: String?) async throws
+
+    /// Removes all stopped containers; returns the CLI's best-effort reclaimed summary.
+    func pruneContainers() async throws -> PruneResult
+
+    /// Exports a container's filesystem as a tar archive to `url`.
+    func exportContainer(id: String, to url: URL) async throws
+
     /// One-shot resource statistics for the given containers.
     func containerStats(ids: [String]) async throws -> [ContainerStatsSample]
 
