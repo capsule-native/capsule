@@ -41,7 +41,7 @@ struct TaskTranscriptView: View {
                         ForEach(task.transcript) { line in
                             Text(line.text)
                                 .font(.system(.caption, design: .monospaced))
-                                .foregroundStyle(line.stream == .error ? .red : .primary)
+                                .foregroundStyle(color(for: line))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .textSelection(.enabled)
                         }
@@ -57,6 +57,14 @@ struct TaskTranscriptView: View {
     private var isFailed: Bool {
         if case .failed = task.state { return true }
         return false
+    }
+
+    /// stdout is primary; stderr is dimmed while running/succeeding (many CLIs emit progress
+    /// there) and only turns red once the task has actually failed, so a successful pull
+    /// never looks alarming.
+    private func color(for line: LogLine) -> Color {
+        guard line.stream == .error else { return .primary }
+        return isFailed ? .red : .secondary
     }
 
     @ViewBuilder
