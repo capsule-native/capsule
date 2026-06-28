@@ -9,6 +9,7 @@
 //  and metric chips from ContainerStatsModel. Filtering/scope logic lives in the browser
 //  model (unit-tested there). Destructive actions arrive in Milestone 5C.
 
+import AppKit
 import CapsuleDomain
 import SwiftUI
 
@@ -69,6 +70,15 @@ struct ContainerListView: View {
                                 _ = await lifecycle.stop(id: id, timeout: timeout, signal: signal)
                             }
                         }, onCancel: { activeSheet = nil })
+                case let .confirm(request):
+                    ConfirmationSheet(
+                        request: request,
+                        onConfirm: { req in
+                            activeSheet = nil
+                            performConfirmed(req)
+                        }, onCancel: { activeSheet = nil })
+                case .prune:
+                    PruneSheet(lifecycle: lifecycle, onClose: { activeSheet = nil })
                 }
             }
     }
@@ -136,6 +146,7 @@ struct ContainerListView: View {
         .contextMenu(forSelectionType: Container.ID.self) { ids in
             rowMenu(for: ids)
         }
+        .onDeleteCommand { requestDelete(ids: model.selection) }
         .overlay {
             if model.noMatches { ContentUnavailableView.search }
         }
@@ -164,6 +175,15 @@ struct ContainerListView: View {
                 activeSheet = .stopOptions(id: single.id, name: single.name)
             }
         }
+
+        Divider()
+        Button("Force Stop", role: .destructive) { requestKill(ids: Set(stoppable.map(\.id))) }
+            .disabled(stoppable.isEmpty)
+        Button("Delete…", role: .destructive) { requestDelete(ids: ids) }
+            .disabled(targets.isEmpty)
+        if let single = targets.first, targets.count == 1 {
+            Button("Export…") { requestExport(single) }
+        }
     }
 
     @ToolbarContentBuilder
@@ -184,6 +204,13 @@ struct ContainerListView: View {
             }
             .disabled(selectedStoppableIDs.isEmpty)
             .help("Stop the selected containers")
+
+            Button {
+                activeSheet = .prune
+            } label: {
+                Label("Clean Up", systemImage: "trash")
+            }
+            .help("Remove all stopped containers")
         }
 
         ToolbarItem(placement: .principal) {
@@ -230,6 +257,67 @@ struct ContainerListView: View {
         await stats.snapshot(ids: runningIDs)
     }
 
+    // MARK: - Destructive actions
+
+    /// Force Stop (kill): confirm only when more than one is targeted.
+    private func requestKill(ids: Set<Container.ID>) {
+        let list = Array(ids)
+        guard !list.isEmpty else { return }
+        if let request = ConfirmationRequest.kill(ids: list) {
+            activeSheet = .confirm(request)
+        } else if let single = list.first {
+            Task { _ = await lifecycle.kill(id: single) }
+        }
+    }
+
+    /// Delete always confirms; running targets require force (surfaced in the sheet).
+    private func requestDelete(ids: Set<Container.ID>) {
+        let targets = containers(for: ids)
+        guard !targets.isEmpty else { return }
+        let anyRunning = targets.contains { $0.state == .running }
+        if let request = ConfirmationRequest.delete(ids: targets.map(\.id), anyRunning: anyRunning)
+        {
+            activeSheet = .confirm(request)
+        }
+    }
+
+    /// Export a single container; warn first if it is running.
+    private func requestExport(_ container: Container) {
+        if lifecycle.validateExport(id: container.id) {
+            presentExportPanel(id: container.id, name: container.name)
+        } else {
+            activeSheet = .confirm(.exportNotStopped(id: container.id))
+        }
+    }
+
+    /// Routes a confirmed destructive request to the matching model action.
+    private func performConfirmed(_ request: ConfirmationRequest) {
+        switch request.kind {
+        case .kill:
+            Task { await lifecycle.killAll(ids: request.targetIDs) }
+        case let .delete(force):
+            Task {
+                await lifecycle.deleteAll(ids: request.targetIDs, force: force)
+                await stats.snapshot(ids: runningIDs)
+            }
+        case .exportNotStopped:
+            if let id = request.targetIDs.first {
+                let name = model.allContainers.first { $0.id == id }?.name ?? id
+                presentExportPanel(id: id, name: name)
+            }
+        }
+    }
+
+    private func presentExportPanel(id: String, name: String) {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "\(name).tar"
+        panel.canCreateDirectories = true
+        panel.title = "Export Container"
+        if panel.runModal() == .OK, let url = panel.url {
+            Task { await lifecycle.export(id: id, to: url) }
+        }
+    }
+
     private func containers(for ids: Set<Container.ID>) -> [Container] {
         model.allContainers.filter { ids.contains($0.id) }
     }
@@ -243,15 +331,19 @@ struct ContainerListView: View {
     }
 }
 
-/// Which lifecycle sheet is presented (single-target only).
+/// Which lifecycle sheet is presented.
 enum LifecycleSheet: Identifiable {
     case startAttach(id: String, name: String)
     case stopOptions(id: String, name: String)
+    case confirm(ConfirmationRequest)
+    case prune
 
     var id: String {
         switch self {
         case let .startAttach(id, _): return "start-\(id)"
         case let .stopOptions(id, _): return "stop-\(id)"
+        case let .confirm(request): return "confirm-\(request.id)"
+        case .prune: return "prune"
         }
     }
 }
