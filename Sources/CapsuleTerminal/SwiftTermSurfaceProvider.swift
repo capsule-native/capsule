@@ -57,7 +57,16 @@ private struct SwiftTermSurface: NSViewRepresentable {
     func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {}
 
     static func dismantleNSView(_ nsView: LocalProcessTerminalView, coordinator: Coordinator) {
-        nsView.terminate()
+        // Capture before terminate(): terminate() flips `running` to false.
+        let pid = nsView.process.shellPid
+        let wasRunning = nsView.process.running
+        nsView.terminate()  // closes the PTY + sends SIGTERM (graceful, for children that honor it)
+        // `container exec -it` ignores SIGHUP/SIGINT/SIGTERM and dies only on SIGKILL, so
+        // force-kill a still-running child to avoid orphaning the host process + in-container shell.
+        // Guard on `wasRunning` so we never SIGKILL a PID that already exited (and may be reused).
+        if wasRunning, pid > 0 {
+            kill(pid, SIGKILL)
+        }
     }
 
     final class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
