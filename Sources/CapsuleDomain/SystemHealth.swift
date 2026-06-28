@@ -82,6 +82,17 @@ public enum SystemHealth: Sendable, Equatable {
         case .unknown, .checking: return .info
         }
     }
+
+    /// A one-word status label for compact indicators (the sidebar footer, the System
+    /// pane).
+    public var statusLabel: String {
+        switch self {
+        case .unknown, .checking: return "Checking…"
+        case .running: return "Running"
+        case .stopped: return "Stopped"
+        case .unavailable: return "Unavailable"
+        }
+    }
 }
 
 /// Returns a human-readable compatibility warning when the discovered client/server

@@ -43,17 +43,32 @@ public final class ShellState {
     public var inspectorPresented: Bool
     public var activityPanePresented: Bool
     public var activityTab: ActivityTab
+    /// Recent activity lines (newest last), shown in the Activity pane's Logs tab.
+    public private(set) var activityLog: [String]
+
+    /// Caps the retained activity lines so the pane never grows without bound.
+    private let activityLogLimit = 200
 
     public init(
         selection: SidebarSection = .containers,
         inspectorPresented: Bool = true,
         activityPanePresented: Bool = true,
-        activityTab: ActivityTab = .logs
+        activityTab: ActivityTab = .logs,
+        activityLog: [String] = []
     ) {
         self.selection = selection
         self.inspectorPresented = inspectorPresented
         self.activityPanePresented = activityPanePresented
         self.activityTab = activityTab
+        self.activityLog = activityLog
+    }
+
+    /// Appends an activity line, trimming the oldest entries past the retention cap.
+    public func appendActivity(_ line: String) {
+        activityLog.append(line)
+        if activityLog.count > activityLogLimit {
+            activityLog.removeFirst(activityLog.count - activityLogLimit)
+        }
     }
 
     public func toggleInspector() { inspectorPresented.toggle() }

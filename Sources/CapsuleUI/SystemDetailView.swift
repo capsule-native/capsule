@@ -22,7 +22,7 @@ struct SystemDetailView: View {
                         Circle()
                             .fill(CapsuleColors.accent(for: health.bannerKind))
                             .frame(width: 8, height: 8)
-                        Text(statusLabel)
+                        Text(health.statusLabel)
                     }
                 }
                 if case let .running(version, _) = health {
@@ -46,14 +46,5 @@ struct SystemDetailView: View {
             }
         }
         .formStyle(.grouped)
-    }
-
-    private var statusLabel: String {
-        switch health {
-        case .unknown, .checking: return "Checking…"
-        case .running: return "Running"
-        case .stopped: return "Stopped"
-        case .unavailable: return "Unavailable"
-        }
     }
 }

@@ -8,38 +8,50 @@
 import CapsuleDomain
 import SwiftUI
 
-/// The top-level UI.
+/// The top-level UI. It hosts the ``AppShellView`` and gates first-launch onboarding on an
+/// `@AppStorage` flag.
 ///
-/// It binds only to the domain's `WorkspaceModel`; it must never import a backend
-/// module (enforced by `ArchitectureGuardTests` and `Scripts/check-architecture.sh`).
+/// It binds only to domain models (`SystemStatusModel`, `WorkspaceModel`) and the
+/// view-only `ShellState`; it must never import a backend module (enforced by
+/// `ArchitectureGuardTests` and `Scripts/check-architecture.sh`).
 public struct RootView: View {
-    @State private var model: WorkspaceModel
+    private let shell: ShellState
+    private let systemModel: SystemStatusModel
+    private let workspaceModel: WorkspaceModel
+    private let actions: ShellActions
 
-    public init(model: WorkspaceModel) {
-        self._model = State(initialValue: model)
+    @AppStorage("capsule.hasCompletedOnboarding") private var hasCompletedOnboarding = false
+
+    public init(
+        shell: ShellState,
+        systemModel: SystemStatusModel,
+        workspaceModel: WorkspaceModel,
+        actions: ShellActions
+    ) {
+        self.shell = shell
+        self.systemModel = systemModel
+        self.workspaceModel = workspaceModel
+        self.actions = actions
     }
 
     public var body: some View {
-        NavigationSplitView {
-            List(ResourceKind.allCases) { kind in
-                Label(kind.rawValue.capitalized, systemImage: kind.symbolName)
+        AppShellView(
+            shell: shell,
+            systemModel: systemModel,
+            workspaceModel: workspaceModel,
+            actions: actions
+        )
+        .sheet(isPresented: showOnboarding) {
+            OnboardingView(health: systemModel.health, actions: actions) {
+                hasCompletedOnboarding = true
             }
-            .navigationTitle("Capsule")
-        } detail: {
-            ResourcePlaceholder(state: model.loadState)
         }
-        .task { await model.refresh() }
     }
-}
 
-extension ResourceKind {
-    /// SF Symbol used to represent the resource kind in the sidebar.
-    var symbolName: String {
-        switch self {
-        case .container: return "shippingbox"
-        case .image: return "square.stack.3d.up"
-        case .volume: return "externaldrive"
-        case .network: return "network"
-        }
+    private var showOnboarding: Binding<Bool> {
+        Binding(
+            get: { !hasCompletedOnboarding },
+            set: { presenting in hasCompletedOnboarding = !presenting }
+        )
     }
 }
