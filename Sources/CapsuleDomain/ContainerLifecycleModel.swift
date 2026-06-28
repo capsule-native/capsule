@@ -28,6 +28,7 @@ public final class ContainerLifecycleModel {
     private let currentState: @MainActor (String) -> ContainerState
     private let terminalAvailable: @MainActor () -> Bool
     private let copyCommand: @MainActor ([String]) -> Void
+    private let launchTerminal: @MainActor (TerminalRequest) -> Void
     private let settleAttempts: Int
     private let settleDelay: Duration
     private let hangTimeout: Duration
@@ -44,6 +45,7 @@ public final class ContainerLifecycleModel {
         currentState: @escaping @MainActor (String) -> ContainerState = { _ in .unknown },
         terminalAvailable: @escaping @MainActor () -> Bool = { false },
         copyCommand: @escaping @MainActor ([String]) -> Void = { _ in },
+        launchTerminal: @escaping @MainActor (TerminalRequest) -> Void = { _ in },
         settleAttempts: Int = 4,
         settleDelay: Duration = .milliseconds(400),
         hangTimeout: Duration = .seconds(8)
@@ -55,6 +57,7 @@ public final class ContainerLifecycleModel {
         self.currentState = currentState
         self.terminalAvailable = terminalAvailable
         self.copyCommand = copyCommand
+        self.launchTerminal = launchTerminal
         self.settleAttempts = settleAttempts
         self.settleDelay = settleDelay
         self.hangTimeout = hangTimeout
@@ -65,6 +68,41 @@ public final class ContainerLifecycleModel {
 
     /// Copies a command to the clipboard (the retry-in-terminal interim until M6).
     public func copyToTerminal(_ argv: [String]) { copyCommand(argv) }
+
+    /// Opens an interactive shell (`exec -it … sh`) in the embedded terminal, or copies the
+    /// command to the clipboard when the terminal is unavailable.
+    public func openShell(id: String) {
+        launchOrCopy(
+            TerminalRequest(
+                containerID: id, title: "Shell · \(id)",
+                argv: ["container", "exec", "-it", id, "sh"], kind: .execShell))
+    }
+
+    /// Starts a stopped container attached to its main process (`start -ai`) in the embedded
+    /// terminal — the interactive counterpart to the read-only `logs --follow` attach.
+    public func attachInteractively(id: String) {
+        launchOrCopy(
+            TerminalRequest(
+                containerID: id, title: "Attach · \(id)",
+                argv: ["container", "start", "-ai", id], kind: .interactiveAttach))
+    }
+
+    /// Runs an arbitrary recovery command in the embedded terminal (the real
+    /// retry-in-terminal), falling back to the clipboard when the terminal is unavailable.
+    public func runInTerminal(_ command: [String]) {
+        launchOrCopy(
+            TerminalRequest(
+                containerID: nil, title: "Terminal", argv: command, kind: .retry))
+    }
+
+    /// Routes a request to the embedded terminal when available, else copies its command.
+    private func launchOrCopy(_ request: TerminalRequest) {
+        if terminalAvailable() {
+            launchTerminal(request)
+        } else {
+            copyCommand(request.argv)
+        }
+    }
 
     // MARK: - Start
 
