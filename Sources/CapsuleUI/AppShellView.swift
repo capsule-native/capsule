@@ -130,7 +130,10 @@ public struct AppShellView: View {
                     onDetach: { lifecycleModel.detach() },
                     onRetryAttach: { retryAttach() },
                     onOpenShell: { openShellForSelection() },
-                    onCloseTerminal: { shell.closeTerminal() }
+                    onCloseTerminal: { shell.closeTerminal() },
+                    onOpenInTerminalApp: { request in
+                        lifecycleModel.openInExternalTerminal(request.argv)
+                    }
                 )
             }
         }

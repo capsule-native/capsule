@@ -29,6 +29,7 @@ public final class ContainerLifecycleModel {
     private let terminalAvailable: @MainActor () -> Bool
     private let copyCommand: @MainActor ([String]) -> Void
     private let launchTerminal: @MainActor (TerminalRequest) -> Void
+    private let openExternalTerminal: @MainActor ([String]) -> Void
     private let taskCenter: TaskCenter?
     private let settleAttempts: Int
     private let settleDelay: Duration
@@ -47,6 +48,7 @@ public final class ContainerLifecycleModel {
         terminalAvailable: @escaping @MainActor () -> Bool = { false },
         copyCommand: @escaping @MainActor ([String]) -> Void = { _ in },
         launchTerminal: @escaping @MainActor (TerminalRequest) -> Void = { _ in },
+        openExternalTerminal: @escaping @MainActor ([String]) -> Void = { _ in },
         taskCenter: TaskCenter? = nil,
         settleAttempts: Int = 4,
         settleDelay: Duration = .milliseconds(400),
@@ -60,6 +62,7 @@ public final class ContainerLifecycleModel {
         self.terminalAvailable = terminalAvailable
         self.copyCommand = copyCommand
         self.launchTerminal = launchTerminal
+        self.openExternalTerminal = openExternalTerminal
         self.taskCenter = taskCenter
         self.settleAttempts = settleAttempts
         self.settleDelay = settleDelay
@@ -76,6 +79,26 @@ public final class ContainerLifecycleModel {
             TerminalRequest(
                 containerID: id, title: "Shell · \(id)",
                 argv: ["container", "exec", "-it", id, "sh"], kind: .execShell))
+    }
+
+    /// Runs a custom command interactively (`exec -it … <command>`) in the embedded terminal,
+    /// falling back to the clipboard. An empty command defaults to `sh`.
+    public func execShell(id: String, command: [String]) {
+        let argv = command.isEmpty ? ["sh"] : command
+        launchOrCopy(
+            TerminalRequest(
+                containerID: id, title: "Exec · \(id)",
+                argv: ["container", "exec", "-it", id] + argv, kind: .execShell))
+    }
+
+    /// Opens an interactive login shell in a container machine
+    /// (`machine run -it [-n <name>]`), falling back to the clipboard.
+    public func openMachineShell(name: String?) {
+        var argv = ["container", "machine", "run", "-it"]
+        if let name, !name.isEmpty { argv += ["-n", name] }
+        let title = name.map { "Machine · \($0)" } ?? "Machine shell"
+        launchOrCopy(
+            TerminalRequest(containerID: nil, title: title, argv: argv, kind: .execShell))
     }
 
     /// Starts a stopped container attached to its main process (`start -ai`) in the embedded
@@ -102,6 +125,12 @@ public final class ContainerLifecycleModel {
         } else {
             copyCommand(request.argv)
         }
+    }
+
+    /// Detach fallback: run the command in the external Terminal.app instead of the embedded
+    /// terminal (e.g. to keep a long interactive session open outside Capsule).
+    public func openInExternalTerminal(_ argv: [String]) {
+        openExternalTerminal(argv)
     }
 
     // MARK: - Start

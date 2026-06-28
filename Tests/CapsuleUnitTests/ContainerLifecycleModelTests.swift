@@ -191,6 +191,45 @@ final class ContainerLifecycleModelTests: XCTestCase {
         XCTAssertEqual(backend.lastExportURL, URL(fileURLWithPath: "/tmp/c.tar"))
     }
 
+    func testExecShellWithCustomCommandBuildsArgv() {
+        var request: TerminalRequest?
+        let m = ContainerLifecycleModel(
+            backend: MockBackend(), terminalAvailable: { true },
+            launchTerminal: { request = $0 })
+        m.execShell(id: "c1", command: ["bash", "-l"])
+        XCTAssertEqual(request?.argv, ["container", "exec", "-it", "c1", "bash", "-l"])
+        XCTAssertEqual(request?.kind, .execShell)
+    }
+
+    func testExecShellEmptyCommandDefaultsToSh() {
+        var request: TerminalRequest?
+        let m = ContainerLifecycleModel(
+            backend: MockBackend(), terminalAvailable: { true },
+            launchTerminal: { request = $0 })
+        m.execShell(id: "c1", command: [])
+        XCTAssertEqual(request?.argv, ["container", "exec", "-it", "c1", "sh"])
+    }
+
+    func testMachineShellBuildsArgv() {
+        var request: TerminalRequest?
+        let m = ContainerLifecycleModel(
+            backend: MockBackend(), terminalAvailable: { true },
+            launchTerminal: { request = $0 })
+        m.openMachineShell(name: "default")
+        XCTAssertEqual(request?.argv, ["container", "machine", "run", "-it", "-n", "default"])
+        m.openMachineShell(name: nil)
+        XCTAssertEqual(request?.argv, ["container", "machine", "run", "-it"])
+    }
+
+    func testExecShellCopiesWhenTerminalUnavailable() {
+        var copied: [String]?
+        let m = ContainerLifecycleModel(
+            backend: MockBackend(), terminalAvailable: { false },
+            copyCommand: { copied = $0 })
+        m.execShell(id: "c1", command: ["sh"])
+        XCTAssertEqual(copied, ["container", "exec", "-it", "c1", "sh"])
+    }
+
     func testExportRegistersActivityTask() async {
         let center = TaskCenter()
         let m = ContainerLifecycleModel(backend: MockBackend(), taskCenter: center)
