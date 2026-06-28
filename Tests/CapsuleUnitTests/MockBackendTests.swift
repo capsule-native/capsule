@@ -22,6 +22,14 @@ final class MockBackendTests: XCTestCase {
         XCTAssertFalse(images.isEmpty)
     }
 
+    func testSampleContainersAreRicherForBrowser() async throws {
+        let all = try await MockBackend().listContainers(all: true)
+        XCTAssertGreaterThanOrEqual(all.count, 3)
+        XCTAssertTrue(all.contains { $0.state == "running" })
+        XCTAssertTrue(all.contains { $0.state == "stopped" })
+        XCTAssertTrue(all.allSatisfy { $0.createdAt != nil })
+    }
+
     func testListContainersHonoursAllFlag() async throws {
         let backend = MockBackend(
             containers: [

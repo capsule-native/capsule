@@ -189,13 +189,23 @@ extension MockBackend {
             name: "web",
             image: "docker.io/library/alpine:latest",
             state: "running",
-            ip: "192.168.64.3"
+            ip: "192.168.64.3",
+            createdAt: "2026-06-20T09:15:00Z"
         ),
         ContainerSummary(
             id: "e5f6a7b8",
             name: "db",
             image: "docker.io/library/postgres:16",
-            state: "stopped"
+            state: "stopped",
+            createdAt: "2026-06-18T14:02:30Z"
+        ),
+        ContainerSummary(
+            id: "0c1d2e3f",
+            name: "cache",
+            image: "docker.io/library/redis:7",
+            state: "running",
+            ip: "192.168.64.4",
+            createdAt: "2026-06-21T11:47:10Z"
         ),
     ]
 
