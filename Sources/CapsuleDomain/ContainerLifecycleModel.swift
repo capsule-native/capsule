@@ -166,6 +166,20 @@ public final class ContainerLifecycleModel {
         return .stopped
     }
 
+    /// Stops a container with the default options. UI-friendly overload so views never
+    /// name the Backend `StopOptions` type (arch guard: UI must not import Backend).
+    @discardableResult
+    public func stop(id: String) async -> StopOutcome {
+        await stop(id: id, options: .default)
+    }
+
+    /// Stops a container with explicit graceful options (timeout seconds + signal token),
+    /// mapping them to `StopOptions` inside the domain.
+    @discardableResult
+    public func stop(id: String, timeout: Int?, signal: String?) async -> StopOutcome {
+        await stop(id: id, options: StopOptions(timeout: timeout, signal: signal))
+    }
+
     /// Interim Force Stop (hybrid): immediate force through the non-destructive stop verb
     /// (`stop -t 0`). The true destructive `kill` Force Stop with a confirmation sheet
     /// arrives in Milestone 5C.
@@ -180,7 +194,8 @@ public final class ContainerLifecycleModel {
             detail: ErrorDetail(
                 title: "Stop is taking longer than expected",
                 explanation: "You can force the container to stop now, or copy the kill command.",
-                recoveryActions: [.retry, .retryInTerminal(command: ["container", "kill", id])]))
+                recoveryActions: [.retryInTerminal(command: ["container", "kill", id])]),
+            forceStopID: id)
     }
 
     /// Awaits `stopTask` or the hang timeout, whichever is first, WITHOUT cancelling the

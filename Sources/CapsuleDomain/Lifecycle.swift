@@ -78,10 +78,14 @@ public enum ContainerStartResult: Sendable, Equatable {
 public struct LifecycleNotice: Sendable, Equatable {
     public var detail: ErrorDetail
     public var offersShellHint: Bool
+    /// When set, the notice offers a working "Force Stop" affordance for this container
+    /// (the 5B hybrid interim, `stop -t 0`). The true destructive `kill` arrives in 5C.
+    public var forceStopID: String?
 
-    public init(detail: ErrorDetail, offersShellHint: Bool = false) {
+    public init(detail: ErrorDetail, offersShellHint: Bool = false, forceStopID: String? = nil) {
         self.detail = detail
         self.offersShellHint = offersShellHint
+        self.forceStopID = forceStopID
     }
 }
 

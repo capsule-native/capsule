@@ -82,7 +82,7 @@ final class ContainerLifecycleModelTests: XCTestCase {
     func testHangNoticeOffersForceAndKillCopy() {
         let m = model()
         let notice = m.makeHangNotice(id: "c1")
-        XCTAssertTrue(notice.detail.recoveryActions.contains(.retry))
+        XCTAssertEqual(notice.forceStopID, "c1")
         let killCopy = RecoveryAction.retryInTerminal(command: ["container", "kill", "c1"])
         XCTAssertTrue(notice.detail.recoveryActions.contains(killCopy))
     }
