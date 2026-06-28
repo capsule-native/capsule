@@ -21,13 +21,18 @@ struct ImageListView: View {
     @Bindable var model: ImageBrowserModel
     let actions: ImageActionsModel
     @Bindable var runModel: RunModel
+    @Bindable var buildModel: BuildModel
 
     @State private var activeSheet: ImageSheet?
 
-    init(model: ImageBrowserModel, actions: ImageActionsModel, runModel: RunModel) {
+    init(
+        model: ImageBrowserModel, actions: ImageActionsModel, runModel: RunModel,
+        buildModel: BuildModel
+    ) {
         self.model = model
         self.actions = actions
         self.runModel = runModel
+        self.buildModel = buildModel
     }
 
     var body: some View {
@@ -77,6 +82,8 @@ struct ImageListView: View {
                         onClose: { activeSheet = nil }
                     )
                     .onAppear { runModel.reset(image: image) }
+                case .build:
+                    BuildSheet(model: buildModel, onClose: { activeSheet = nil })
                 }
             }
     }
@@ -186,6 +193,13 @@ struct ImageListView: View {
             .help("Run a container from an image")
 
             Button {
+                activeSheet = .build
+            } label: {
+                Label("Build", systemImage: "hammer")
+            }
+            .help("Build an image from a Dockerfile")
+
+            Button {
                 activeSheet = .pull
             } label: {
                 Label("Pull", systemImage: "arrow.down.circle")
@@ -282,6 +296,7 @@ enum ImageSheet: Identifiable {
     case confirm(ConfirmationRequest)
     case prune
     case run(image: String)
+    case build
 
     var id: String {
         switch self {
@@ -292,6 +307,7 @@ enum ImageSheet: Identifiable {
         case let .confirm(request): return "confirm-\(request.id)"
         case .prune: return "prune"
         case let .run(image): return "run-\(image)"
+        case .build: return "build"
         }
     }
 }

@@ -23,6 +23,7 @@ public struct AppShellView: View {
     @Bindable var imageActionsModel: ImageActionsModel
     @Bindable var taskCenter: TaskCenter
     @Bindable var runModel: RunModel
+    @Bindable var buildModel: BuildModel
     let actions: ShellActions
     let terminalSurfaceProvider: any TerminalSurfaceProviding
 
@@ -37,6 +38,7 @@ public struct AppShellView: View {
         imageActionsModel: ImageActionsModel,
         taskCenter: TaskCenter,
         runModel: RunModel,
+        buildModel: BuildModel,
         actions: ShellActions,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
     ) {
@@ -50,6 +52,7 @@ public struct AppShellView: View {
         self.imageActionsModel = imageActionsModel
         self.taskCenter = taskCenter
         self.runModel = runModel
+        self.buildModel = buildModel
         self.actions = actions
         self.terminalSurfaceProvider = terminalSurfaceProvider
     }
@@ -111,7 +114,8 @@ public struct AppShellView: View {
                 statsModel: statsModel,
                 imageBrowserModel: imageBrowserModel,
                 imageActionsModel: imageActionsModel,
-                runModel: runModel
+                runModel: runModel,
+                buildModel: buildModel
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
