@@ -41,10 +41,14 @@ struct ActivityPaneView: View {
         .background(CapsuleColors.activitySurface)
     }
 
+    private var visibleTabs: [ActivityTab] {
+        shell.terminalSession != nil ? ActivityTab.allCases : ActivityTab.baseCases
+    }
+
     private var header: some View {
         HStack(spacing: 12) {
             Picker("Activity", selection: $shell.activityTab) {
-                ForEach(ActivityTab.allCases) { tab in
+                ForEach(visibleTabs) { tab in
                     Label(tab.title, systemImage: tab.symbolName).tag(tab)
                 }
             }
@@ -75,6 +79,8 @@ struct ActivityPaneView: View {
             placeholder("No running tasks", systemImage: "checklist")
         case .progress:
             placeholder("No active transfers", systemImage: "chart.bar")
+        case .terminal:
+            placeholder("No terminal session", systemImage: "terminal")
         }
     }
 
