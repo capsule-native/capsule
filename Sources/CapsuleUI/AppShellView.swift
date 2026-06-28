@@ -20,6 +20,7 @@ public struct AppShellView: View {
     @Bindable var lifecycleModel: ContainerLifecycleModel
     let statsModel: ContainerStatsModel
     @Bindable var imageBrowserModel: ImageBrowserModel
+    @Bindable var imageActionsModel: ImageActionsModel
     let actions: ShellActions
     let terminalSurfaceProvider: any TerminalSurfaceProviding
 
@@ -31,6 +32,7 @@ public struct AppShellView: View {
         lifecycleModel: ContainerLifecycleModel,
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
+        imageActionsModel: ImageActionsModel,
         actions: ShellActions,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
     ) {
@@ -41,6 +43,7 @@ public struct AppShellView: View {
         self.lifecycleModel = lifecycleModel
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
+        self.imageActionsModel = imageActionsModel
         self.actions = actions
         self.terminalSurfaceProvider = terminalSurfaceProvider
     }
@@ -83,6 +86,16 @@ public struct AppShellView: View {
                 .padding(.top, 6)
             }
 
+            if let notice = imageActionsModel.notice {
+                LifecycleNoticeView(
+                    notice: notice,
+                    onAction: { _ in imageActionsModel.notice = nil },
+                    onForceStop: { _ in imageActionsModel.notice = nil },
+                    onDismiss: { imageActionsModel.notice = nil }
+                )
+                .padding(.top, 6)
+            }
+
             ContentColumnView(
                 section: shell.selection,
                 health: systemModel.health,
@@ -90,7 +103,8 @@ public struct AppShellView: View {
                 browserModel: browserModel,
                 lifecycleModel: lifecycleModel,
                 statsModel: statsModel,
-                imageBrowserModel: imageBrowserModel
+                imageBrowserModel: imageBrowserModel,
+                imageActionsModel: imageActionsModel
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
