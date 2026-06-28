@@ -15,6 +15,8 @@ public struct TerminalRequest: Sendable, Equatable {
         case execShell
         case interactiveAttach
         case retry
+        /// An attached/TTY `container run -it …` launched from the Quick Run sheet.
+        case runInteractive
     }
 
     /// The container this terminal targets, when applicable.
