@@ -41,7 +41,8 @@ public final class SystemStatusModel {
 
     /// The fallback normalizer used when the composition root injects none: pass through
     /// an existing `CapsuleError`, otherwise wrap as `.unknown`.
-    public static let defaultNormalize: @Sendable (any Error) -> CapsuleError = { error in
+    public nonisolated static let defaultNormalize: @Sendable (any Error) -> CapsuleError = {
+        error in
         (error as? CapsuleError) ?? .unknown(message: String(describing: error))
     }
 
