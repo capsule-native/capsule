@@ -54,6 +54,12 @@ final class TerminalSessionUITests: XCTestCase {
             TerminalExitStatus.exited(code: 3).bannerText, "Session ended (exit 3).")
     }
 
+    func testExitStatusDecodesRawWaitpidStatus() {
+        XCTAssertEqual(TerminalExitStatus.from(rawWaitpidStatus: 0), .exited(code: 0))
+        XCTAssertEqual(TerminalExitStatus.from(rawWaitpidStatus: 3 << 8), .exited(code: 3))
+        XCTAssertEqual(TerminalExitStatus.from(rawWaitpidStatus: 9), .signalled(signal: 9))
+    }
+
     func testSurfaceIDIsUniquePerInstanceAndChangesOnRestart() {
         let a = TerminalSessionState(request: request())
         let b = TerminalSessionState(request: request())

@@ -124,7 +124,11 @@ public struct AppEnvironment {
                     shell.revealLogs()
                 case .exportDiagnostics:
                     shell.appendActivity("Diagnostics export requested.")
-                case .retryInTerminal, .editConfiguration, .grantPermission:
+                case let .retryInTerminal(command):
+                    shell.openTerminal(
+                        TerminalRequest(
+                            containerID: nil, title: "Terminal", argv: command, kind: .retry))
+                case .editConfiguration, .grantPermission:
                     shell.appendActivity("Action “\(action.title)” is not available yet.")
                 }
             },
