@@ -43,4 +43,16 @@ final class CompositionTests: XCTestCase {
         XCTAssertNil(environment.lifecycleModel.notice)
         XCTAssertTrue(environment.statsModel.metrics.isEmpty)
     }
+
+    @MainActor
+    func testLiveEnvironmentExposesM7Models() {
+        let environment = AppEnvironment.live()
+
+        // Run/Build/Copy share the single TaskCenter so their jobs land in the Activity pane.
+        XCTAssertTrue(environment.runModel.draft.image.isEmpty)
+        XCTAssertTrue(environment.buildModel.draft.tag.isEmpty)
+        XCTAssertNil(environment.logsModel.containerID)
+        XCTAssertEqual(environment.copyModel.direction, .toContainer)
+        XCTAssertTrue(environment.taskCenter.tasks.isEmpty)
+    }
 }
