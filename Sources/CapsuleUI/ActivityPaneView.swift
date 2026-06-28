@@ -147,6 +147,7 @@ struct ActivityPaneView: View {
                 }
             }
         }
+        .background(CapsuleColors.activitySurface)
     }
 
     private func exitBanner(
