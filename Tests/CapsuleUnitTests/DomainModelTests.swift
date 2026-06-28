@@ -47,11 +47,16 @@ final class DomainModelTests: XCTestCase {
     }
 
     func testImageMapsBackendSummary() {
-        let summary = ImageSummary(id: "sha256:abc", reference: "nginx:latest", sizeBytes: 4096)
+        let summary = ImageSummary(
+            id: "sha256:abc", reference: "nginx:latest", sizeBytes: 4096, digest: "sha256:abc")
         let image = Image(summary: summary)
 
-        XCTAssertEqual(image.id, "sha256:abc")
+        // A tagged image is identified by its (unique) reference; the digest is retained.
+        XCTAssertEqual(image.id, "nginx:latest")
         XCTAssertEqual(image.reference, "nginx:latest")
+        XCTAssertEqual(image.repository, "nginx")
+        XCTAssertEqual(image.tag, "latest")
+        XCTAssertEqual(image.digest, "sha256:abc")
         XCTAssertEqual(image.sizeBytes, 4096)
     }
 

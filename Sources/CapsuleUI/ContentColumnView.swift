@@ -18,6 +18,7 @@ struct ContentColumnView: View {
     let browserModel: ContainerBrowserModel
     let lifecycleModel: ContainerLifecycleModel
     let statsModel: ContainerStatsModel
+    let imageBrowserModel: ImageBrowserModel
 
     private var onRecover: (RecoveryAction) -> Void { actions.recover }
 
@@ -38,9 +39,12 @@ struct ContentColumnView: View {
     /// sections keep the friendly placeholder until their milestones land.
     @ViewBuilder
     private var runningContent: some View {
-        if section == .containers {
+        switch section {
+        case .containers:
             ContainerListView(model: browserModel, lifecycle: lifecycleModel, stats: statsModel)
-        } else {
+        case .images:
+            ImageListView(model: imageBrowserModel)
+        default:
             resourcePlaceholder
         }
     }
