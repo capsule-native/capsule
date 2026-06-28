@@ -24,6 +24,7 @@ public struct AppEnvironment {
     public var shell: ShellState
     public var systemModel: SystemStatusModel
     public var workspaceModel: WorkspaceModel
+    public var browserModel: ContainerBrowserModel
     public var actions: ShellActions
     public var updater: any UpdaterController
 
@@ -31,12 +32,14 @@ public struct AppEnvironment {
         shell: ShellState,
         systemModel: SystemStatusModel,
         workspaceModel: WorkspaceModel,
+        browserModel: ContainerBrowserModel,
         actions: ShellActions,
         updater: any UpdaterController
     ) {
         self.shell = shell
         self.systemModel = systemModel
         self.workspaceModel = workspaceModel
+        self.browserModel = browserModel
         self.actions = actions
         self.updater = updater
     }
@@ -51,11 +54,18 @@ public struct AppEnvironment {
             onActivity: { line in shell.appendActivity(line) }
         )
         let workspaceModel = WorkspaceModel(backend: backend)
+        let browserModel = ContainerBrowserModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            scopeStore: UserDefaultsScopeStore(),
+            onActivity: { line in shell.appendActivity(line) }
+        )
         let actions = makeActions(systemModel: systemModel, shell: shell)
         return AppEnvironment(
             shell: shell,
             systemModel: systemModel,
             workspaceModel: workspaceModel,
+            browserModel: browserModel,
             actions: actions,
             updater: NoopUpdaterController()
         )

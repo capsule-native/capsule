@@ -27,13 +27,19 @@ public struct ContainerSummary: Sendable, Equatable, Identifiable, Codable {
     public var state: String
     /// The container's primary IPv4 address (without CIDR suffix), if attached.
     public var ip: String?
+    /// The container's creation timestamp as the raw ISO-8601 string the CLI emits.
+    public var createdAt: String?
 
-    public init(id: String, name: String, image: String, state: String, ip: String? = nil) {
+    public init(
+        id: String, name: String, image: String, state: String,
+        ip: String? = nil, createdAt: String? = nil
+    ) {
         self.id = id
         self.name = name
         self.image = image
         self.state = state
         self.ip = ip
+        self.createdAt = createdAt
     }
 }
 

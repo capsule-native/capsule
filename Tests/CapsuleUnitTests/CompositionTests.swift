@@ -25,4 +25,12 @@ final class CompositionTests: XCTestCase {
 
         XCTAssertEqual(environment.systemModel.health, .unknown)
     }
+
+    @MainActor
+    func testLiveEnvironmentBuildsBrowserModel() {
+        let environment = AppEnvironment.live()
+
+        XCTAssertEqual(environment.browserModel.loadState, .idle)
+        XCTAssertTrue(environment.browserModel.allContainers.isEmpty)
+    }
 }

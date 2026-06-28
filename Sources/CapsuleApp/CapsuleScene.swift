@@ -19,6 +19,7 @@ public struct CapsuleScene: Scene {
     @State private var shell: ShellState
     @State private var systemModel: SystemStatusModel
     @State private var workspaceModel: WorkspaceModel
+    @State private var browserModel: ContainerBrowserModel
     private let actions: ShellActions
     private let updater: any UpdaterController
 
@@ -30,6 +31,7 @@ public struct CapsuleScene: Scene {
         self._shell = State(initialValue: environment.shell)
         self._systemModel = State(initialValue: environment.systemModel)
         self._workspaceModel = State(initialValue: environment.workspaceModel)
+        self._browserModel = State(initialValue: environment.browserModel)
         self.actions = environment.actions
         self.updater = environment.updater
     }
@@ -40,6 +42,7 @@ public struct CapsuleScene: Scene {
                 shell: shell,
                 systemModel: systemModel,
                 workspaceModel: workspaceModel,
+                browserModel: browserModel,
                 actions: actions
             )
         }

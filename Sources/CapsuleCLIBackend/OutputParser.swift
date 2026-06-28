@@ -44,7 +44,8 @@ public enum OutputParser {
                 name: record.configuration.id,
                 image: record.configuration.image.reference,
                 state: record.status.state,
-                ip: record.status.networks.lazy.compactMap(\.ipAddress).first
+                ip: record.status.networks.lazy.compactMap(\.ipAddress).first,
+                createdAt: record.configuration.creationDate
             )
         }
     }

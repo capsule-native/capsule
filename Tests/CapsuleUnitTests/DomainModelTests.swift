@@ -21,6 +21,22 @@ final class DomainModelTests: XCTestCase {
         XCTAssertEqual(container.state, .running)
     }
 
+    func testContainerMapsIPAndCreationDate() {
+        let summary = ContainerSummary(
+            id: "abcdef0123456789", name: "web", image: "nginx", state: "running",
+            ip: "10.0.0.2", createdAt: "2026-06-20T09:15:00Z")
+        let container = Container(summary: summary)
+        XCTAssertEqual(container.ip, "10.0.0.2")
+        XCTAssertNotNil(container.createdAt)
+        XCTAssertEqual(container.shortID, "abcdef012345")
+    }
+
+    func testContainerCreationDateInvalidStringBecomesNil() {
+        let summary = ContainerSummary(
+            id: "id", name: "n", image: "i", state: "running", createdAt: "not-a-date")
+        XCTAssertNil(Container(summary: summary).createdAt)
+    }
+
     func testContainerStateNormalizesUnknownValues() {
         XCTAssertEqual(Container(summary: sample(state: "exited")).state, .stopped)
         XCTAssertEqual(Container(summary: sample(state: "weird")).state, .unknown)
