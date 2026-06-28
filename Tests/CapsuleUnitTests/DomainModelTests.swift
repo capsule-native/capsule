@@ -42,6 +42,10 @@ final class DomainModelTests: XCTestCase {
         XCTAssertEqual(Container(summary: sample(state: "weird")).state, .unknown)
     }
 
+    func testContainerStateMapsStopping() {
+        XCTAssertEqual(Container(summary: sample(state: "stopping")).state, .stopping)
+    }
+
     func testImageMapsBackendSummary() {
         let summary = ImageSummary(id: "sha256:abc", reference: "nginx:latest", sizeBytes: 4096)
         let image = Image(summary: summary)
