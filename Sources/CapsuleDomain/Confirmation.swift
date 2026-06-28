@@ -15,6 +15,9 @@ public enum ConfirmationKind: Sendable, Equatable {
     case kill
     case delete(force: Bool)
     case exportNotStopped
+    // Images (Milestone 6)
+    case deleteImage
+    case pushImage
 }
 
 /// A request to confirm a destructive operation, as pure data the UI renders generically.
@@ -69,5 +72,30 @@ public struct ConfirmationRequest: Sendable, Equatable, Identifiable {
             message: "Exporting a running container may capture an inconsistent filesystem. "
                 + "Stopping it first is recommended.",
             confirmTitle: "Export Anyway", targetIDs: [id], kind: .exportNotStopped)
+    }
+
+    // MARK: Images (Milestone 6)
+
+    /// Deleting an image always confirms; the operation is permanent and may be refused if
+    /// the image is still referenced by a container.
+    public static func deleteImage(ids: [String]) -> ConfirmationRequest? {
+        let count = ids.count
+        guard count > 0 else { return nil }
+        let noun = count == 1 ? "this image" : "\(count) images"
+        return ConfirmationRequest(
+            title: count == 1 ? "Delete image?" : "Delete \(count) images?",
+            message: "Deleting \(noun) is permanent. An image still referenced by a container "
+                + "can't be removed.",
+            confirmTitle: "Delete", targetIDs: ids, kind: .deleteImage)
+    }
+
+    /// A push always confirms its destination so an image is never uploaded to the wrong
+    /// repository by accident.
+    public static func pushImage(reference: String, destination: String) -> ConfirmationRequest {
+        ConfirmationRequest(
+            title: "Push “\(reference)”?",
+            message: "This uploads the image to \(destination). Make sure the destination "
+                + "repository is correct before continuing.",
+            confirmTitle: "Push", targetIDs: [reference], kind: .pushImage)
     }
 }

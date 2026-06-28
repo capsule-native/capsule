@@ -23,6 +23,7 @@ public struct CapsuleScene: Scene {
     @State private var lifecycleModel: ContainerLifecycleModel
     @State private var statsModel: ContainerStatsModel
     @State private var imageBrowserModel: ImageBrowserModel
+    @State private var imageActionsModel: ImageActionsModel
     private let actions: ShellActions
     private let updater: any UpdaterController
     private let terminalSurfaceProvider: any TerminalSurfaceProviding
@@ -39,6 +40,7 @@ public struct CapsuleScene: Scene {
         self._lifecycleModel = State(initialValue: environment.lifecycleModel)
         self._statsModel = State(initialValue: environment.statsModel)
         self._imageBrowserModel = State(initialValue: environment.imageBrowserModel)
+        self._imageActionsModel = State(initialValue: environment.imageActionsModel)
         self.actions = environment.actions
         self.updater = environment.updater
         self.terminalSurfaceProvider = environment.terminalSurfaceProvider
@@ -54,6 +56,7 @@ public struct CapsuleScene: Scene {
                 lifecycleModel: lifecycleModel,
                 statsModel: statsModel,
                 imageBrowserModel: imageBrowserModel,
+                imageActionsModel: imageActionsModel,
                 actions: actions,
                 terminalSurfaceProvider: terminalSurfaceProvider
             )
