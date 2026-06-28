@@ -53,6 +53,40 @@ final class ContainerLifecycleModelTests: XCTestCase {
         XCTAssertEqual(result, .backendUnavailable)
     }
 
+    func testStopMarksStopped() async {
+        let backend = MockBackend()
+        let m = model(backend: backend, state: { _ in .stopped })
+        let outcome = await m.stop(id: "a1b2c3d4", options: .default)
+        XCTAssertEqual(outcome, .stopped)
+        XCTAssertEqual(backend.lastStopOptions, .default)
+    }
+
+    func testStopAlreadyStoppedIsBenignNotDaemonError() async {
+        let backend = MockBackend()
+        backend.failure = .nonZeroExit(
+            command: "stop", code: 1,
+            stderr: "internalError: \"failed to stop container\" "
+                + "(cause: \"invalidState: container is not running\")")
+        let m = model(backend: backend, state: { _ in .stopped })
+        let outcome = await m.stop(id: "a1b2c3d4", options: .default)
+        XCTAssertEqual(outcome, .alreadyStopped)  // not .failed, not daemonUnavailable
+    }
+
+    func testForceStopIssuesForcedOptions() async {
+        let backend = MockBackend()
+        let m = model(backend: backend, state: { _ in .stopped })
+        _ = await m.forceStop(id: "a1b2c3d4")
+        XCTAssertEqual(backend.lastStopOptions, .forced)
+    }
+
+    func testHangNoticeOffersForceAndKillCopy() {
+        let m = model()
+        let notice = m.makeHangNotice(id: "c1")
+        XCTAssertTrue(notice.detail.recoveryActions.contains(.retry))
+        let killCopy = RecoveryAction.retryInTerminal(command: ["container", "kill", "c1"])
+        XCTAssertTrue(notice.detail.recoveryActions.contains(killCopy))
+    }
+
     func testAttachSingleFlightAndRingBufferThenDetach() async {
         let backend = MockBackend(
             logLines: (0..<300).map { OutputLine(source: .stdout, text: "\($0)") })
