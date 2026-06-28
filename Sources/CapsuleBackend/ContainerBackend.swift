@@ -50,8 +50,18 @@ public protocol ContainerBackend: Sendable {
     func inspectContainer(id: String) async throws -> Parsed<ContainerSummary>
 
     func startContainer(id: String) async throws
-    func stopContainer(id: String) async throws
+    func stopContainer(id: String, options: StopOptions) async throws
     func removeContainer(id: String, force: Bool) async throws
+
+    /// One-shot resource statistics for the given containers.
+    func containerStats(ids: [String]) async throws -> [ContainerStatsSample]
+
+    /// Streams resource statistics, polling `interval` between one-shot reads. The stream
+    /// finishes cleanly when cancelled (consumer breaks out / task cancelled).
+    func streamContainerStats(
+        ids: [String], interval: Duration
+    )
+        -> AsyncThrowingStream<[ContainerStatsSample], Error>
 
     /// Streams a container's logs line-by-line, following until cancelled.
     func followLogs(container id: String) -> AsyncThrowingStream<OutputLine, Error>
@@ -87,5 +97,10 @@ extension ContainerBackend {
     /// Convenience: lists only running containers.
     public func listContainers() async throws -> [ContainerSummary] {
         try await listContainers(all: false)
+    }
+
+    /// Convenience: stop with default options (CLI default signal + timeout).
+    public func stopContainer(id: String) async throws {
+        try await stopContainer(id: id, options: .default)
     }
 }

@@ -11,6 +11,7 @@
 //
 //  Subcommand names and flags mirror `container` v1.0.0, verified against `--help`.
 
+import CapsuleBackend
 import Foundation
 
 public enum CLICommand {
@@ -47,8 +48,20 @@ public enum CLICommand {
         ArgumentBuilder("start").adding(id).arguments
     }
 
-    public static func stopContainer(id: String) -> [String] {
-        ArgumentBuilder("stop").adding(id).arguments
+    public static func stopContainer(id: String, options: StopOptions) -> [String] {
+        ArgumentBuilder("stop")
+            .flag("--time", options.timeout.map(String.init))
+            .flag("--signal", options.signal)
+            .adding(id)
+            .arguments
+    }
+
+    public static func containerStats(ids: [String]) -> [String] {
+        ArgumentBuilder("stats")
+            .option("--no-stream", enabled: true)
+            .flag("--format", "json")
+            .adding(contentsOf: ids)
+            .arguments
     }
 
     public static func removeContainer(id: String, force: Bool) -> [String] {

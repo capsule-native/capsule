@@ -56,6 +56,22 @@ final class OutputParserTests: XCTestCase {
         XCTAssertEqual(rows.first?.createdAt, "2026-06-20T09:15:00Z")
     }
 
+    func testParseStatsEmptyArray() throws {
+        XCTAssertEqual(try OutputParser.parseStats(Data("[]".utf8)).count, 0)
+    }
+
+    func testParseStatsDecodesSampleAndIsLenient() throws {
+        let json = """
+            [{"id":"abc","cpuUsageUsec":1000000,"memoryUsageBytes":64000000,"numProcesses":3},
+             {"id":"def"},
+             {"noId":true}]
+            """
+        let rows = try OutputParser.parseStats(Data(json.utf8))
+        XCTAssertEqual(rows.map(\.id), ["abc", "def"])  // 3rd dropped: missing required id
+        XCTAssertEqual(rows.first?.cpuUsageUsec, 1_000_000)
+        XCTAssertEqual(rows.first?.numProcesses, 3)
+    }
+
     func testParsesContainerListIntoRows() throws {
         let rows = try OutputParser.parseContainers(Fixture.data("containers-ls"))
 

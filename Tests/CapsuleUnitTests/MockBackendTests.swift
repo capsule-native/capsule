@@ -22,6 +22,49 @@ final class MockBackendTests: XCTestCase {
         XCTAssertFalse(images.isEmpty)
     }
 
+    func testStopOptionsConstants() {
+        XCTAssertEqual(StopOptions.default, StopOptions(timeout: nil, signal: nil))
+        XCTAssertEqual(StopOptions.forced, StopOptions(timeout: 0, signal: nil))
+    }
+
+    func testStopRecordsOptions() async throws {
+        let backend = MockBackend()
+        try await backend.stopContainer(
+            id: "a1b2c3d4", options: StopOptions(timeout: 3, signal: "TERM"))
+        XCTAssertEqual(backend.lastStopOptions, StopOptions(timeout: 3, signal: "TERM"))
+        let stopped = try await backend.listContainers(all: true).first { $0.id == "a1b2c3d4" }
+        XCTAssertEqual(stopped?.state, "stopped")
+    }
+
+    func testStopConvenienceUsesDefault() async throws {
+        let backend = MockBackend()
+        try await backend.stopContainer(id: "a1b2c3d4")
+        XCTAssertEqual(backend.lastStopOptions, .default)
+    }
+
+    func testStatsSnapshotReturnsSeededSamples() async throws {
+        let backend = MockBackend(sampleStats: [
+            ContainerStatsSample(id: "a1b2c3d4", cpuUsageUsec: 10)
+        ])
+        let samples = try await backend.containerStats(ids: ["a1b2c3d4"])
+        XCTAssertEqual(samples.map(\.id), ["a1b2c3d4"])
+    }
+
+    func testStatsStreamEmitsThenFinishes() async throws {
+        let backend = MockBackend(sampleStats: [
+            ContainerStatsSample(id: "a1b2c3d4", cpuUsageUsec: 10)
+        ])
+        var batches = 0
+        for try await batch in backend.streamContainerStats(
+            ids: ["a1b2c3d4"], interval: .milliseconds(1))
+        {
+            XCTAssertEqual(batch.first?.id, "a1b2c3d4")
+            batches += 1
+            if batches >= 2 { break }
+        }
+        XCTAssertGreaterThanOrEqual(batches, 2)
+    }
+
     func testSampleContainersAreRicherForBrowser() async throws {
         let all = try await MockBackend().listContainers(all: true)
         XCTAssertGreaterThanOrEqual(all.count, 3)

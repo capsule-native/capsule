@@ -180,11 +180,21 @@ final class CLIContainerBackendTests: XCTestCase {
         try await backend.startContainer(id: "c1")
         XCTAssertEqual(stub.lastCall, ["start", "c1"])
 
-        try await backend.stopContainer(id: "c1")
-        XCTAssertEqual(stub.lastCall, ["stop", "c1"])
+        try await backend.stopContainer(id: "c1", options: StopOptions(timeout: 2, signal: "TERM"))
+        XCTAssertEqual(stub.lastCall, ["stop", "--time", "2", "--signal", "TERM", "c1"])
 
         try await backend.removeContainer(id: "c1", force: true)
         XCTAssertEqual(stub.lastCall, ["delete", "--force", "c1"])
+    }
+
+    func testContainerStatsSnapshotArgvAndDecode() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(
+            exitCode: 0, stdout: #"[{"id":"c1","cpuUsageUsec":5}]"#, stderr: "")
+        let samples = try await makeBackend(stub).containerStats(ids: ["c1"])
+        XCTAssertEqual(samples.first?.id, "c1")
+        XCTAssertEqual(samples.first?.cpuUsageUsec, 5)
+        XCTAssertEqual(stub.lastCall, ["stats", "--no-stream", "--format", "json", "c1"])
     }
 
     // MARK: - Streaming
