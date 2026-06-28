@@ -191,6 +191,15 @@ final class ContainerLifecycleModelTests: XCTestCase {
         XCTAssertEqual(backend.lastExportURL, URL(fileURLWithPath: "/tmp/c.tar"))
     }
 
+    func testExportRegistersActivityTask() async {
+        let center = TaskCenter()
+        let m = ContainerLifecycleModel(backend: MockBackend(), taskCenter: center)
+        await m.export(id: "a1b2c3d4", to: URL(fileURLWithPath: "/tmp/c.tar"))
+        XCTAssertEqual(center.tasks.count, 1)
+        XCTAssertEqual(center.tasks.first?.kind, .export)
+        XCTAssertEqual(center.tasks.first?.state, .succeeded)
+    }
+
     func testStopMarksStopped() async {
         let backend = MockBackend()
         let m = model(backend: backend, state: { _ in .stopped })

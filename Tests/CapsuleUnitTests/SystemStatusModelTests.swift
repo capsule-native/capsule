@@ -54,6 +54,16 @@ final class SystemStatusModelTests: XCTestCase {
         XCTAssertTrue(model.health.isRunning)
     }
 
+    func testStartServicesRegistersActivityTask() async {
+        let center = TaskCenter()
+        let model = SystemStatusModel(
+            backend: MockBackend(systemRunState: .stopped), taskCenter: center)
+        await model.startServices()
+        XCTAssertEqual(center.tasks.count, 1)
+        XCTAssertEqual(center.tasks.first?.kind, .systemStart)
+        XCTAssertTrue(model.health.isRunning)
+    }
+
     func testStopServicesFlipsRunningToStopped() async {
         let model = SystemStatusModel(backend: MockBackend())
         await model.refreshStatus()
