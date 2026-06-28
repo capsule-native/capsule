@@ -76,6 +76,10 @@ public final class TerminalSessionState {
         self.request = request
     }
 
+    /// A SwiftUI identity for the terminal surface: unique per session instance and bumped
+    /// on restart, so replacing the session (A→B) or restarting it rebuilds the PTY.
+    public var surfaceID: String { "\(ObjectIdentifier(self))-\(generation)" }
+
     /// Re-launches the same command: clears the exit state and bumps the surface identity.
     public func restart() {
         exit = nil
