@@ -66,8 +66,11 @@ public enum ContainerStartResult: Sendable, Equatable {
     public var operationStatus: OperationStatus {
         switch self {
         case .started: return .succeeded
-        case .createdButNotStarted, .failedBeforeExecution: return .failedBeforeExecution
-        case .runFailed: return .failedDuringExecution
+        case .failedBeforeExecution: return .failedBeforeExecution
+        // `createdButNotStarted` arises only when the `start` command ran and exited
+        // non-zero (the container resource already existed), so it is a during-execution
+        // failure — consistent with CapsuleError.commandFailed.status.
+        case .createdButNotStarted, .runFailed: return .failedDuringExecution
         case .backendUnavailable: return .backendUnavailable
         case .interrupted: return .interruptedByUser
         }

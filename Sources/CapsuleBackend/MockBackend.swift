@@ -29,8 +29,18 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     public var failure: BackendError?
     /// When set, `startContainer` throws this (independent of `failure`).
     public var startFailure: BackendError?
+    /// When set, `stopContainer` awaits this delay before mutating — lets tests drive the
+    /// hang watchdog deterministically.
+    public var stopDelay: Duration?
+    /// When true, `followLogs` yields the seeded lines then stays open (never finishes) so
+    /// tests can exercise attach single-flight cancellation.
+    public var neverEndingLogStream = false
     /// The options passed to the most recent `stopContainer` call.
     public private(set) var lastStopOptions: StopOptions?
+    /// How many times `containerStats` has been invoked (for stream-teardown tests).
+    public private(set) var statsCallCount = 0
+    /// How many `followLogs` streams have terminated (incl. via cancellation).
+    public private(set) var logStreamTerminations = 0
 
     public init(
         containers: [ContainerSummary] = MockBackend.sampleContainers,
@@ -103,6 +113,7 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     }
 
     public func stopContainer(id: String, options: StopOptions) async throws {
+        if let stopDelay { try? await Task.sleep(for: stopDelay) }
         try withState { state in
             state.lastStopOptions = options
             state.mutateContainer(id) {
@@ -114,7 +125,9 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
 
     public func containerStats(ids: [String]) async throws -> [ContainerStatsSample] {
         try withState { state in
-            ids.isEmpty ? state.sampleStats : state.sampleStats.filter { ids.contains($0.id) }
+            state.statsCallCount += 1
+            return ids.isEmpty
+                ? state.sampleStats : state.sampleStats.filter { ids.contains($0.id) }
         }
     }
 
@@ -150,7 +163,21 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     }
 
     public func followLogs(container id: String) -> AsyncThrowingStream<OutputLine, Error> {
-        seededStream()
+        guard neverEndingLogStream else { return seededStream() }
+        lock.lock()
+        let lines = logLines
+        lock.unlock()
+        return AsyncThrowingStream { continuation in
+            for line in lines { continuation.yield(line) }
+            continuation.onTermination = { [weak self] _ in self?.incrementLogTerminations() }
+            // Deliberately never finished: stays open until the consumer cancels.
+        }
+    }
+
+    private func incrementLogTerminations() {
+        lock.lock()
+        defer { lock.unlock() }
+        logStreamTerminations += 1
     }
 
     // MARK: - Images

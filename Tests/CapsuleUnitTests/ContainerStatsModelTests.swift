@@ -48,6 +48,21 @@ final class ContainerStatsModelTests: XCTestCase {
         XCTAssertEqual(m3.cpuPercent, m2.cpuPercent)  // prior value held
     }
 
+    func testStreamingStopsPollingAfterStop() async {
+        let backend = MockBackend(sampleStats: [
+            ContainerStatsSample(id: "a1b2c3d4", cpuUsageUsec: 1)
+        ])
+        let model = ContainerStatsModel(backend: backend)
+        model.startStreaming(ids: ["a1b2c3d4"], interval: .milliseconds(10))
+        try? await Task.sleep(for: .milliseconds(60))
+        model.stop()
+        let callsAtStop = backend.statsCallCount
+        try? await Task.sleep(for: .milliseconds(80))
+        XCTAssertEqual(
+            backend.statsCallCount, callsAtStop, "polling must stop after stop() — no leaked task")
+        XCTAssertFalse(model.isStreaming)
+    }
+
     func testStopIsIdempotentAndClearsStreamingFlag() {
         let model = ContainerStatsModel(backend: MockBackend())
         model.startStreaming(ids: [])  // empty → no-op, not streaming

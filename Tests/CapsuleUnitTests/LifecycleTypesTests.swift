@@ -49,5 +49,8 @@ final class LifecycleTypesTests: XCTestCase {
         XCTAssertEqual(
             ContainerStartResult.failedBeforeExecution.operationStatus, .failedBeforeExecution)
         XCTAssertEqual(ContainerStartResult.runFailed.operationStatus, .failedDuringExecution)
+        // A ran-but-failed start is a during-execution failure, not before-execution.
+        XCTAssertEqual(
+            ContainerStartResult.createdButNotStarted.operationStatus, .failedDuringExecution)
     }
 }

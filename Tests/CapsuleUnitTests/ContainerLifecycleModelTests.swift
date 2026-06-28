@@ -11,6 +11,13 @@ import XCTest
 
 @testable import CapsuleDomain
 
+/// A mutable container-state holder so `reloadList` can reflect the backend's mutations
+/// back into the `currentState` seam during start verification.
+@MainActor
+final class LifecycleStateBox {
+    var states: [String: ContainerState] = [:]
+}
+
 @MainActor
 final class ContainerLifecycleModelTests: XCTestCase {
     private func model(
@@ -51,6 +58,80 @@ final class ContainerLifecycleModelTests: XCTestCase {
             currentState: { _ in .stopped }, settleAttempts: 1, settleDelay: .zero)
         let result = await m.start(id: "x", attach: false)
         XCTAssertEqual(result, .backendUnavailable)
+    }
+
+    func testStartAllSkipsRunningAndReportsTotalSelected() async {
+        let backend = MockBackend()  // a1b2c3d4 running, e5f6a7b8 stopped, 0c1d2e3f running
+        var activity: [String] = []
+        let box = LifecycleStateBox()
+        for c in (try? await backend.listContainers(all: true)) ?? [] {
+            box.states[c.id] = ContainerState(backendState: c.state)
+        }
+        let m = ContainerLifecycleModel(
+            backend: backend,
+            onActivity: { activity.append($0) },
+            reloadList: {
+                for c in (try? await backend.listContainers(all: true)) ?? [] {
+                    box.states[c.id] = ContainerState(backendState: c.state)
+                }
+            },
+            currentState: { box.states[$0] ?? .unknown },
+            settleAttempts: 2, settleDelay: .zero)
+
+        await m.startAll(ids: ["a1b2c3d4", "e5f6a7b8", "0c1d2e3f"])
+
+        // Only e5f6a7b8 was non-running; the message denominator is the total selected (3).
+        XCTAssertTrue(activity.contains("Started 1 of 3 container(s)."), "got \(activity)")
+    }
+
+    func testStopHangsWhenBackendSlowAndDoesNotCancelStop() async {
+        let backend = MockBackend()
+        backend.stopDelay = .milliseconds(300)
+        let m = ContainerLifecycleModel(
+            backend: backend, currentState: { _ in .running },
+            settleAttempts: 1, settleDelay: .zero, hangTimeout: .milliseconds(30))
+
+        let outcome = await m.stop(id: "a1b2c3d4", options: .default)
+        XCTAssertEqual(outcome, .hung)
+        XCTAssertEqual(m.notice?.forceStopID, "a1b2c3d4")
+
+        // The in-flight stop must NOT have been cancelled — it completes shortly after.
+        var recorded = false
+        for _ in 0..<50 where !recorded {
+            if backend.lastStopOptions != nil {
+                recorded = true
+            } else {
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+        }
+        XCTAssertTrue(recorded, "the watchdog must let the stop continue in the background")
+    }
+
+    func testStopBenignPatternWithDaemonSignatureIsNotBenign() async {
+        let backend = MockBackend()
+        backend.failure = .nonZeroExit(
+            command: "stop", code: 1, stderr: "connection refused: container is not running")
+        let m = model(backend: backend, state: { _ in .running })
+        let outcome = await m.stop(id: "a1b2c3d4", options: .default)
+        guard case .failed = outcome else {
+            return XCTFail(
+                "daemon signature must override the benign 'not running' match: \(outcome)")
+        }
+    }
+
+    func testAttachSingleFlightCancelsPriorStream() async {
+        let backend = MockBackend(logLines: [OutputLine(source: .stdout, text: "x")])
+        backend.neverEndingLogStream = true
+        let m = model(backend: backend, state: { _ in .running })
+
+        m.beginAttach(id: "a1b2c3d4")
+        try? await Task.sleep(for: .milliseconds(40))
+        m.beginAttach(id: "a1b2c3d4")  // single-flight: must cancel the first stream
+        try? await Task.sleep(for: .milliseconds(40))
+
+        XCTAssertGreaterThanOrEqual(
+            backend.logStreamTerminations, 1, "the prior attach stream should be cancelled")
+        m.detach()
     }
 
     func testStopMarksStopped() async {
