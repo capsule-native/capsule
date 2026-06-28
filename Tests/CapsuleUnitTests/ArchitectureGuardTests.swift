@@ -48,11 +48,32 @@ final class ArchitectureGuardTests: XCTestCase {
         }
     }
 
+    func testUIDoesNotImportTerminalEngine() throws {
+        for file in try swiftFiles(inModule: "CapsuleUI") {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            XCTAssertFalse(
+                source.contains("import CapsuleTerminal"),
+                "CapsuleUI must not import CapsuleTerminal (\(file.lastPathComponent))"
+            )
+        }
+    }
+
+    func testDomainDoesNotImportTerminalEngine() throws {
+        for file in try swiftFiles(inModule: "CapsuleDomain") {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            XCTAssertFalse(
+                source.contains("import CapsuleTerminal"),
+                "CapsuleDomain must not import CapsuleTerminal (\(file.lastPathComponent))"
+            )
+        }
+    }
+
     func testGuardActuallyFoundSources() throws {
         // Guards the guard: if path resolution breaks, the loops above would pass
         // vacuously. Make sure we are really scanning files.
         XCTAssertFalse(try swiftFiles(inModule: "CapsuleUI").isEmpty)
         XCTAssertFalse(try swiftFiles(inModule: "CapsuleDomain").isEmpty)
+        XCTAssertFalse(try swiftFiles(inModule: "CapsuleTerminal").isEmpty)
     }
 
     // MARK: - Helpers

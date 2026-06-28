@@ -29,6 +29,13 @@ forbid_import CapsuleUI CapsuleCLIBackend
 forbid_import CapsuleDomain CapsuleUI
 forbid_import CapsuleDomain CapsuleCLIBackend
 
+# Terminal engine boundaries: UI/Domain never import the engine; the engine never imports
+# a backend module (it receives the resolved executable via injection).
+forbid_import CapsuleUI CapsuleTerminal
+forbid_import CapsuleDomain CapsuleTerminal
+forbid_import CapsuleTerminal CapsuleBackend
+forbid_import CapsuleTerminal CapsuleCLIBackend
+
 # Domain must not touch Foundation.Process.
 if grep -rnE "\bProcess[[:space:]]*\(" Sources/CapsuleDomain 2>/dev/null; then
   echo "❌ CapsuleDomain must not use Foundation.Process"
