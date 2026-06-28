@@ -28,13 +28,20 @@ public struct CLIProcessRunner: Sendable {
     /// are drained concurrently so a chatty stream on one pipe cannot deadlock the other.
     public func run(
         _ arguments: [String],
-        environment: [String: String] = [:]
+        environment: [String: String] = [:],
+        standardInput: String? = nil
     ) async throws -> CommandResult {
         let process = makeProcess(arguments: arguments, environment: environment)
         let outPipe = Pipe()
         let errPipe = Pipe()
         process.standardOutput = outPipe
         process.standardError = errPipe
+
+        // A secret-bearing input (e.g. a registry password for `--password-stdin`) is fed
+        // through stdin so it never appears on argv. The pipe is closed after writing so the
+        // child sees EOF and proceeds.
+        let inPipe: Pipe? = standardInput == nil ? nil : Pipe()
+        process.standardInput = inPipe ?? FileHandle.nullDevice
 
         // Propagate Swift task cancellation to the spawned child so a cancelled caller
         // (e.g. a stats poll whose stream was torn down) doesn't wait for a long-running
@@ -50,6 +57,11 @@ public struct CLIProcessRunner: Sendable {
                     continuation.resume(
                         throwing: BackendError.executableNotFound(executableURL.path))
                     return
+                }
+                if let standardInput, let inPipe {
+                    let handle = inPipe.fileHandleForWriting
+                    handle.write(Data(standardInput.utf8))
+                    try? handle.close()
                 }
                 // Drain both pipes concurrently on background queues.
                 DispatchQueue.global().async {

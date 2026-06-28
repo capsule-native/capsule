@@ -25,15 +25,21 @@ final class StubProcessRunner: ProcessRunning, @unchecked Sendable {
     var streamExit: Int32 = 0
 
     private var calls: [[String]] = []
+    /// The stdin payload of the most recent `run` (nil when none was supplied) — lets a
+    /// test prove a secret was delivered out-of-band rather than on argv.
+    private(set) var lastStandardInput: String?
 
     var lastCall: [String]? {
         withLock { calls.last }
     }
 
-    func run(_ arguments: [String], environment: [String: String]) async throws -> CommandResult {
+    func run(
+        _ arguments: [String], environment: [String: String], standardInput: String?
+    ) async throws -> CommandResult {
         let (provider, fixed) = withLock {
             () -> ((@Sendable ([String]) -> CommandResult)?, CommandResult) in
             calls.append(arguments)
+            lastStandardInput = standardInput
             return (resultProvider, result)
         }
         return provider?(arguments) ?? fixed

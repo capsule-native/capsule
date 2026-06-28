@@ -28,7 +28,9 @@ public enum OutputParser {
             ImageSummary(
                 id: record.id,
                 reference: record.configuration.name,
-                sizeBytes: record.configuration.descriptor.size
+                sizeBytes: record.configuration.descriptor.size,
+                digest: record.configuration.descriptor.digest,
+                createdAt: record.configuration.creationDate
             )
         }
     }

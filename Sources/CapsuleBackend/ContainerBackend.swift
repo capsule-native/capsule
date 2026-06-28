@@ -81,8 +81,24 @@ public protocol ContainerBackend: Sendable {
     func inspectImage(reference: String) async throws -> Parsed<ImageSummary>
     func removeImage(reference: String) async throws
 
-    /// Pulls an image, streaming progress line-by-line.
-    func pullImage(reference: String) -> AsyncThrowingStream<OutputLine, Error>
+    /// Pulls an image (optionally constrained to a platform), streaming progress line-by-line.
+    func pullImage(reference: String, platform: String?) -> AsyncThrowingStream<OutputLine, Error>
+
+    /// Pushes an image to its registry, streaming progress line-by-line.
+    func pushImage(reference: String, platform: String?) -> AsyncThrowingStream<OutputLine, Error>
+
+    /// Saves one or more images as an OCI-compatible tar archive at `url`.
+    func saveImage(references: [String], to url: URL, platform: String?) async throws
+
+    /// Loads images from an OCI-compatible tar archive at `url`.
+    func loadImage(from url: URL) async throws
+
+    /// Creates a new reference (`target`) for an existing image (`source`).
+    func tagImage(source: String, target: String) async throws
+
+    /// Removes dangling images (or all unused when `all` is true); returns the CLI's
+    /// best-effort reclaimed summary.
+    func pruneImages(all: Bool) async throws -> PruneResult
 
     // MARK: Volumes / networks / registries / machines / builder
 
@@ -91,6 +107,17 @@ public protocol ContainerBackend: Sendable {
     func listRegistries() async throws -> [RegistrySummary]
     func listMachines() async throws -> [MachineSummary]
     func builderStatus() async throws -> BuilderStatus
+
+    /// Logs in to a registry. The password is delivered out-of-band (never on argv) so it
+    /// cannot leak through process listings, logs, or transcripts.
+    func registryLogin(server: String, username: String?, password: String?) async throws
+
+    /// Logs out from a registry, dropping its stored credential.
+    func registryLogout(server: String) async throws
+
+    /// Validates credentials against a registry without persisting a login in Capsule's
+    /// model. (apple/container has no dry-run verb, so the adapter performs a real login.)
+    func registryTest(server: String, username: String?, password: String?) async throws
 
     // MARK: Escape hatches
 
@@ -111,5 +138,10 @@ extension ContainerBackend {
     /// Convenience: stop with default options (CLI default signal + timeout).
     public func stopContainer(id: String) async throws {
         try await stopContainer(id: id, options: .default)
+    }
+
+    /// Convenience: pull for the host's default platform.
+    public func pullImage(reference: String) -> AsyncThrowingStream<OutputLine, Error> {
+        pullImage(reference: reference, platform: nil)
     }
 }
