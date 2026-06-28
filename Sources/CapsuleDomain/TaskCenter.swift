@@ -19,6 +19,11 @@ public enum OperationKind: String, Sendable, CaseIterable {
     case push
     case save
     case load
+    case build
+    case run
+    case export
+    case systemStart
+    case copy
 
     public var title: String {
         switch self {
@@ -26,6 +31,11 @@ public enum OperationKind: String, Sendable, CaseIterable {
         case .push: return "Push"
         case .save: return "Save"
         case .load: return "Load"
+        case .build: return "Build"
+        case .run: return "Run"
+        case .export: return "Export"
+        case .systemStart: return "Start Services"
+        case .copy: return "Copy"
         }
     }
 
@@ -35,6 +45,11 @@ public enum OperationKind: String, Sendable, CaseIterable {
         case .push: return "arrow.up.circle"
         case .save: return "square.and.arrow.down"
         case .load: return "square.and.arrow.up"
+        case .build: return "hammer"
+        case .run: return "play.rectangle"
+        case .export: return "square.and.arrow.up.on.square"
+        case .systemStart: return "power"
+        case .copy: return "doc.on.doc"
         }
     }
 }
@@ -49,6 +64,9 @@ public final class OperationTask: Identifiable {
     public let kind: OperationKind
     public internal(set) var state: TaskState = .running(progress: nil)
     public internal(set) var transcript: [LogLine] = []
+    /// Whether the task exposes a Stop control while active (all current kinds do; the flag
+    /// keeps the door open for fire-and-forget jobs that cannot be interrupted).
+    public internal(set) var isCancellable: Bool = true
 
     private var nextLineID = 0
     /// The Swift task currently driving this operation; `wait()` awaits it (used by tests
@@ -138,10 +156,19 @@ public final class TaskCenter {
         return task
     }
 
-    /// Re-runs a finished (typically failed) task using its original operation.
+    /// Re-runs a finished (typically failed or cancelled) task using its original operation.
     public func retry(_ task: OperationTask) {
         task.resetForRetry()
         drive(task)
+    }
+
+    /// Cancels a running task. Cancelling the driver `Task` propagates through the streaming
+    /// `AsyncThrowingStream`'s `onTermination` (or the non-streaming runner's task
+    /// cancellation), terminating the underlying child process; the driver catches the
+    /// resulting `CancellationError` and records the neutral `.cancelled` state.
+    public func cancel(_ task: OperationTask) {
+        guard task.state.isActive, task.isCancellable else { return }
+        task.driver?.cancel()
     }
 
     /// Drops every finished task (and its retained operation), leaving active ones.
@@ -169,11 +196,21 @@ public final class TaskCenter {
                 do {
                     for try await line in stream() {
                         task.append(source: line.source, text: line.text)
+                        if let fraction = ProgressParser.fraction(in: line.text) {
+                            task.state = .running(progress: fraction)
+                        }
                     }
+                    try Task.checkCancellation()
                     await self?.successHandlers[task.id]?()
                     task.state = .succeeded
+                } catch is CancellationError {
+                    task.state = .cancelled
                 } catch {
-                    self?.recordFailure(error, on: task)
+                    if Task.isCancelled {
+                        task.state = .cancelled
+                    } else {
+                        self?.recordFailure(error, on: task)
+                    }
                 }
             }
         } else if let operation = operations[task.id] {
@@ -181,10 +218,17 @@ public final class TaskCenter {
                 task.state = .running(progress: nil)
                 do {
                     try await operation()
+                    try Task.checkCancellation()
                     await self?.successHandlers[task.id]?()
                     task.state = .succeeded
+                } catch is CancellationError {
+                    task.state = .cancelled
                 } catch {
-                    self?.recordFailure(error, on: task)
+                    if Task.isCancelled {
+                        task.state = .cancelled
+                    } else {
+                        self?.recordFailure(error, on: task)
+                    }
                 }
             }
         }
