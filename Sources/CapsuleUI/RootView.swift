@@ -22,6 +22,7 @@ public struct RootView: View {
     private let lifecycleModel: ContainerLifecycleModel
     private let statsModel: ContainerStatsModel
     private let actions: ShellActions
+    private let terminalSurfaceProvider: any TerminalSurfaceProviding
 
     @AppStorage("capsule.hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
@@ -32,7 +33,8 @@ public struct RootView: View {
         browserModel: ContainerBrowserModel,
         lifecycleModel: ContainerLifecycleModel,
         statsModel: ContainerStatsModel,
-        actions: ShellActions
+        actions: ShellActions,
+        terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
     ) {
         self.shell = shell
         self.systemModel = systemModel
@@ -41,6 +43,7 @@ public struct RootView: View {
         self.lifecycleModel = lifecycleModel
         self.statsModel = statsModel
         self.actions = actions
+        self.terminalSurfaceProvider = terminalSurfaceProvider
     }
 
     public var body: some View {
@@ -51,7 +54,8 @@ public struct RootView: View {
             browserModel: browserModel,
             lifecycleModel: lifecycleModel,
             statsModel: statsModel,
-            actions: actions
+            actions: actions,
+            terminalSurfaceProvider: terminalSurfaceProvider
         )
         .sheet(isPresented: showOnboarding) {
             OnboardingView(health: systemModel.health, actions: actions) {

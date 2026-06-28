@@ -42,7 +42,7 @@ public enum TerminalExitStatus: Sendable, Equatable {
 
 /// A no-engine provider for previews and tests: renders a static placeholder.
 public struct StubTerminalSurfaceProvider: TerminalSurfaceProviding {
-    public init() {}
+    public nonisolated init() {}
 
     public func makeSurface(
         for request: TerminalRequest,

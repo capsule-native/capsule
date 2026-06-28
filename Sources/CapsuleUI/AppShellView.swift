@@ -20,6 +20,7 @@ public struct AppShellView: View {
     @Bindable var lifecycleModel: ContainerLifecycleModel
     let statsModel: ContainerStatsModel
     let actions: ShellActions
+    let terminalSurfaceProvider: any TerminalSurfaceProviding
 
     public init(
         shell: ShellState,
@@ -28,7 +29,8 @@ public struct AppShellView: View {
         browserModel: ContainerBrowserModel,
         lifecycleModel: ContainerLifecycleModel,
         statsModel: ContainerStatsModel,
-        actions: ShellActions
+        actions: ShellActions,
+        terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
     ) {
         self.shell = shell
         self.systemModel = systemModel
@@ -37,6 +39,7 @@ public struct AppShellView: View {
         self.lifecycleModel = lifecycleModel
         self.statsModel = statsModel
         self.actions = actions
+        self.terminalSurfaceProvider = terminalSurfaceProvider
     }
 
     public var body: some View {
@@ -93,8 +96,11 @@ public struct AppShellView: View {
                     activityLog: shell.activityLog,
                     attachSession: lifecycleModel.attachSession,
                     terminalAvailable: lifecycleModel.isTerminalAvailable,
+                    terminalSurfaceProvider: terminalSurfaceProvider,
                     onDetach: { lifecycleModel.detach() },
-                    onRetryAttach: { retryAttach() }
+                    onRetryAttach: { retryAttach() },
+                    onOpenShell: { openShellForSelection() },
+                    onCloseTerminal: { shell.closeTerminal() }
                 )
             }
         }
@@ -135,7 +141,7 @@ public struct AppShellView: View {
             lifecycleModel.notice = nil
             Task { await browserModel.refresh() }
         case let .retryInTerminal(command):
-            lifecycleModel.copyToTerminal(command)
+            lifecycleModel.runInTerminal(command)
             lifecycleModel.notice = nil
         case .openLogs:
             shell.revealLogs()
@@ -152,5 +158,13 @@ public struct AppShellView: View {
             return
         }
         lifecycleModel.retryAttach(id: id)
+    }
+
+    /// Opens a shell for the single selected container (the attach console's Open Shell).
+    private func openShellForSelection() {
+        guard browserModel.selection.count == 1, let id = browserModel.selection.first else {
+            return
+        }
+        lifecycleModel.openShell(id: id)
     }
 }
