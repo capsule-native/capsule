@@ -34,6 +34,7 @@ public struct AppEnvironment {
     public var taskCenter: TaskCenter
     public var registriesModel: RegistriesModel
     public var runModel: RunModel
+    public var buildModel: BuildModel
     public var actions: ShellActions
     public var updater: any UpdaterController
     public var terminalSurfaceProvider: any TerminalSurfaceProviding
@@ -50,6 +51,7 @@ public struct AppEnvironment {
         taskCenter: TaskCenter,
         registriesModel: RegistriesModel,
         runModel: RunModel,
+        buildModel: BuildModel,
         actions: ShellActions,
         updater: any UpdaterController,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
@@ -65,6 +67,7 @@ public struct AppEnvironment {
         self.taskCenter = taskCenter
         self.registriesModel = registriesModel
         self.runModel = runModel
+        self.buildModel = buildModel
         self.actions = actions
         self.updater = updater
         self.terminalSurfaceProvider = terminalSurfaceProvider
@@ -137,6 +140,13 @@ public struct AppEnvironment {
             launchTerminal: { request in shell.openTerminal(request) },
             copyCommand: copyCommandToClipboard
         )
+        let buildModel = BuildModel(
+            backend: backend,
+            taskCenter: taskCenter,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) },
+            reloadList: { await imageBrowserModel.refresh() }
+        )
         let terminalSurfaceProvider = SwiftTermSurfaceProvider(executablePath: { name in
             name == "container" ? cliBackend.executableURL.path : name
         })
@@ -153,6 +163,7 @@ public struct AppEnvironment {
             taskCenter: taskCenter,
             registriesModel: registriesModel,
             runModel: runModel,
+            buildModel: buildModel,
             actions: actions,
             updater: NoopUpdaterController(),
             terminalSurfaceProvider: terminalSurfaceProvider
