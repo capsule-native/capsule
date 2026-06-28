@@ -15,8 +15,9 @@ import PackageDescription
 //
 // Dependency direction (X -> Y means "X depends on Y"):
 //
-//     CapsuleApp        ──▶ CapsuleUI, CapsuleCLIBackend, CapsuleAutomation,
+//     CapsuleApp        ──▶ CapsuleUI, CapsuleTerminal, CapsuleCLIBackend, CapsuleAutomation,
 //                           CapsuleDiagnostics, CapsuleDomain, CapsuleBackend
+//     CapsuleTerminal   ──▶ CapsuleUI, CapsuleDomain, SwiftTerm  (engine adapter)
 //     CapsuleUI         ──▶ CapsuleDomain
 //     CapsuleAutomation ──▶ CapsuleDomain                       (leaf / side)
 //     CapsuleDiagnostics──▶ CapsuleDomain                       (leaf / side)
@@ -41,6 +42,13 @@ let package = Package(
         .library(name: "CapsuleCLIBackend", targets: ["CapsuleCLIBackend"]),
         .library(name: "CapsuleAutomation", targets: ["CapsuleAutomation"]),
         .library(name: "CapsuleDiagnostics", targets: ["CapsuleDiagnostics"]),
+        .library(name: "CapsuleTerminal", targets: ["CapsuleTerminal"]),
+    ],
+    dependencies: [
+        // First external dependency: a mature, MIT, pure-Swift terminal emulator. `from:`
+        // floors the major; the exact resolved version is pinned in Package.resolved
+        // (committed). `swift package resolve` (Step 4) picks the latest 1.x.
+        .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", from: "1.0.0")
     ],
     targets: [
         // MARK: - Port layer (bottom of the graph; no Capsule dependencies)
@@ -62,11 +70,23 @@ let package = Package(
         // MARK: - Presentation (Domain only — must NOT import any Backend module)
         .target(name: "CapsuleUI", dependencies: ["CapsuleDomain"]),
 
+        // MARK: - Terminal engine adapter (SwiftTerm/PTY; conforms to the UI port).
+        // May import CapsuleUI + CapsuleDomain only; wired by the composition root.
+        .target(
+            name: "CapsuleTerminal",
+            dependencies: [
+                "CapsuleUI",
+                "CapsuleDomain",
+                .product(name: "SwiftTerm", package: "SwiftTerm"),
+            ]
+        ),
+
         // MARK: - Composition root / app lifecycle (wires the adapter into the domain)
         .target(
             name: "CapsuleApp",
             dependencies: [
                 "CapsuleUI",
+                "CapsuleTerminal",
                 "CapsuleDomain",
                 "CapsuleBackend",
                 "CapsuleCLIBackend",
