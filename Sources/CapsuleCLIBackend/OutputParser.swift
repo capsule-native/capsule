@@ -50,6 +50,26 @@ public enum OutputParser {
         }
     }
 
+    // MARK: - Stats
+
+    /// Decodes `container stats --format json` into samples, skipping any element whose
+    /// schema no longer matches (e.g. missing the required `id`).
+    public static func parseStats(_ data: Data) throws -> [ContainerStatsSample] {
+        try lossyList(data, decode: CLIContainerStatsRecord.self).map { record in
+            ContainerStatsSample(
+                id: record.id,
+                cpuUsageUsec: record.cpuUsageUsec,
+                memoryUsageBytes: record.memoryUsageBytes,
+                memoryLimitBytes: record.memoryLimitBytes,
+                networkRxBytes: record.networkRxBytes,
+                networkTxBytes: record.networkTxBytes,
+                blockReadBytes: record.blockReadBytes,
+                blockWriteBytes: record.blockWriteBytes,
+                numProcesses: record.numProcesses
+            )
+        }
+    }
+
     // MARK: - System version
 
     /// Decodes `container system version --format json` into a `BackendVersion`, pairing

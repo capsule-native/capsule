@@ -8,6 +8,7 @@
 //  backend never hand-concatenate CLI strings. Subcommand names mirror the real
 //  `container` v1.0.0 surface (verified against `--help`).
 
+import CapsuleBackend
 import XCTest
 
 @testable import CapsuleCLIBackend
@@ -22,10 +23,15 @@ final class CLICommandTests: XCTestCase {
     }
 
     func testContainerLifecycle() {
-        XCTAssertEqual(
-            CLICommand.inspectContainer(id: "abc"), ["inspect", "abc", "--format", "json"])
+        XCTAssertEqual(CLICommand.inspectContainer(id: "abc"), ["inspect", "abc"])
         XCTAssertEqual(CLICommand.startContainer(id: "abc"), ["start", "abc"])
-        XCTAssertEqual(CLICommand.stopContainer(id: "abc"), ["stop", "abc"])
+        XCTAssertEqual(CLICommand.stopContainer(id: "abc", options: .default), ["stop", "abc"])
+        XCTAssertEqual(
+            CLICommand.stopContainer(id: "abc", options: StopOptions(timeout: 0, signal: nil)),
+            ["stop", "--time", "0", "abc"])
+        XCTAssertEqual(
+            CLICommand.stopContainer(id: "abc", options: StopOptions(timeout: 3, signal: "TERM")),
+            ["stop", "--time", "3", "--signal", "TERM", "abc"])
         XCTAssertEqual(CLICommand.removeContainer(id: "abc", force: false), ["delete", "abc"])
         XCTAssertEqual(
             CLICommand.removeContainer(id: "abc", force: true),
@@ -34,11 +40,20 @@ final class CLICommandTests: XCTestCase {
         XCTAssertEqual(CLICommand.followLogs(container: "abc"), ["logs", "--follow", "abc"])
     }
 
+    func testStats() {
+        XCTAssertEqual(
+            CLICommand.containerStats(ids: ["a", "b"]),
+            ["stats", "--no-stream", "--format", "json", "a", "b"])
+        XCTAssertEqual(
+            CLICommand.containerStats(ids: []),
+            ["stats", "--no-stream", "--format", "json"])
+    }
+
     func testImages() {
         XCTAssertEqual(CLICommand.listImages(), ["image", "list", "--format", "json"])
         XCTAssertEqual(
             CLICommand.inspectImage(reference: "alpine"),
-            ["image", "inspect", "alpine", "--format", "json"]
+            ["image", "inspect", "alpine"]
         )
         XCTAssertEqual(CLICommand.pullImage(reference: "alpine"), ["image", "pull", "alpine"])
         XCTAssertEqual(CLICommand.removeImage(reference: "alpine"), ["image", "delete", "alpine"])

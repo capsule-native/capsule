@@ -16,7 +16,9 @@ public struct AppShellView: View {
     @Bindable var shell: ShellState
     let systemModel: SystemStatusModel
     let workspaceModel: WorkspaceModel
-    let browserModel: ContainerBrowserModel
+    @Bindable var browserModel: ContainerBrowserModel
+    @Bindable var lifecycleModel: ContainerLifecycleModel
+    let statsModel: ContainerStatsModel
     let actions: ShellActions
 
     public init(
@@ -24,12 +26,16 @@ public struct AppShellView: View {
         systemModel: SystemStatusModel,
         workspaceModel: WorkspaceModel,
         browserModel: ContainerBrowserModel,
+        lifecycleModel: ContainerLifecycleModel,
+        statsModel: ContainerStatsModel,
         actions: ShellActions
     ) {
         self.shell = shell
         self.systemModel = systemModel
         self.workspaceModel = workspaceModel
         self.browserModel = browserModel
+        self.lifecycleModel = lifecycleModel
+        self.statsModel = statsModel
         self.actions = actions
     }
 
@@ -57,22 +63,44 @@ public struct AppShellView: View {
                 onRecover: actions.recover
             )
 
+            if let notice = lifecycleModel.notice {
+                LifecycleNoticeView(
+                    notice: notice,
+                    onAction: { handleNoticeAction($0) },
+                    onForceStop: { id in
+                        lifecycleModel.notice = nil
+                        Task { _ = await lifecycleModel.forceStop(id: id) }
+                    },
+                    onDismiss: { lifecycleModel.notice = nil }
+                )
+                .padding(.top, 6)
+            }
+
             ContentColumnView(
                 section: shell.selection,
                 health: systemModel.health,
                 actions: actions,
-                browserModel: browserModel
+                browserModel: browserModel,
+                lifecycleModel: lifecycleModel,
+                statsModel: statsModel
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             if shell.activityPanePresented {
-                ActivityPaneView(shell: shell, activityLog: shell.activityLog)
+                ActivityPaneView(
+                    shell: shell,
+                    activityLog: shell.activityLog,
+                    attachSession: lifecycleModel.attachSession,
+                    terminalAvailable: lifecycleModel.isTerminalAvailable,
+                    onDetach: { lifecycleModel.detach() },
+                    onRetryAttach: { retryAttach() }
+                )
             }
         }
         .inspector(isPresented: $shell.inspectorPresented) {
             Group {
                 if shell.selection == .containers {
-                    ContainerInspectorView(model: browserModel)
+                    ContainerInspectorView(model: browserModel, stats: statsModel)
                 } else {
                     InspectorView(section: shell.selection)
                 }
@@ -96,5 +124,32 @@ public struct AppShellView: View {
                 .help("Toggle the Inspector")
             }
         }
+    }
+
+    /// Routes a notice's recovery action. `.retry` is container-scoped — it refreshes the
+    /// container list, never the system status. The terminal interim copies the command.
+    private func handleNoticeAction(_ action: RecoveryAction) {
+        switch action {
+        case .retry:
+            lifecycleModel.notice = nil
+            Task { await browserModel.refresh() }
+        case let .retryInTerminal(command):
+            lifecycleModel.copyToTerminal(command)
+            lifecycleModel.notice = nil
+        case .openLogs:
+            shell.revealLogs()
+            lifecycleModel.notice = nil
+        default:
+            actions.recover(action)
+            lifecycleModel.notice = nil
+        }
+    }
+
+    /// Re-attaches to the single selected container (the attach console's Retry button).
+    private func retryAttach() {
+        guard browserModel.selection.count == 1, let id = browserModel.selection.first else {
+            return
+        }
+        lifecycleModel.retryAttach(id: id)
     }
 }

@@ -25,6 +25,7 @@ public enum ContainerState: String, Sendable, Codable {
     case created
     case running
     case paused
+    case stopping
     case stopped
     case unknown
 
@@ -33,6 +34,7 @@ public enum ContainerState: String, Sendable, Codable {
         case "created": self = .created
         case "running", "up": self = .running
         case "paused": self = .paused
+        case "stopping": self = .stopping
         case "stopped", "exited", "dead": self = .stopped
         default: self = .unknown
         }

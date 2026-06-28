@@ -19,6 +19,8 @@ public struct RootView: View {
     private let systemModel: SystemStatusModel
     private let workspaceModel: WorkspaceModel
     private let browserModel: ContainerBrowserModel
+    private let lifecycleModel: ContainerLifecycleModel
+    private let statsModel: ContainerStatsModel
     private let actions: ShellActions
 
     @AppStorage("capsule.hasCompletedOnboarding") private var hasCompletedOnboarding = false
@@ -28,12 +30,16 @@ public struct RootView: View {
         systemModel: SystemStatusModel,
         workspaceModel: WorkspaceModel,
         browserModel: ContainerBrowserModel,
+        lifecycleModel: ContainerLifecycleModel,
+        statsModel: ContainerStatsModel,
         actions: ShellActions
     ) {
         self.shell = shell
         self.systemModel = systemModel
         self.workspaceModel = workspaceModel
         self.browserModel = browserModel
+        self.lifecycleModel = lifecycleModel
+        self.statsModel = statsModel
         self.actions = actions
     }
 
@@ -43,6 +49,8 @@ public struct RootView: View {
             systemModel: systemModel,
             workspaceModel: workspaceModel,
             browserModel: browserModel,
+            lifecycleModel: lifecycleModel,
+            statsModel: statsModel,
             actions: actions
         )
         .sheet(isPresented: showOnboarding) {

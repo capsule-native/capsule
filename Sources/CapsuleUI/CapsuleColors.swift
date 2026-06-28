@@ -48,7 +48,7 @@ public enum CapsuleColors {
         switch state {
         case .running: return .green
         case .stopped: return .secondary
-        case .paused: return .orange
+        case .paused, .stopping: return .orange
         case .created: return .blue
         case .unknown: return .gray
         }

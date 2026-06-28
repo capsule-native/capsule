@@ -32,6 +32,17 @@ final class OutputParserTests: XCTestCase {
         XCTAssertEqual(try OutputParser.parseImages(Data("[]".utf8)).count, 0)
     }
 
+    /// `container image inspect` emits the same array shape as `image list` (no `--format`
+    /// flag). Decoding a real captured `inspect` payload guards the shared-decoder path.
+    func testParsesRealImageInspectPayload() throws {
+        let rows = try OutputParser.parseImages(Fixture.data("image-inspect"))
+
+        XCTAssertEqual(rows.count, 1)
+        let alpine = try XCTUnwrap(rows.first)
+        XCTAssertEqual(alpine.reference, "docker.io/library/alpine:latest")
+        XCTAssertEqual(alpine.sizeBytes, 9218)
+    }
+
     // MARK: - Containers
 
     func testParseContainersExtractsCreationDate() throws {
@@ -43,6 +54,22 @@ final class OutputParserTests: XCTestCase {
             """
         let rows = try OutputParser.parseContainers(Data(json.utf8))
         XCTAssertEqual(rows.first?.createdAt, "2026-06-20T09:15:00Z")
+    }
+
+    func testParseStatsEmptyArray() throws {
+        XCTAssertEqual(try OutputParser.parseStats(Data("[]".utf8)).count, 0)
+    }
+
+    func testParseStatsDecodesSampleAndIsLenient() throws {
+        let json = """
+            [{"id":"abc","cpuUsageUsec":1000000,"memoryUsageBytes":64000000,"numProcesses":3},
+             {"id":"def"},
+             {"noId":true}]
+            """
+        let rows = try OutputParser.parseStats(Data(json.utf8))
+        XCTAssertEqual(rows.map(\.id), ["abc", "def"])  // 3rd dropped: missing required id
+        XCTAssertEqual(rows.first?.cpuUsageUsec, 1_000_000)
+        XCTAssertEqual(rows.first?.numProcesses, 3)
     }
 
     func testParsesContainerListIntoRows() throws {

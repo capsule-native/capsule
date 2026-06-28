@@ -16,6 +16,8 @@ struct ContentColumnView: View {
     let health: SystemHealth
     let actions: ShellActions
     let browserModel: ContainerBrowserModel
+    let lifecycleModel: ContainerLifecycleModel
+    let statsModel: ContainerStatsModel
 
     private var onRecover: (RecoveryAction) -> Void { actions.recover }
 
@@ -37,7 +39,7 @@ struct ContentColumnView: View {
     @ViewBuilder
     private var runningContent: some View {
         if section == .containers {
-            ContainerListView(model: browserModel)
+            ContainerListView(model: browserModel, lifecycle: lifecycleModel, stats: statsModel)
         } else {
             resourcePlaceholder
         }

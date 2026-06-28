@@ -5,6 +5,7 @@
 //  Copyright © 2026 Capsule. All rights reserved.
 //
 
+import AppKit
 import CapsuleBackend
 import CapsuleCLIBackend
 import CapsuleDiagnostics
@@ -25,6 +26,8 @@ public struct AppEnvironment {
     public var systemModel: SystemStatusModel
     public var workspaceModel: WorkspaceModel
     public var browserModel: ContainerBrowserModel
+    public var lifecycleModel: ContainerLifecycleModel
+    public var statsModel: ContainerStatsModel
     public var actions: ShellActions
     public var updater: any UpdaterController
 
@@ -33,6 +36,8 @@ public struct AppEnvironment {
         systemModel: SystemStatusModel,
         workspaceModel: WorkspaceModel,
         browserModel: ContainerBrowserModel,
+        lifecycleModel: ContainerLifecycleModel,
+        statsModel: ContainerStatsModel,
         actions: ShellActions,
         updater: any UpdaterController
     ) {
@@ -40,6 +45,8 @@ public struct AppEnvironment {
         self.systemModel = systemModel
         self.workspaceModel = workspaceModel
         self.browserModel = browserModel
+        self.lifecycleModel = lifecycleModel
+        self.statsModel = statsModel
         self.actions = actions
         self.updater = updater
     }
@@ -60,12 +67,32 @@ public struct AppEnvironment {
             scopeStore: UserDefaultsScopeStore(),
             onActivity: { line in shell.appendActivity(line) }
         )
+        let statsModel = ContainerStatsModel(backend: backend)
+        let lifecycleModel = ContainerLifecycleModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) },
+            reloadList: { await browserModel.refresh() },
+            currentState: { id in
+                browserModel.allContainers.first { $0.id == id }?.state ?? .unknown
+            },
+            terminalAvailable: { false },
+            copyCommand: { argv in
+                let command = argv.joined(separator: " ")
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(command, forType: .string)
+                shell.appendActivity("Copied to clipboard: \(command)")
+            }
+        )
         let actions = makeActions(systemModel: systemModel, shell: shell)
         return AppEnvironment(
             shell: shell,
             systemModel: systemModel,
             workspaceModel: workspaceModel,
             browserModel: browserModel,
+            lifecycleModel: lifecycleModel,
+            statsModel: statsModel,
             actions: actions,
             updater: NoopUpdaterController()
         )

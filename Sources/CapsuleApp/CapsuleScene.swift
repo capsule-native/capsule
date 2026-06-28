@@ -20,6 +20,8 @@ public struct CapsuleScene: Scene {
     @State private var systemModel: SystemStatusModel
     @State private var workspaceModel: WorkspaceModel
     @State private var browserModel: ContainerBrowserModel
+    @State private var lifecycleModel: ContainerLifecycleModel
+    @State private var statsModel: ContainerStatsModel
     private let actions: ShellActions
     private let updater: any UpdaterController
 
@@ -32,6 +34,8 @@ public struct CapsuleScene: Scene {
         self._systemModel = State(initialValue: environment.systemModel)
         self._workspaceModel = State(initialValue: environment.workspaceModel)
         self._browserModel = State(initialValue: environment.browserModel)
+        self._lifecycleModel = State(initialValue: environment.lifecycleModel)
+        self._statsModel = State(initialValue: environment.statsModel)
         self.actions = environment.actions
         self.updater = environment.updater
     }
@@ -43,6 +47,8 @@ public struct CapsuleScene: Scene {
                 systemModel: systemModel,
                 workspaceModel: workspaceModel,
                 browserModel: browserModel,
+                lifecycleModel: lifecycleModel,
+                statsModel: statsModel,
                 actions: actions
             )
         }

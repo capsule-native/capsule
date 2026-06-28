@@ -79,8 +79,42 @@ public struct CLIContainerBackend: ContainerBackend {
         _ = try await runChecked(CLICommand.startContainer(id: id))
     }
 
-    public func stopContainer(id: String) async throws {
-        _ = try await runChecked(CLICommand.stopContainer(id: id))
+    public func stopContainer(id: String, options: StopOptions) async throws {
+        _ = try await runChecked(CLICommand.stopContainer(id: id, options: options))
+    }
+
+    public func containerStats(ids: [String]) async throws -> [ContainerStatsSample] {
+        let output = try await runChecked(CLICommand.containerStats(ids: ids))
+        return try OutputParser.parseStats(Data(output.stdout.utf8))
+    }
+
+    public func streamContainerStats(
+        ids: [String], interval: Duration
+    )
+        -> AsyncThrowingStream<[ContainerStatsSample], Error>
+    {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    while !Task.isCancelled {
+                        let batch = try await containerStats(ids: ids)
+                        if Task.isCancelled { break }
+                        continuation.yield(batch)
+                        try await Task.sleep(for: interval)
+                    }
+                    continuation.finish()
+                } catch is CancellationError {
+                    continuation.finish()
+                } catch {
+                    if Task.isCancelled {
+                        continuation.finish()
+                    } else {
+                        continuation.finish(throwing: error)
+                    }
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 
     public func removeContainer(id: String, force: Bool) async throws {

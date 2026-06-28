@@ -25,6 +25,13 @@ public struct ArgumentBuilder: Sendable, Equatable {
         return copy
     }
 
+    /// Appends each element of an array (the variadic `adding` can't splat an array).
+    public func adding(contentsOf values: [String]) -> ArgumentBuilder {
+        var copy = self
+        copy.arguments.append(contentsOf: values)
+        return copy
+    }
+
     /// Appends `name value` only when `value` is non-nil.
     public func flag(_ name: String, _ value: String?) -> ArgumentBuilder {
         guard let value else { return self }

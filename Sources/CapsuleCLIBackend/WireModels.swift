@@ -83,6 +83,22 @@ struct CLIContainerRecord: Decodable {
     }
 }
 
+// MARK: - Stats
+
+/// One element of `container stats --format json`. Mirror of the source `ContainerStats`
+/// struct; keys equal property names (no custom CodingKeys). Only `id` is required.
+struct CLIContainerStatsRecord: Decodable {
+    let id: String
+    let cpuUsageUsec: UInt64?
+    let memoryUsageBytes: UInt64?
+    let memoryLimitBytes: UInt64?
+    let networkRxBytes: UInt64?
+    let networkTxBytes: UInt64?
+    let blockReadBytes: UInt64?
+    let blockWriteBytes: UInt64?
+    let numProcesses: UInt64?
+}
+
 // MARK: - System version
 
 /// One element of `container system version --format json`. The CLI emits one entry

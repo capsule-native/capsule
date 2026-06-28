@@ -23,9 +23,24 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     private var builder: BuilderStatus
     private var logLines: [OutputLine]
     private var systemRunStateValue: SystemRunState
+    private var sampleStats: [ContainerStatsSample]
 
     /// When set, every `throws` command throws this instead of returning.
     public var failure: BackendError?
+    /// When set, `startContainer` throws this (independent of `failure`).
+    public var startFailure: BackendError?
+    /// When set, `stopContainer` awaits this delay before mutating — lets tests drive the
+    /// hang watchdog deterministically.
+    public var stopDelay: Duration?
+    /// When true, `followLogs` yields the seeded lines then stays open (never finishes) so
+    /// tests can exercise attach single-flight cancellation.
+    public var neverEndingLogStream = false
+    /// The options passed to the most recent `stopContainer` call.
+    public private(set) var lastStopOptions: StopOptions?
+    /// How many times `containerStats` has been invoked (for stream-teardown tests).
+    public private(set) var statsCallCount = 0
+    /// How many `followLogs` streams have terminated (incl. via cancellation).
+    public private(set) var logStreamTerminations = 0
 
     public init(
         containers: [ContainerSummary] = MockBackend.sampleContainers,
@@ -37,7 +52,8 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         version: BackendVersion = BackendVersion(client: "1.0.0", server: "1.0.0"),
         builder: BuilderStatus = BuilderStatus(isRunning: false),
         logLines: [OutputLine] = MockBackend.sampleLogLines,
-        systemRunState: SystemRunState = .running
+        systemRunState: SystemRunState = .running,
+        sampleStats: [ContainerStatsSample] = MockBackend.sampleStatsDefault
     ) {
         self.containers = containers
         self.images = images
@@ -49,6 +65,7 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         self.builder = builder
         self.logLines = logLines
         self.systemRunStateValue = systemRunState
+        self.sampleStats = sampleStats
     }
 
     // MARK: - System & capabilities
@@ -89,17 +106,53 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     }
 
     public func startContainer(id: String) async throws {
+        if let startFailure { throw startFailure }
         try withState { state in
             state.mutateContainer(id) { $0.state = "running" }
         }
     }
 
-    public func stopContainer(id: String) async throws {
+    public func stopContainer(id: String, options: StopOptions) async throws {
+        if let stopDelay { try? await Task.sleep(for: stopDelay) }
         try withState { state in
+            state.lastStopOptions = options
             state.mutateContainer(id) {
                 $0.state = "stopped"
                 $0.ip = nil
             }
+        }
+    }
+
+    public func containerStats(ids: [String]) async throws -> [ContainerStatsSample] {
+        try withState { state in
+            state.statsCallCount += 1
+            return ids.isEmpty
+                ? state.sampleStats : state.sampleStats.filter { ids.contains($0.id) }
+        }
+    }
+
+    public func streamContainerStats(
+        ids: [String], interval: Duration
+    )
+        -> AsyncThrowingStream<[ContainerStatsSample], Error>
+    {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    while !Task.isCancelled {
+                        let batch = try await containerStats(ids: ids)
+                        if Task.isCancelled { break }
+                        continuation.yield(batch)
+                        try await Task.sleep(for: interval)
+                    }
+                    continuation.finish()
+                } catch is CancellationError {
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
         }
     }
 
@@ -110,7 +163,21 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     }
 
     public func followLogs(container id: String) -> AsyncThrowingStream<OutputLine, Error> {
-        seededStream()
+        guard neverEndingLogStream else { return seededStream() }
+        lock.lock()
+        let lines = logLines
+        lock.unlock()
+        return AsyncThrowingStream { continuation in
+            for line in lines { continuation.yield(line) }
+            continuation.onTermination = { [weak self] _ in self?.incrementLogTerminations() }
+            // Deliberately never finished: stays open until the consumer cancels.
+        }
+    }
+
+    private func incrementLogTerminations() {
+        lock.lock()
+        defer { lock.unlock() }
+        logStreamTerminations += 1
     }
 
     // MARK: - Images
@@ -228,5 +295,15 @@ extension MockBackend {
     public static let sampleLogLines: [OutputLine] = [
         OutputLine(source: .stdout, text: "starting"),
         OutputLine(source: .stdout, text: "ready"),
+    ]
+
+    public static let sampleStatsDefault: [ContainerStatsSample] = [
+        ContainerStatsSample(
+            id: "a1b2c3d4", cpuUsageUsec: 1_000_000, memoryUsageBytes: 64_000_000,
+            memoryLimitBytes: 512_000_000, networkRxBytes: 1024, networkTxBytes: 2048,
+            numProcesses: 3),
+        ContainerStatsSample(
+            id: "0c1d2e3f", cpuUsageUsec: 500_000, memoryUsageBytes: 32_000_000,
+            memoryLimitBytes: 256_000_000, numProcesses: 1),
     ]
 }

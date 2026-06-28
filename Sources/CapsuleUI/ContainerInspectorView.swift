@@ -4,9 +4,9 @@
 //
 //  Copyright © 2026 Capsule. All rights reserved.
 //
-//  The containers inspector: a friendly Summary tab plus a Raw JSON tab fed by
-//  `container inspect`. The raw payload is always shown even when decoding drifts, and is
-//  copyable. AppKit (NSPasteboard) is permitted in the UI layer.
+//  The containers inspector: a friendly Summary tab (incl. a live/snapshot metrics pane)
+//  plus a Raw JSON tab fed by `container inspect`. The raw payload is always shown even
+//  when decoding drifts, and is copyable. AppKit (NSPasteboard) is permitted in the UI layer.
 
 import AppKit
 import CapsuleDomain
@@ -14,12 +14,14 @@ import SwiftUI
 
 struct ContainerInspectorView: View {
     let model: ContainerBrowserModel
+    let stats: ContainerStatsModel
 
     @State private var rawJSON = ""
     @State private var isLoadingRaw = false
 
-    init(model: ContainerBrowserModel) {
+    init(model: ContainerBrowserModel, stats: ContainerStatsModel) {
         self.model = model
+        self.stats = stats
     }
 
     /// The single selected container, when exactly one row is selected.
@@ -37,7 +39,9 @@ struct ContainerInspectorView: View {
         }
         .task(id: model.selection) {
             await loadRaw()
+            await refreshStatsForSelection()
         }
+        .onDisappear { stats.stop() }
     }
 
     // MARK: Summary
@@ -65,10 +69,22 @@ struct ContainerInspectorView: View {
                     }
                     LabeledContent("IP", value: container.ip ?? "—")
                     if let created = container.createdAt {
-                        LabeledContent("Created") {
-                            Text(created, format: .dateTime)
-                        }
+                        LabeledContent("Created") { Text(created, format: .dateTime) }
                     }
+                }
+
+                if container.state == .running {
+                    StatsPaneView(
+                        metrics: stats.metrics[container.id],
+                        isStreaming: stats.isStreaming,
+                        onToggleLive: { live in
+                            if live {
+                                stats.startStreaming(ids: [container.id])
+                            } else {
+                                stats.stop()
+                                Task { await stats.snapshot(ids: [container.id]) }
+                            }
+                        })
                 }
             }
             .formStyle(.grouped)
@@ -128,6 +144,14 @@ struct ContainerInspectorView: View {
         let inspection = await model.inspect(id: container.id)
         rawJSON = JSONPrettyPrinter.prettyPrint(inspection.rawJSON)
         isLoadingRaw = false
+    }
+
+    /// On selection change, stop any prior live stream and take a fresh one-shot for the
+    /// (single, running) selection — cheap and avoids leaking a stream for the old container.
+    private func refreshStatsForSelection() async {
+        stats.stop()
+        guard let container = solo, container.state == .running else { return }
+        await stats.snapshot(ids: [container.id])
     }
 
     private func copyRaw() {

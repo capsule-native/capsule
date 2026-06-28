@@ -29,4 +29,10 @@ final class ArgumentBuilderTests: XCTestCase {
         let argv = ArgumentBuilder("ls").option("--all", enabled: false).arguments
         XCTAssertEqual(argv, ["ls"])
     }
+
+    func testAddingContentsOfAppendsAll() {
+        XCTAssertEqual(
+            ArgumentBuilder("stats").adding(contentsOf: ["a", "b"]).arguments, ["stats", "a", "b"])
+        XCTAssertEqual(ArgumentBuilder("stats").adding(contentsOf: []).arguments, ["stats"])
+    }
 }

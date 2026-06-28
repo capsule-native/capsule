@@ -36,22 +36,31 @@ public struct CLIProcessRunner: Sendable {
         process.standardOutput = outPipe
         process.standardError = errPipe
 
-        return try await withCheckedThrowingContinuation { continuation in
-            let collector = BufferCollector { continuation.resume(returning: $0) }
-            process.terminationHandler = { collector.set(exitCode: $0.terminationStatus) }
-            do {
-                try process.run()
-            } catch {
-                continuation.resume(throwing: BackendError.executableNotFound(executableURL.path))
-                return
+        // Propagate Swift task cancellation to the spawned child so a cancelled caller
+        // (e.g. a stats poll whose stream was torn down) doesn't wait for a long-running
+        // command to finish. terminate() fires the terminationHandler, which resolves the
+        // continuation with the (signal) result.
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                let collector = BufferCollector { continuation.resume(returning: $0) }
+                process.terminationHandler = { collector.set(exitCode: $0.terminationStatus) }
+                do {
+                    try process.run()
+                } catch {
+                    continuation.resume(
+                        throwing: BackendError.executableNotFound(executableURL.path))
+                    return
+                }
+                // Drain both pipes concurrently on background queues.
+                DispatchQueue.global().async {
+                    collector.set(stdout: outPipe.fileHandleForReading.readDataToEndOfFile())
+                }
+                DispatchQueue.global().async {
+                    collector.set(stderr: errPipe.fileHandleForReading.readDataToEndOfFile())
+                }
             }
-            // Drain both pipes concurrently on background queues.
-            DispatchQueue.global().async {
-                collector.set(stdout: outPipe.fileHandleForReading.readDataToEndOfFile())
-            }
-            DispatchQueue.global().async {
-                collector.set(stderr: errPipe.fileHandleForReading.readDataToEndOfFile())
-            }
+        } onCancel: {
+            if process.isRunning { process.terminate() }
         }
     }
 

@@ -15,14 +15,27 @@ struct ActivityPaneView: View {
     @Bindable var shell: ShellState
     /// Recent activity lines (newest last) surfaced by the system model.
     let activityLog: [String]
+    /// The active read-only attach session, if any (takes over the pane content).
+    var attachSession: AttachSession?
+    var terminalAvailable: Bool = false
+    var onDetach: () -> Void = {}
+    var onRetryAttach: () -> Void = {}
 
     var body: some View {
         VStack(spacing: 0) {
             Divider()
             header
             Divider()
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            Group {
+                if let attachSession {
+                    AttachConsoleView(
+                        session: attachSession, terminalAvailable: terminalAvailable,
+                        onDetach: onDetach, onRetry: onRetryAttach)
+                } else {
+                    content
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(height: 160)
         .background(CapsuleColors.activitySurface)
