@@ -24,6 +24,7 @@ public struct RootView: View {
     private let imageBrowserModel: ImageBrowserModel
     private let imageActionsModel: ImageActionsModel
     private let taskCenter: TaskCenter
+    private let runModel: RunModel
     private let actions: ShellActions
     private let terminalSurfaceProvider: any TerminalSurfaceProviding
 
@@ -39,6 +40,7 @@ public struct RootView: View {
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
         taskCenter: TaskCenter,
+        runModel: RunModel,
         actions: ShellActions,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
     ) {
@@ -51,6 +53,7 @@ public struct RootView: View {
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
         self.taskCenter = taskCenter
+        self.runModel = runModel
         self.actions = actions
         self.terminalSurfaceProvider = terminalSurfaceProvider
     }
@@ -66,6 +69,7 @@ public struct RootView: View {
             imageBrowserModel: imageBrowserModel,
             imageActionsModel: imageActionsModel,
             taskCenter: taskCenter,
+            runModel: runModel,
             actions: actions,
             terminalSurfaceProvider: terminalSurfaceProvider
         )
