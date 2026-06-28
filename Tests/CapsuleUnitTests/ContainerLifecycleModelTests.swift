@@ -134,6 +134,63 @@ final class ContainerLifecycleModelTests: XCTestCase {
         m.detach()
     }
 
+    func testKillReportsStopped() async {
+        let backend = MockBackend()
+        let m = model(backend: backend, state: { _ in .stopped })
+        let outcome = await m.kill(id: "a1b2c3d4", signal: nil)
+        XCTAssertEqual(outcome, .stopped)
+        XCTAssertEqual(backend.lastKillSignal, nil)
+    }
+
+    func testDeleteUsesForceFlagAndRemoves() async {
+        let backend = MockBackend()
+        let m = model(backend: backend)
+        await m.delete(id: "a1b2c3d4", force: true)
+        let remaining = (try? await backend.listContainers(all: true))?.map(\.id) ?? []
+        XCTAssertFalse(remaining.contains("a1b2c3d4"))
+    }
+
+    func testDeleteOfAlreadyGoneContainerIsBenign() async {
+        let backend = MockBackend()
+        backend.failure = .nonZeroExit(
+            command: "delete", code: 1,
+            stderr: "internalError: \"failed to delete container\" "
+                + "(cause: \"notFound: container with ID a1b2c3d4 not found\")")
+        var activity: [String] = []
+        let m = ContainerLifecycleModel(
+            backend: backend, onActivity: { activity.append($0) }, settleAttempts: 1,
+            settleDelay: .zero)
+        await m.delete(id: "a1b2c3d4", force: false)
+        XCTAssertNil(m.notice, "a notFound delete is idempotent, not an error")
+        XCTAssertTrue(activity.contains { $0.contains("already removed") }, "got \(activity)")
+    }
+
+    func testComputePruneTargetsAreStoppedOnly() async {
+        let m = model(backend: MockBackend())
+        let targets = await m.computePruneTargets()
+        XCTAssertTrue(targets.allSatisfy { $0.state != .running })
+        XCTAssertTrue(targets.contains { $0.id == "e5f6a7b8" })  // the seeded stopped one
+    }
+
+    func testPruneReportsReclaimedMessage() async {
+        let m = model(backend: MockBackend())
+        let summary = await m.prune()
+        XCTAssertFalse(summary.message.isEmpty)
+    }
+
+    func testValidateExportFailsForRunning() {
+        let m = model(state: { id in id == "run" ? .running : .stopped })
+        XCTAssertFalse(m.validateExport(id: "run"))
+        XCTAssertTrue(m.validateExport(id: "other"))
+    }
+
+    func testExportRecordsURL() async {
+        let backend = MockBackend()
+        let m = model(backend: backend)
+        await m.export(id: "a1b2c3d4", to: URL(fileURLWithPath: "/tmp/c.tar"))
+        XCTAssertEqual(backend.lastExportURL, URL(fileURLWithPath: "/tmp/c.tar"))
+    }
+
     func testStopMarksStopped() async {
         let backend = MockBackend()
         let m = model(backend: backend, state: { _ in .stopped })

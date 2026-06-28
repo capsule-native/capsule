@@ -121,6 +121,25 @@ public struct CLIContainerBackend: ContainerBackend {
         _ = try await runChecked(CLICommand.removeContainer(id: id, force: force))
     }
 
+    public func killContainer(id: String, signal: String?) async throws {
+        _ = try await runChecked(CLICommand.killContainer(id: id, signal: signal))
+    }
+
+    public func pruneContainers() async throws -> PruneResult {
+        // prune exits 0 on success and prints a human "Reclaimed …" line; do not treat a
+        // non-empty stderr as failure — only a non-zero exit is a real error.
+        let result = try await runner.run(CLICommand.pruneContainers(), environment: [:])
+        guard result.isSuccess else {
+            throw BackendError.nonZeroExit(
+                command: "container prune", code: result.exitCode, stderr: result.stderr)
+        }
+        return OutputParser.parsePruneResult(stdout: result.stdout, stderr: result.stderr)
+    }
+
+    public func exportContainer(id: String, to url: URL) async throws {
+        _ = try await runChecked(CLICommand.exportContainer(id: id, to: url))
+    }
+
     public func followLogs(container id: String) -> AsyncThrowingStream<OutputLine, Error> {
         runner.stream(CLICommand.followLogs(container: id), environment: [:])
     }

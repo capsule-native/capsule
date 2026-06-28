@@ -92,6 +92,16 @@ public struct LifecycleNotice: Sendable, Equatable {
     }
 }
 
+/// A UI-facing summary of a prune (Cleanup) run, mapped from the backend `PruneResult` so no
+/// Backend type reaches the UI.
+public struct PruneSummary: Sendable, Equatable {
+    public var message: String
+
+    public init(message: String) {
+        self.message = message
+    }
+}
+
 /// The resolved outcome of a stop attempt.
 public enum StopOutcome: Sendable, Equatable {
     case stopped

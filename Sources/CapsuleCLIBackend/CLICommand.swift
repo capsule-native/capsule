@@ -68,6 +68,18 @@ public enum CLICommand {
         ArgumentBuilder("delete").option("--force", enabled: force).adding(id).arguments
     }
 
+    public static func killContainer(id: String, signal: String?) -> [String] {
+        ArgumentBuilder("kill").flag("--signal", signal).adding(id).arguments
+    }
+
+    public static func pruneContainers() -> [String] {
+        ArgumentBuilder("prune").arguments
+    }
+
+    public static func exportContainer(id: String, to url: URL) -> [String] {
+        ArgumentBuilder("export").flag("--output", url.path).adding(id).arguments
+    }
+
     public static func followLogs(container id: String) -> [String] {
         ArgumentBuilder("logs").option("--follow", enabled: true).adding(id).arguments
     }

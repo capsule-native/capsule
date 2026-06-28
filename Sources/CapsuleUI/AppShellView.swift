@@ -69,7 +69,8 @@ public struct AppShellView: View {
                     onAction: { handleNoticeAction($0) },
                     onForceStop: { id in
                         lifecycleModel.notice = nil
-                        Task { _ = await lifecycleModel.forceStop(id: id) }
+                        // The real destructive escalation for a hung stop: kill (SIGKILL).
+                        Task { _ = await lifecycleModel.kill(id: id) }
                     },
                     onDismiss: { lifecycleModel.notice = nil }
                 )
