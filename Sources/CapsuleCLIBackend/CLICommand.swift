@@ -39,7 +39,8 @@ public enum CLICommand {
     }
 
     public static func inspectContainer(id: String) -> [String] {
-        ArgumentBuilder("inspect").adding(id).flag("--format", "json").arguments
+        // `container inspect` does not accept `--format`; it emits JSON by default.
+        ArgumentBuilder("inspect").adding(id).arguments
     }
 
     public static func startContainer(id: String) -> [String] {
@@ -65,7 +66,8 @@ public enum CLICommand {
     }
 
     public static func inspectImage(reference: String) -> [String] {
-        ArgumentBuilder("image", "inspect").adding(reference).flag("--format", "json").arguments
+        // `container image inspect` does not accept `--format`; it emits JSON by default.
+        ArgumentBuilder("image", "inspect").adding(reference).arguments
     }
 
     public static func pullImage(reference: String) -> [String] {

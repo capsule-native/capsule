@@ -22,8 +22,7 @@ final class CLICommandTests: XCTestCase {
     }
 
     func testContainerLifecycle() {
-        XCTAssertEqual(
-            CLICommand.inspectContainer(id: "abc"), ["inspect", "abc", "--format", "json"])
+        XCTAssertEqual(CLICommand.inspectContainer(id: "abc"), ["inspect", "abc"])
         XCTAssertEqual(CLICommand.startContainer(id: "abc"), ["start", "abc"])
         XCTAssertEqual(CLICommand.stopContainer(id: "abc"), ["stop", "abc"])
         XCTAssertEqual(CLICommand.removeContainer(id: "abc", force: false), ["delete", "abc"])
@@ -38,7 +37,7 @@ final class CLICommandTests: XCTestCase {
         XCTAssertEqual(CLICommand.listImages(), ["image", "list", "--format", "json"])
         XCTAssertEqual(
             CLICommand.inspectImage(reference: "alpine"),
-            ["image", "inspect", "alpine", "--format", "json"]
+            ["image", "inspect", "alpine"]
         )
         XCTAssertEqual(CLICommand.pullImage(reference: "alpine"), ["image", "pull", "alpine"])
         XCTAssertEqual(CLICommand.removeImage(reference: "alpine"), ["image", "delete", "alpine"])

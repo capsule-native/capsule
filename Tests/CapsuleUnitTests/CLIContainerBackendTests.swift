@@ -158,7 +158,7 @@ final class CLIContainerBackendTests: XCTestCase {
 
         XCTAssertEqual(parsed.value?.state, "running")
         XCTAssertFalse(parsed.raw.isEmpty)
-        XCTAssertEqual(stub.lastCall, ["inspect", "a1b2", "--format", "json"])
+        XCTAssertEqual(stub.lastCall, ["inspect", "a1b2"])
     }
 
     func testInspectDegradesToRawWhenSchemaNoLongerMatches() async throws {
@@ -249,7 +249,7 @@ final class CLIContainerBackendTests: XCTestCase {
         XCTAssertFalse(parsed.raw.isEmpty)
         XCTAssertEqual(
             stub.lastCall,
-            ["image", "inspect", "docker.io/library/alpine:latest", "--format", "json"]
+            ["image", "inspect", "docker.io/library/alpine:latest"]
         )
     }
 
