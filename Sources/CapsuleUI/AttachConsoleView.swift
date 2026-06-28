@@ -4,10 +4,9 @@
 //
 //  Copyright © 2026 Capsule. All rights reserved.
 //
-//  The read-only attach console (interim until the embedded terminal, M6). Streams a
-//  container's `logs --follow` output. "Open Shell" is shown but disabled until the
-//  terminal milestone; the stream is the `container logs` process's pipes, not the
-//  workload's stdout/stderr (labelled honestly).
+//  The read-only attach console. Streams a container's `logs --follow` output; the stream is
+//  the `container logs` process's pipes, not the workload's stdout/stderr (labelled
+//  honestly). "Open Shell" opens an interactive shell in the embedded terminal.
 
 import CapsuleDomain
 import SwiftUI
@@ -17,6 +16,7 @@ struct AttachConsoleView: View {
     let terminalAvailable: Bool
     let onDetach: () -> Void
     let onRetry: () -> Void
+    let onOpenShell: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,11 +33,12 @@ struct AttachConsoleView: View {
                 .foregroundStyle(.secondary)
             statusFooter
             Spacer()
-            Button("Open Shell", action: {})
+            Button("Open Shell", action: onOpenShell)
                 .disabled(!terminalAvailable)
                 .help(
                     terminalAvailable
-                        ? "Open an interactive shell" : "Arrives with the embedded terminal update")
+                        ? "Open an interactive shell in the embedded terminal"
+                        : "Start the container to open a shell")
             if case .failed = session.phase {
                 Button("Retry Attach", action: onRetry)
             }
