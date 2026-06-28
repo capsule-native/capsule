@@ -16,7 +16,10 @@ import SwiftUI
 /// app-bundle target.
 @MainActor
 public struct CapsuleScene: Scene {
-    @State private var model: WorkspaceModel
+    @State private var shell: ShellState
+    @State private var systemModel: SystemStatusModel
+    @State private var workspaceModel: WorkspaceModel
+    private let actions: ShellActions
     private let updater: any UpdaterController
 
     public init() {
@@ -24,16 +27,29 @@ public struct CapsuleScene: Scene {
     }
 
     public init(environment: AppEnvironment) {
-        self._model = State(initialValue: environment.workspaceModel)
+        self._shell = State(initialValue: environment.shell)
+        self._systemModel = State(initialValue: environment.systemModel)
+        self._workspaceModel = State(initialValue: environment.workspaceModel)
+        self.actions = environment.actions
         self.updater = environment.updater
     }
 
     public var body: some Scene {
         WindowGroup(id: WindowManagement.mainWindowID) {
-            RootView(model: model)
+            RootView(
+                shell: shell,
+                systemModel: systemModel,
+                workspaceModel: workspaceModel,
+                actions: actions
+            )
         }
         .commands {
-            CapsuleCommands(updater: updater)
+            CapsuleCommands(
+                updater: updater,
+                shell: shell,
+                systemModel: systemModel,
+                actions: actions
+            )
         }
     }
 }

@@ -7,30 +7,83 @@
 
 import CapsuleBackend
 import CapsuleCLIBackend
+import CapsuleDiagnostics
 import CapsuleDomain
+import CapsuleUI
 import Foundation
 
 /// The composition root.
 ///
 /// This is the single place that knows about concrete adapters and wires them into the
-/// domain. The UI and domain layers stay ignorant of which backend is in use, which is
-/// what keeps the architecture testable and swappable.
+/// domain and UI. It also injects the cross-layer seams the lower layers cannot reach on
+/// their own — notably `ErrorNormalizer.normalize` (which lives in `CapsuleDiagnostics`,
+/// a module the domain must not import) — and builds the `ShellActions` that route UI
+/// recovery actions back to the models.
 @MainActor
 public struct AppEnvironment {
+    public var shell: ShellState
+    public var systemModel: SystemStatusModel
     public var workspaceModel: WorkspaceModel
+    public var actions: ShellActions
     public var updater: any UpdaterController
 
-    public init(workspaceModel: WorkspaceModel, updater: any UpdaterController) {
+    public init(
+        shell: ShellState,
+        systemModel: SystemStatusModel,
+        workspaceModel: WorkspaceModel,
+        actions: ShellActions,
+        updater: any UpdaterController
+    ) {
+        self.shell = shell
+        self.systemModel = systemModel
         self.workspaceModel = workspaceModel
+        self.actions = actions
         self.updater = updater
     }
 
-    /// The production environment: CLI backend + (placeholder) updater.
+    /// The production environment: CLI backend, normalized errors, and a wired shell.
     public static func live() -> AppEnvironment {
         let backend: any ContainerBackend = CLIContainerBackend()
+        let shell = ShellState()
+        let systemModel = SystemStatusModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) }
+        )
+        let workspaceModel = WorkspaceModel(backend: backend)
+        let actions = makeActions(systemModel: systemModel, shell: shell)
         return AppEnvironment(
-            workspaceModel: WorkspaceModel(backend: backend),
+            shell: shell,
+            systemModel: systemModel,
+            workspaceModel: workspaceModel,
+            actions: actions,
             updater: NoopUpdaterController()
+        )
+    }
+
+    /// Builds the recovery/stop callbacks that bridge UI actions to the system model.
+    static func makeActions(
+        systemModel: SystemStatusModel,
+        shell: ShellState
+    ) -> ShellActions {
+        ShellActions(
+            recover: { action in
+                switch action {
+                case .startServices:
+                    Task { await systemModel.startServices() }
+                case .retry:
+                    Task { await systemModel.refreshStatus() }
+                case .openLogs:
+                    shell.revealLogs()
+                case .exportDiagnostics:
+                    shell.appendActivity("Diagnostics export requested.")
+                case .retryInTerminal, .editConfiguration, .grantPermission:
+                    shell.appendActivity("Action “\(action.title)” is not available yet.")
+                }
+            },
+            stopServices: {
+                Task { await systemModel.stopServices() }
+            }
         )
     }
 }
