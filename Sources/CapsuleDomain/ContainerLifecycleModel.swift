@@ -29,6 +29,7 @@ public final class ContainerLifecycleModel {
     private let terminalAvailable: @MainActor () -> Bool
     private let copyCommand: @MainActor ([String]) -> Void
     private let launchTerminal: @MainActor (TerminalRequest) -> Void
+    private let taskCenter: TaskCenter?
     private let settleAttempts: Int
     private let settleDelay: Duration
     private let hangTimeout: Duration
@@ -46,6 +47,7 @@ public final class ContainerLifecycleModel {
         terminalAvailable: @escaping @MainActor () -> Bool = { false },
         copyCommand: @escaping @MainActor ([String]) -> Void = { _ in },
         launchTerminal: @escaping @MainActor (TerminalRequest) -> Void = { _ in },
+        taskCenter: TaskCenter? = nil,
         settleAttempts: Int = 4,
         settleDelay: Duration = .milliseconds(400),
         hangTimeout: Duration = .seconds(8)
@@ -58,6 +60,7 @@ public final class ContainerLifecycleModel {
         self.terminalAvailable = terminalAvailable
         self.copyCommand = copyCommand
         self.launchTerminal = launchTerminal
+        self.taskCenter = taskCenter
         self.settleAttempts = settleAttempts
         self.settleDelay = settleDelay
         self.hangTimeout = hangTimeout
@@ -353,13 +356,28 @@ public final class ContainerLifecycleModel {
     }
 
     public func export(id: String, to url: URL) async {
+        // With a task center wired, the export registers an Activity task: the long archive
+        // write is visible, cancellable, and keeps its raw transcript on failure. Without
+        // one (previews/tests), fall back to the inline notice path.
+        guard let taskCenter else {
+            busy.insert(id)
+            defer { busy.remove(id) }
+            do {
+                try await backend.exportContainer(id: id, to: url)
+                onActivity("Exported “\(id)” to \(url.lastPathComponent).")
+            } catch {
+                notice = LifecycleNotice(detail: normalize(error).detail)
+            }
+            return
+        }
         busy.insert(id)
-        defer { busy.remove(id) }
-        do {
-            try await backend.exportContainer(id: id, to: url)
+        let task = taskCenter.runAsync(kind: .export, title: "Export \(id)") {
+            [backend] in try await backend.exportContainer(id: id, to: url)
+        }
+        await task.wait()
+        busy.remove(id)
+        if case .succeeded = task.state {
             onActivity("Exported “\(id)” to \(url.lastPathComponent).")
-        } catch {
-            notice = LifecycleNotice(detail: normalize(error).detail)
         }
     }
 

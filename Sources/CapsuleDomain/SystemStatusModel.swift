@@ -27,16 +27,19 @@ public final class SystemStatusModel {
     private let backend: any ContainerBackend
     private let normalize: @Sendable (any Error) -> CapsuleError
     private let onActivity: @MainActor (String) -> Void
+    private let taskCenter: TaskCenter?
 
     public init(
         backend: any ContainerBackend,
         normalize: @escaping @Sendable (any Error) -> CapsuleError = SystemStatusModel
             .defaultNormalize,
-        onActivity: @escaping @MainActor (String) -> Void = { _ in }
+        onActivity: @escaping @MainActor (String) -> Void = { _ in },
+        taskCenter: TaskCenter? = nil
     ) {
         self.backend = backend
         self.normalize = normalize
         self.onActivity = onActivity
+        self.taskCenter = taskCenter
     }
 
     /// The fallback normalizer used when the composition root injects none: pass through
@@ -78,16 +81,29 @@ public final class SystemStatusModel {
         }
     }
 
-    /// Starts the service, then re-probes so the banner reflects the new state.
+    /// Starts the service, then re-probes so the banner reflects the new state. When a task
+    /// center is wired, the start registers an Activity task (so the long boot is visible,
+    /// cancellable, and its raw transcript is kept); either way the banner is driven by a
+    /// fresh re-probe, so a failed start surfaces as `.unavailable`/`.stopped` from reality
+    /// rather than a reconstructed error.
     public func startServices() async {
         health = .checking
-        do {
-            try await backend.startSystem()
-            onActivity("Started container services.")
-            await refreshStatus()
-        } catch {
-            health = .unavailable(normalize(error).detail)
+        guard let taskCenter else {
+            do {
+                try await backend.startSystem()
+                onActivity("Started container services.")
+                await refreshStatus()
+            } catch {
+                health = .unavailable(normalize(error).detail)
+            }
+            return
         }
+        let task = taskCenter.runAsync(kind: .systemStart, title: "Start container services") {
+            [backend] in try await backend.startSystem()
+        }
+        await task.wait()
+        if case .succeeded = task.state { onActivity("Started container services.") }
+        await refreshStatus()
     }
 
     /// Stops the service, then re-probes.
