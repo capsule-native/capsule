@@ -23,6 +23,7 @@ struct ContentColumnView: View {
     let runModel: RunModel
     let buildModel: BuildModel
     let logsModel: LogsModel
+    let copyModel: CopyModel
 
     private var onRecover: (RecoveryAction) -> Void { actions.recover }
 
@@ -47,7 +48,7 @@ struct ContentColumnView: View {
         case .containers:
             ContainerListView(
                 model: browserModel, lifecycle: lifecycleModel, stats: statsModel,
-                logsModel: logsModel)
+                logsModel: logsModel, copyModel: copyModel)
         case .images:
             ImageListView(
                 model: imageBrowserModel, actions: imageActionsModel, runModel: runModel,

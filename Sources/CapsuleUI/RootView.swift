@@ -27,6 +27,7 @@ public struct RootView: View {
     private let runModel: RunModel
     private let buildModel: BuildModel
     private let logsModel: LogsModel
+    private let copyModel: CopyModel
     private let actions: ShellActions
     private let terminalSurfaceProvider: any TerminalSurfaceProviding
 
@@ -45,6 +46,7 @@ public struct RootView: View {
         runModel: RunModel,
         buildModel: BuildModel,
         logsModel: LogsModel,
+        copyModel: CopyModel,
         actions: ShellActions,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
     ) {
@@ -60,6 +62,7 @@ public struct RootView: View {
         self.runModel = runModel
         self.buildModel = buildModel
         self.logsModel = logsModel
+        self.copyModel = copyModel
         self.actions = actions
         self.terminalSurfaceProvider = terminalSurfaceProvider
     }
@@ -78,6 +81,7 @@ public struct RootView: View {
             runModel: runModel,
             buildModel: buildModel,
             logsModel: logsModel,
+            copyModel: copyModel,
             actions: actions,
             terminalSurfaceProvider: terminalSurfaceProvider
         )

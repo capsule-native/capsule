@@ -36,6 +36,7 @@ public struct AppEnvironment {
     public var runModel: RunModel
     public var buildModel: BuildModel
     public var logsModel: LogsModel
+    public var copyModel: CopyModel
     public var actions: ShellActions
     public var updater: any UpdaterController
     public var terminalSurfaceProvider: any TerminalSurfaceProviding
@@ -54,6 +55,7 @@ public struct AppEnvironment {
         runModel: RunModel,
         buildModel: BuildModel,
         logsModel: LogsModel,
+        copyModel: CopyModel,
         actions: ShellActions,
         updater: any UpdaterController,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
@@ -71,6 +73,7 @@ public struct AppEnvironment {
         self.runModel = runModel
         self.buildModel = buildModel
         self.logsModel = logsModel
+        self.copyModel = copyModel
         self.actions = actions
         self.updater = updater
         self.terminalSurfaceProvider = terminalSurfaceProvider
@@ -156,6 +159,9 @@ public struct AppEnvironment {
             reloadList: { await imageBrowserModel.refresh() }
         )
         let logsModel = LogsModel(backend: backend)
+        let copyModel = CopyModel(
+            backend: backend, taskCenter: taskCenter,
+            onActivity: { line in shell.appendActivity(line) })
         let terminalSurfaceProvider = SwiftTermSurfaceProvider(executablePath: { name in
             name == "container" ? cliBackend.executableURL.path : name
         })
@@ -174,6 +180,7 @@ public struct AppEnvironment {
             runModel: runModel,
             buildModel: buildModel,
             logsModel: logsModel,
+            copyModel: copyModel,
             actions: actions,
             updater: NoopUpdaterController(),
             terminalSurfaceProvider: terminalSurfaceProvider

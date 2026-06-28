@@ -18,6 +18,7 @@ struct ContainerListView: View {
     let lifecycle: ContainerLifecycleModel
     let stats: ContainerStatsModel
     let logsModel: LogsModel
+    @Bindable var copyModel: CopyModel
 
     @Environment(\.openWindow) private var openWindow
     @State private var showingSaveScope = false
@@ -28,12 +29,14 @@ struct ContainerListView: View {
         model: ContainerBrowserModel,
         lifecycle: ContainerLifecycleModel,
         stats: ContainerStatsModel,
-        logsModel: LogsModel
+        logsModel: LogsModel,
+        copyModel: CopyModel
     ) {
         self.model = model
         self.lifecycle = lifecycle
         self.stats = stats
         self.logsModel = logsModel
+        self.copyModel = copyModel
     }
 
     var body: some View {
@@ -91,6 +94,8 @@ struct ContainerListView: View {
                 case let .exec(id):
                     ExecSheet(
                         containerID: id, lifecycle: lifecycle, onClose: { activeSheet = nil })
+                case .copy:
+                    CopySheet(model: copyModel, onClose: { activeSheet = nil })
                 }
             }
     }
@@ -195,6 +200,10 @@ struct ContainerListView: View {
         }
         if let single = targets.first, targets.count == 1 {
             Button("Logs…") { openLogs(id: single.id) }
+            Button("Copy Files…") {
+                copyModel.reset(containerID: single.id)
+                activeSheet = .copy
+            }
         }
 
         Divider()
@@ -367,6 +376,7 @@ enum LifecycleSheet: Identifiable {
     case confirm(ConfirmationRequest)
     case prune
     case exec(id: String)
+    case copy
 
     var id: String {
         switch self {
@@ -375,6 +385,7 @@ enum LifecycleSheet: Identifiable {
         case let .confirm(request): return "confirm-\(request.id)"
         case .prune: return "prune"
         case let .exec(id): return "exec-\(id)"
+        case .copy: return "copy"
         }
     }
 }
