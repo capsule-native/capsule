@@ -236,4 +236,56 @@ final class ContainerLifecycleModelTests: XCTestCase {
         m.detach()
         XCTAssertNil(m.attachSession)
     }
+
+    // MARK: - Terminal launch (M5.5)
+
+    func testOpenShellBuildsExecRequestWhenTerminalAvailable() {
+        var launched: [TerminalRequest] = []
+        let m = ContainerLifecycleModel(
+            backend: MockBackend(),
+            terminalAvailable: { true },
+            launchTerminal: { launched.append($0) })
+        m.openShell(id: "c1")
+        XCTAssertEqual(launched.count, 1)
+        XCTAssertEqual(launched.first?.argv, ["container", "exec", "-it", "c1", "sh"])
+        XCTAssertEqual(launched.first?.kind, .execShell)
+    }
+
+    func testAttachInteractivelyBuildsStartAttachRequest() {
+        var launched: [TerminalRequest] = []
+        let m = ContainerLifecycleModel(
+            backend: MockBackend(),
+            terminalAvailable: { true },
+            launchTerminal: { launched.append($0) })
+        m.attachInteractively(id: "c1")
+        XCTAssertEqual(launched.first?.argv, ["container", "start", "-ai", "c1"])
+        XCTAssertEqual(launched.first?.kind, .interactiveAttach)
+    }
+
+    func testRunInTerminalLaunchesWhenAvailable() {
+        var launched: [TerminalRequest] = []
+        var copied: [[String]] = []
+        let m = ContainerLifecycleModel(
+            backend: MockBackend(),
+            terminalAvailable: { true },
+            copyCommand: { copied.append($0) },
+            launchTerminal: { launched.append($0) })
+        m.runInTerminal(["container", "kill", "c1"])
+        XCTAssertEqual(launched.first?.argv, ["container", "kill", "c1"])
+        XCTAssertEqual(launched.first?.kind, .retry)
+        XCTAssertTrue(copied.isEmpty)
+    }
+
+    func testRunInTerminalFallsBackToClipboardWhenUnavailable() {
+        var launched: [TerminalRequest] = []
+        var copied: [[String]] = []
+        let m = ContainerLifecycleModel(
+            backend: MockBackend(),
+            terminalAvailable: { false },
+            copyCommand: { copied.append($0) },
+            launchTerminal: { launched.append($0) })
+        m.runInTerminal(["container", "kill", "c1"])
+        XCTAssertTrue(launched.isEmpty)
+        XCTAssertEqual(copied, [["container", "kill", "c1"]])
+    }
 }
