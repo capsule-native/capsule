@@ -18,6 +18,8 @@ public final class ContainerLifecycleModel {
     public private(set) var busy: Set<String> = []
     public private(set) var attachSession: AttachSession?
     public var notice: LifecycleNotice?
+    /// A pending destructive confirmation the UI should present, or nil.
+    public var confirmation: ConfirmationRequest?
 
     private let backend: any ContainerBackend
     private let normalize: @Sendable (any Error) -> CapsuleError
@@ -228,6 +230,90 @@ public final class ContainerLifecycleModel {
         let daemon =
             s.contains("xpc") || s.contains("launchd") || s.contains("connection refused")
         return benign && !daemon
+    }
+
+    // MARK: - Destructive (kill / delete / prune / export)
+
+    /// Force-stops (kills) a container. The real destructive escalation for a hung stop.
+    @discardableResult
+    public func kill(id: String, signal: String? = nil) async -> StopOutcome {
+        busy.insert(id)
+        defer { busy.remove(id) }
+        do {
+            try await backend.killContainer(id: id, signal: signal)
+            await reloadList()
+            onActivity("Force-stopped “\(id)”.")
+            return .stopped
+        } catch {
+            if isBenignAlreadyStopped(error) {
+                onActivity("“\(id)” was already stopped.")
+                return .alreadyStopped
+            }
+            let detail = normalize(error).detail
+            notice = LifecycleNotice(detail: detail)
+            return .failed(detail)
+        }
+    }
+
+    public func killAll(ids: [String]) async {
+        for id in ids { _ = await kill(id: id) }
+    }
+
+    public func delete(id: String, force: Bool) async {
+        busy.insert(id)
+        defer { busy.remove(id) }
+        do {
+            try await backend.removeContainer(id: id, force: force)
+            await reloadList()
+            onActivity("Deleted “\(id)”.")
+        } catch {
+            if isBenignAlreadyStopped(error) {
+                await reloadList()
+                onActivity("“\(id)” was already removed.")
+                return
+            }
+            notice = LifecycleNotice(detail: normalize(error).detail)
+        }
+    }
+
+    public func deleteAll(ids: [String], force: Bool) async {
+        for id in ids { await delete(id: id, force: force) }
+    }
+
+    /// The stopped containers a prune would remove (for the Cleanup sheet's precompute).
+    public func computePruneTargets() async -> [Container] {
+        let all = (try? await backend.listContainers(all: true)) ?? []
+        return all.map(Container.init(summary:)).filter { $0.state != .running }
+    }
+
+    @discardableResult
+    public func prune() async -> PruneSummary {
+        do {
+            let result = try await backend.pruneContainers()
+            await reloadList()
+            let message = result.reclaimedDescription ?? "Cleanup complete."
+            onActivity(message)
+            return PruneSummary(message: message)
+        } catch {
+            notice = LifecycleNotice(detail: normalize(error).detail)
+            return PruneSummary(message: "Cleanup failed.")
+        }
+    }
+
+    /// Whether the container is in a safe state to export (stopped). Running ⇒ warn first.
+    public func validateExport(id: String) -> Bool {
+        currentState(id) != .running
+    }
+
+    public func export(id: String, to url: URL) async {
+        busy.insert(id)
+        defer { busy.remove(id) }
+        do {
+            try await backend.exportContainer(id: id, to: url)
+            onActivity("Exported “\(id)” to \(url.lastPathComponent).")
+        } catch {
+            notice = LifecycleNotice(detail: normalize(error).detail)
+        }
     }
 
     // MARK: - Attach (read-only interim)
