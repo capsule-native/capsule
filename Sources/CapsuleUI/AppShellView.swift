@@ -21,6 +21,7 @@ public struct AppShellView: View {
     let statsModel: ContainerStatsModel
     @Bindable var imageBrowserModel: ImageBrowserModel
     @Bindable var imageActionsModel: ImageActionsModel
+    @Bindable var taskCenter: TaskCenter
     let actions: ShellActions
     let terminalSurfaceProvider: any TerminalSurfaceProviding
 
@@ -33,6 +34,7 @@ public struct AppShellView: View {
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
+        taskCenter: TaskCenter,
         actions: ShellActions,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
     ) {
@@ -44,6 +46,7 @@ public struct AppShellView: View {
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
+        self.taskCenter = taskCenter
         self.actions = actions
         self.terminalSurfaceProvider = terminalSurfaceProvider
     }
@@ -112,6 +115,7 @@ public struct AppShellView: View {
                 ActivityPaneView(
                     shell: shell,
                     activityLog: shell.activityLog,
+                    taskCenter: taskCenter,
                     attachSession: lifecycleModel.attachSession,
                     terminalAvailable: lifecycleModel.isTerminalAvailable,
                     terminalSurfaceProvider: terminalSurfaceProvider,

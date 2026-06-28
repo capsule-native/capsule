@@ -18,6 +18,8 @@ struct ActivityPaneView: View {
     @Bindable var shell: ShellState
     /// Recent activity lines (newest last) surfaced by the system model.
     let activityLog: [String]
+    /// The long-operation tasks (pull/push/save/load) shown in the Tasks/Progress tabs.
+    var taskCenter: TaskCenter?
     /// The active read-only attach session, if any (takes over the pane content).
     var attachSession: AttachSession?
     var terminalAvailable: Bool = false
@@ -173,11 +175,51 @@ struct ActivityPaneView: View {
         case .logs:
             logsList
         case .tasks:
-            placeholder("No running tasks", systemImage: "checklist")
+            tasksList
         case .progress:
-            placeholder("No active transfers", systemImage: "chart.bar")
+            progressList
         case .terminal:
             placeholder("No terminal session", systemImage: "terminal")
+        }
+    }
+
+    @ViewBuilder
+    private var tasksList: some View {
+        let tasks = taskCenter?.tasks ?? []
+        if tasks.isEmpty {
+            placeholder("No tasks yet", systemImage: "checklist")
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(tasks) { task in
+                        TaskTranscriptView(task: task, onRetry: { taskCenter?.retry(task) })
+                        Divider()
+                    }
+                }
+                .padding(10)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var progressList: some View {
+        let active = taskCenter?.activeTasks ?? []
+        if active.isEmpty {
+            placeholder("No active transfers", systemImage: "chart.bar")
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(active) { task in
+                        HStack(spacing: 10) {
+                            Label(task.title, systemImage: task.kind.symbolName)
+                                .font(.caption)
+                            Spacer()
+                            ProgressView().controlSize(.small)
+                        }
+                    }
+                }
+                .padding(10)
+            }
         }
     }
 

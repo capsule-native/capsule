@@ -9,6 +9,7 @@
 //  (pull/push/save/load/tag/delete/prune) are layered on by ImageActionsModel + TaskCenter
 //  in later milestone phases.
 
+import AppKit
 import CapsuleDomain
 import SwiftUI
 
@@ -42,6 +43,22 @@ struct ImageListView: View {
                             Task { await actions.tag(source: reference, target: target) }
                         },
                         onCancel: { activeSheet = nil })
+                case .pull:
+                    PullImageSheet(
+                        onPull: { ref, plat in actions.pull(reference: ref, platform: plat) },
+                        onRetry: { actions.retryTask($0) },
+                        onClose: { activeSheet = nil })
+                case let .push(reference, digest):
+                    PushImageSheet(
+                        initialReference: reference, initialDigest: digest,
+                        onPush: { ref, plat in actions.push(reference: ref, platform: plat) },
+                        onRetry: { actions.retryTask($0) },
+                        onClose: { activeSheet = nil })
+                case .load:
+                    LoadImageSheet(
+                        onLoad: { url in actions.load(from: url) },
+                        onRetry: { actions.retryTask($0) },
+                        onClose: { activeSheet = nil })
                 case let .confirm(request):
                     ConfirmationSheet(
                         request: request,
@@ -134,7 +151,13 @@ struct ImageListView: View {
             Button("Tag…") {
                 activeSheet = .tag(reference: single.id, digest: single.digest)
             }
+            Button("Push…") {
+                activeSheet = .push(reference: single.reference, digest: single.digest)
+            }
+            .disabled(single.isDangling)
         }
+        Button("Save…") { requestSave(targets) }
+            .disabled(targets.isEmpty)
         Divider()
         Button("Delete…", role: .destructive) { requestDelete(ids: ids) }
             .disabled(targets.isEmpty)
@@ -142,6 +165,22 @@ struct ImageListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup {
+            Button {
+                activeSheet = .pull
+            } label: {
+                Label("Pull", systemImage: "arrow.down.circle")
+            }
+            .help("Pull an image from a registry")
+
+            Button {
+                activeSheet = .load
+            } label: {
+                Label("Load", systemImage: "square.and.arrow.up")
+            }
+            .help("Load images from a tar archive")
+        }
+
         ToolbarItem(placement: .principal) {
             Picker("Sort", selection: $model.sort) {
                 ForEach(ImageSort.allCases) { sort in
@@ -188,6 +227,21 @@ struct ImageListView: View {
         }
     }
 
+    /// Saves the selected image(s) to a single tar archive via a Save panel.
+    private func requestSave(_ targets: [Image]) {
+        guard !targets.isEmpty else { return }
+        let references = targets.map(\.id)
+        let panel = NSSavePanel()
+        let suggested = targets.count == 1 ? targets[0].repository : "images"
+        panel.nameFieldStringValue =
+            "\((suggested as NSString).lastPathComponent).tar"
+        panel.canCreateDirectories = true
+        panel.title = "Save Image\(targets.count == 1 ? "" : "s")"
+        if panel.runModal() == .OK, let url = panel.url {
+            actions.save(references: references, to: url, platform: nil)
+        }
+    }
+
     private func images(for ids: Set<Image.ID>) -> [Image] {
         model.allImages.filter { ids.contains($0.id) }
     }
@@ -196,12 +250,18 @@ struct ImageListView: View {
 /// Which image sheet is presented.
 enum ImageSheet: Identifiable {
     case tag(reference: String, digest: String)
+    case pull
+    case push(reference: String, digest: String)
+    case load
     case confirm(ConfirmationRequest)
     case prune
 
     var id: String {
         switch self {
         case let .tag(reference, _): return "tag-\(reference)"
+        case .pull: return "pull"
+        case let .push(reference, _): return "push-\(reference)"
+        case .load: return "load"
         case let .confirm(request): return "confirm-\(request.id)"
         case .prune: return "prune"
         }

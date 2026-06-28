@@ -146,4 +146,71 @@ final class ImageActionsModelTests: XCTestCase {
 
         XCTAssertNotNil(model.notice)
     }
+
+    // MARK: - Transfers (register tasks in the TaskCenter)
+
+    func testPullRegistersAStreamingTaskAndRefreshesOnSuccess() async {
+        let backend = MockBackend(
+            images: [img("alpine:latest")],
+            logLines: [
+                OutputLine(source: .stdout, text: "Pulling"),
+                OutputLine(source: .stdout, text: "Done"),
+            ])
+        let center = TaskCenter()
+        var reloads = 0
+        let model = ImageActionsModel(
+            backend: backend, reloadList: { reloads += 1 }, taskCenter: center)
+
+        let task = model.pull(reference: "alpine:latest", platform: nil)
+        await task.wait()
+
+        XCTAssertEqual(task.kind, .pull)
+        XCTAssertEqual(task.state, .succeeded)
+        XCTAssertEqual(task.transcript.map(\.text), ["Pulling", "Done"])
+        XCTAssertEqual(reloads, 1, "a successful pull refreshes the image list")
+        XCTAssertEqual(center.tasks.count, 1)
+    }
+
+    func testPushRegistersAStreamingTask() async {
+        let backend = MockBackend(logLines: [OutputLine(source: .stdout, text: "Pushing")])
+        let center = TaskCenter()
+        let model = ImageActionsModel(backend: backend, taskCenter: center)
+
+        let task = model.push(reference: "ghcr.io/me/app:1", platform: nil)
+        await task.wait()
+
+        XCTAssertEqual(task.kind, .push)
+        XCTAssertEqual(task.state, .succeeded)
+    }
+
+    func testSaveRegistersANonStreamingTaskAndRecordsURL() async {
+        let backend = MockBackend(images: [img("alpine:latest")])
+        let center = TaskCenter()
+        let model = ImageActionsModel(backend: backend, taskCenter: center)
+        let url = URL(fileURLWithPath: "/tmp/out.tar")
+
+        let task = model.save(references: ["alpine:latest"], to: url, platform: nil)
+        await task.wait()
+
+        XCTAssertEqual(task.kind, .save)
+        XCTAssertEqual(task.state, .succeeded)
+        XCTAssertEqual(backend.lastSavedURL, url)
+    }
+
+    func testLoadRegistersANonStreamingTaskAndRefreshesOnSuccess() async {
+        let backend = MockBackend(images: [])
+        let center = TaskCenter()
+        var reloads = 0
+        let model = ImageActionsModel(
+            backend: backend, reloadList: { reloads += 1 }, taskCenter: center)
+        let url = URL(fileURLWithPath: "/tmp/in.tar")
+
+        let task = model.load(from: url)
+        await task.wait()
+
+        XCTAssertEqual(task.kind, .load)
+        XCTAssertEqual(task.state, .succeeded)
+        XCTAssertEqual(backend.lastLoadedURL, url)
+        XCTAssertEqual(reloads, 1)
+    }
 }

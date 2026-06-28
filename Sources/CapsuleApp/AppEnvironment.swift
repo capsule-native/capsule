@@ -31,6 +31,7 @@ public struct AppEnvironment {
     public var statsModel: ContainerStatsModel
     public var imageBrowserModel: ImageBrowserModel
     public var imageActionsModel: ImageActionsModel
+    public var taskCenter: TaskCenter
     public var actions: ShellActions
     public var updater: any UpdaterController
     public var terminalSurfaceProvider: any TerminalSurfaceProviding
@@ -44,6 +45,7 @@ public struct AppEnvironment {
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
+        taskCenter: TaskCenter,
         actions: ShellActions,
         updater: any UpdaterController,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
@@ -56,6 +58,7 @@ public struct AppEnvironment {
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
+        self.taskCenter = taskCenter
         self.actions = actions
         self.updater = updater
         self.terminalSurfaceProvider = terminalSurfaceProvider
@@ -84,11 +87,13 @@ public struct AppEnvironment {
             normalize: { ErrorNormalizer.normalize($0) },
             onActivity: { line in shell.appendActivity(line) }
         )
+        let taskCenter = TaskCenter(normalize: { ErrorNormalizer.normalize($0) })
         let imageActionsModel = ImageActionsModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
             onActivity: { line in shell.appendActivity(line) },
-            reloadList: { await imageBrowserModel.refresh() }
+            reloadList: { await imageBrowserModel.refresh() },
+            taskCenter: taskCenter
         )
         let lifecycleModel = ContainerLifecycleModel(
             backend: backend,
@@ -121,6 +126,7 @@ public struct AppEnvironment {
             statsModel: statsModel,
             imageBrowserModel: imageBrowserModel,
             imageActionsModel: imageActionsModel,
+            taskCenter: taskCenter,
             actions: actions,
             updater: NoopUpdaterController(),
             terminalSurfaceProvider: terminalSurfaceProvider
