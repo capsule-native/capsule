@@ -28,6 +28,7 @@ public struct CapsuleScene: Scene {
     @State private var registriesModel: RegistriesModel
     @State private var runModel: RunModel
     @State private var buildModel: BuildModel
+    @State private var logsModel: LogsModel
     private let actions: ShellActions
     private let updater: any UpdaterController
     private let terminalSurfaceProvider: any TerminalSurfaceProviding
@@ -49,6 +50,7 @@ public struct CapsuleScene: Scene {
         self._registriesModel = State(initialValue: environment.registriesModel)
         self._runModel = State(initialValue: environment.runModel)
         self._buildModel = State(initialValue: environment.buildModel)
+        self._logsModel = State(initialValue: environment.logsModel)
         self.actions = environment.actions
         self.updater = environment.updater
         self.terminalSurfaceProvider = environment.terminalSurfaceProvider
@@ -68,6 +70,7 @@ public struct CapsuleScene: Scene {
                 taskCenter: taskCenter,
                 runModel: runModel,
                 buildModel: buildModel,
+                logsModel: logsModel,
                 actions: actions,
                 terminalSurfaceProvider: terminalSurfaceProvider
             )
@@ -79,6 +82,10 @@ public struct CapsuleScene: Scene {
                 systemModel: systemModel,
                 actions: actions
             )
+        }
+
+        Window("Logs", id: LogWindow.id) {
+            LogWindowView(model: logsModel)
         }
 
         Settings {

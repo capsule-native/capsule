@@ -17,7 +17,9 @@ struct ContainerListView: View {
     @Bindable var model: ContainerBrowserModel
     let lifecycle: ContainerLifecycleModel
     let stats: ContainerStatsModel
+    let logsModel: LogsModel
 
+    @Environment(\.openWindow) private var openWindow
     @State private var showingSaveScope = false
     @State private var newScopeName = ""
     @State private var activeSheet: LifecycleSheet?
@@ -25,11 +27,13 @@ struct ContainerListView: View {
     init(
         model: ContainerBrowserModel,
         lifecycle: ContainerLifecycleModel,
-        stats: ContainerStatsModel
+        stats: ContainerStatsModel,
+        logsModel: LogsModel
     ) {
         self.model = model
         self.lifecycle = lifecycle
         self.stats = stats
+        self.logsModel = logsModel
     }
 
     var body: some View {
@@ -189,6 +193,9 @@ struct ContainerListView: View {
             Button("Open Shell") { lifecycle.openShell(id: single.id) }
             Button("Exec…") { activeSheet = .exec(id: single.id) }
         }
+        if let single = targets.first, targets.count == 1 {
+            Button("Logs…") { openLogs(id: single.id) }
+        }
 
         Divider()
         Button("Force Stop", role: .destructive) { requestKill(ids: Set(stoppable.map(\.id))) }
@@ -269,6 +276,12 @@ struct ContainerListView: View {
     private func stopAll(_ ids: [String]) async {
         for id in ids { _ = await lifecycle.stop(id: id) }
         await stats.snapshot(ids: runningIDs)
+    }
+
+    /// Starts log capture for a container and opens the detachable log window.
+    private func openLogs(id: String) {
+        logsModel.start(id: id)
+        openWindow(id: LogWindow.id)
     }
 
     // MARK: - Destructive actions
