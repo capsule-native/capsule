@@ -32,6 +32,7 @@ public struct AppEnvironment {
     public var imageBrowserModel: ImageBrowserModel
     public var imageActionsModel: ImageActionsModel
     public var taskCenter: TaskCenter
+    public var registriesModel: RegistriesModel
     public var actions: ShellActions
     public var updater: any UpdaterController
     public var terminalSurfaceProvider: any TerminalSurfaceProviding
@@ -46,6 +47,7 @@ public struct AppEnvironment {
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
         taskCenter: TaskCenter,
+        registriesModel: RegistriesModel,
         actions: ShellActions,
         updater: any UpdaterController,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
@@ -59,6 +61,7 @@ public struct AppEnvironment {
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
         self.taskCenter = taskCenter
+        self.registriesModel = registriesModel
         self.actions = actions
         self.updater = updater
         self.terminalSurfaceProvider = terminalSurfaceProvider
@@ -88,6 +91,11 @@ public struct AppEnvironment {
             onActivity: { line in shell.appendActivity(line) }
         )
         let taskCenter = TaskCenter(normalize: { ErrorNormalizer.normalize($0) })
+        let registriesModel = RegistriesModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) }
+        )
         let imageActionsModel = ImageActionsModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
@@ -127,6 +135,7 @@ public struct AppEnvironment {
             imageBrowserModel: imageBrowserModel,
             imageActionsModel: imageActionsModel,
             taskCenter: taskCenter,
+            registriesModel: registriesModel,
             actions: actions,
             updater: NoopUpdaterController(),
             terminalSurfaceProvider: terminalSurfaceProvider
