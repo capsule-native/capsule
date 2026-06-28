@@ -59,6 +59,20 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     public private(set) var statsCallCount = 0
     /// How many `followLogs` streams have terminated (incl. via cancellation).
     public private(set) var logStreamTerminations = 0
+    /// The configuration of the most recent `runContainer` call.
+    public private(set) var lastRunConfig: RunConfiguration?
+    /// The configuration of the most recent `buildImage` call.
+    public private(set) var lastBuildConfig: BuildConfiguration?
+    /// The direction/endpoints of the most recent copy call.
+    public private(set) var lastCopy:
+        (direction: CopyDirectionTag, hostURL: URL, containerID: String, containerPath: String)?
+    /// The id/path of the most recent `listContainerDirectory` call.
+    public private(set) var lastListedDirectory: (id: String, path: String)?
+    /// Seeded directory entries returned by `listContainerDirectory`.
+    public var containerFiles: [ContainerFileEntry] = MockBackend.sampleContainerFiles
+
+    /// Which way a recorded copy went (the mock has no real filesystem).
+    public enum CopyDirectionTag: Sendable, Equatable { case toContainer, fromContainer }
 
     public init(
         containers: [ContainerSummary] = MockBackend.sampleContainers,
@@ -220,6 +234,52 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         logStreamTerminations += 1
     }
 
+    public func fetchLogs(container id: String, tail: Int?, boot: Bool) async throws -> [OutputLine]
+    {
+        try withState { state in
+            let lines = state.logLines
+            if let tail, tail < lines.count { return Array(lines.suffix(tail)) }
+            return lines
+        }
+    }
+
+    public func runContainer(_ config: RunConfiguration) async throws -> String {
+        try withState { state in
+            state.lastRunConfig = config
+            let id = "mock-\(state.containers.count + 1)"
+            state.containers.append(
+                ContainerSummary(
+                    id: id, name: config.name ?? id, image: config.image, state: "running",
+                    ip: "192.168.64.99", createdAt: "2026-06-29T00:00:00Z"))
+            return id
+        }
+    }
+
+    public func copyToContainer(
+        source: URL, containerID: String, containerPath: String
+    ) async throws {
+        try withState { state in
+            state.lastCopy = (.toContainer, source, containerID, containerPath)
+        }
+    }
+
+    public func copyFromContainer(
+        containerID: String, containerPath: String, destination: URL
+    ) async throws {
+        try withState { state in
+            state.lastCopy = (.fromContainer, destination, containerID, containerPath)
+        }
+    }
+
+    public func listContainerDirectory(
+        id: String, path: String
+    ) async throws -> [ContainerFileEntry] {
+        try withState { state in
+            state.lastListedDirectory = (id, path)
+            return state.containerFiles
+        }
+    }
+
     // MARK: - Images
 
     public func listImages() async throws -> [ImageSummary] {
@@ -250,6 +310,13 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         reference: String, platform: String?
     ) -> AsyncThrowingStream<OutputLine, Error> {
         seededStream()
+    }
+
+    public func buildImage(_ config: BuildConfiguration) -> AsyncThrowingStream<OutputLine, Error> {
+        lock.lock()
+        lastBuildConfig = config
+        lock.unlock()
+        return seededStream()
     }
 
     public func saveImage(references: [String], to url: URL, platform: String?) async throws {
@@ -408,6 +475,12 @@ extension MockBackend {
     public static let sampleLogLines: [OutputLine] = [
         OutputLine(source: .stdout, text: "starting"),
         OutputLine(source: .stdout, text: "ready"),
+    ]
+
+    public static let sampleContainerFiles: [ContainerFileEntry] = [
+        ContainerFileEntry(name: "bin", isDirectory: true, size: 4096, mode: "drwxr-xr-x"),
+        ContainerFileEntry(name: "etc", isDirectory: true, size: 4096, mode: "drwxr-xr-x"),
+        ContainerFileEntry(name: ".bashrc", isDirectory: false, size: 220, mode: "-rw-r--r--"),
     ]
 
     public static let sampleStatsDefault: [ContainerStatsSample] = [
