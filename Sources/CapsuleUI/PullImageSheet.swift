@@ -16,9 +16,21 @@ struct PullImageSheet: View {
     let onRetry: (OperationTask) -> Void
     let onClose: () -> Void
 
-    @State private var reference = ""
+    @State private var reference: String
     @State private var platform = ""
     @State private var task: OperationTask?
+
+    init(
+        initialReference: String = "",
+        onPull: @escaping (String, String?) -> OperationTask,
+        onRetry: @escaping (OperationTask) -> Void,
+        onClose: @escaping () -> Void
+    ) {
+        self.onPull = onPull
+        self.onRetry = onRetry
+        self.onClose = onClose
+        self._reference = State(initialValue: initialReference)
+    }
 
     private var trimmedReference: String {
         reference.trimmingCharacters(in: .whitespacesAndNewlines)

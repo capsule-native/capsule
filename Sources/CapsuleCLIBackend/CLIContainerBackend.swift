@@ -148,7 +148,12 @@ public struct CLIContainerBackend: ContainerBackend {
     {
         let output = try await runChecked(
             CLICommand.fetchLogs(container: id, tail: tail, boot: boot))
-        return output.stdout
+        // Drop the trailing newline so a normal `…\n`-terminated snapshot doesn't yield a
+        // spurious blank final line in the pane or the saved transcript.
+        let text = output.stdout.hasSuffix("\n") ? String(output.stdout.dropLast()) : output.stdout
+        guard !text.isEmpty else { return [] }
+        return
+            text
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map { OutputLine(source: .stdout, text: String($0)) }
     }

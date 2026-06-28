@@ -50,8 +50,9 @@ struct ImageListView: View {
                             Task { await actions.tag(source: reference, target: target) }
                         },
                         onCancel: { activeSheet = nil })
-                case .pull:
+                case let .pull(reference):
                     PullImageSheet(
+                        initialReference: reference,
                         onPull: { ref, plat in actions.pull(reference: ref, platform: plat) },
                         onRetry: { actions.retryTask($0) },
                         onClose: { activeSheet = nil })
@@ -78,7 +79,7 @@ struct ImageListView: View {
                 case let .run(image):
                     QuickRunSheet(
                         model: runModel,
-                        onResolveImage: { _ in activeSheet = .pull },
+                        onResolveImage: { ref in activeSheet = .pull(reference: ref) },
                         onClose: { activeSheet = nil }
                     )
                     .onAppear { runModel.reset(image: image) }
@@ -200,7 +201,7 @@ struct ImageListView: View {
             .help("Build an image from a Dockerfile")
 
             Button {
-                activeSheet = .pull
+                activeSheet = .pull(reference: "")
             } label: {
                 Label("Pull", systemImage: "arrow.down.circle")
             }
@@ -290,7 +291,7 @@ struct ImageListView: View {
 /// Which image sheet is presented.
 enum ImageSheet: Identifiable {
     case tag(reference: String, digest: String)
-    case pull
+    case pull(reference: String)
     case push(reference: String, digest: String)
     case load
     case confirm(ConfirmationRequest)
@@ -302,7 +303,7 @@ enum ImageSheet: Identifiable {
         switch self {
         case let .tag(reference, _): return "tag-\(reference)"
         case .pull: return "pull"
-        case let .push(reference, _): return "push-\(reference)"
+        case let .push(reference, _): return "push-\(reference)"  // id stays stable
         case .load: return "load"
         case let .confirm(request): return "confirm-\(request.id)"
         case .prune: return "prune"

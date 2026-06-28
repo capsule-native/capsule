@@ -235,6 +235,12 @@ func openCommandInTerminalApp(_ argv: [String], executablePath: String) {
         try script.write(to: url, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
         NSWorkspace.shared.open(url)
+        // Sweep the throwaway script once Terminal has had time to read it, so they don't
+        // accumulate in the temp directory.
+        Task {
+            try? await Task.sleep(for: .seconds(10))
+            try? FileManager.default.removeItem(at: url)
+        }
     } catch {
         // Non-fatal: the embedded terminal remains available.
     }

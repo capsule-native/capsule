@@ -61,6 +61,22 @@ final class LogsModelTests: XCTestCase {
         XCTAssertEqual(model.transcriptText, "one\ntwo")
     }
 
+    func testRestartWhileFollowingKeepsStreaming() async {
+        // Regression: the replaced (cancelled) follow task must not clear `isStreaming` after
+        // the successor has already set it true.
+        let backend = MockBackend()
+        backend.neverEndingLogStream = true
+        let model = LogsModel(backend: backend)
+        model.follow = true
+        model.start(id: "a")
+        await Task.yield()
+        model.start(id: "b")  // cancels a's task, starts b's
+        for _ in 0..<10 { await Task.yield() }
+        XCTAssertTrue(model.isStreaming)
+        XCTAssertEqual(model.containerID, "b")
+        model.stop()
+    }
+
     func testStopCancelsFollowStream() async {
         let backend = MockBackend()
         backend.neverEndingLogStream = true

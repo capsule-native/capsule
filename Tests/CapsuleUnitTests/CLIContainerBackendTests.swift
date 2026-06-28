@@ -417,6 +417,17 @@ final class CLIContainerBackendTests: XCTestCase {
         XCTAssertEqual(stub.lastCall, ["logs", "-n", "50", "c1"])
     }
 
+    func testFetchLogsDropsTrailingNewline() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(exitCode: 0, stdout: "a\nb\n", stderr: "")
+        let lines = try await makeBackend(stub).fetchLogs(container: "c1", tail: nil, boot: false)
+        XCTAssertEqual(lines.map(\.text), ["a", "b"])  // no spurious blank final line
+
+        stub.result = CommandResult(exitCode: 0, stdout: "", stderr: "")
+        let empty = try await makeBackend(stub).fetchLogs(container: "c1", tail: nil, boot: false)
+        XCTAssertTrue(empty.isEmpty)
+    }
+
     func testListDirectoryParsesLsLeniently() async throws {
         let stub = StubProcessRunner()
         stub.result = CommandResult(
