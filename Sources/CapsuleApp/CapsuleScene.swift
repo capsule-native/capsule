@@ -29,6 +29,7 @@ public struct CapsuleScene: Scene {
     @State private var runModel: RunModel
     @State private var buildModel: BuildModel
     @State private var logsModel: LogsModel
+    @State private var copyModel: CopyModel
     private let actions: ShellActions
     private let updater: any UpdaterController
     private let terminalSurfaceProvider: any TerminalSurfaceProviding
@@ -51,6 +52,7 @@ public struct CapsuleScene: Scene {
         self._runModel = State(initialValue: environment.runModel)
         self._buildModel = State(initialValue: environment.buildModel)
         self._logsModel = State(initialValue: environment.logsModel)
+        self._copyModel = State(initialValue: environment.copyModel)
         self.actions = environment.actions
         self.updater = environment.updater
         self.terminalSurfaceProvider = environment.terminalSurfaceProvider
@@ -71,6 +73,7 @@ public struct CapsuleScene: Scene {
                 runModel: runModel,
                 buildModel: buildModel,
                 logsModel: logsModel,
+                copyModel: copyModel,
                 actions: actions,
                 terminalSurfaceProvider: terminalSurfaceProvider
             )

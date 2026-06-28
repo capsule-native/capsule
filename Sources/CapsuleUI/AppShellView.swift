@@ -25,6 +25,7 @@ public struct AppShellView: View {
     @Bindable var runModel: RunModel
     @Bindable var buildModel: BuildModel
     @Bindable var logsModel: LogsModel
+    @Bindable var copyModel: CopyModel
     let actions: ShellActions
     let terminalSurfaceProvider: any TerminalSurfaceProviding
 
@@ -41,6 +42,7 @@ public struct AppShellView: View {
         runModel: RunModel,
         buildModel: BuildModel,
         logsModel: LogsModel,
+        copyModel: CopyModel,
         actions: ShellActions,
         terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
     ) {
@@ -56,6 +58,7 @@ public struct AppShellView: View {
         self.runModel = runModel
         self.buildModel = buildModel
         self.logsModel = logsModel
+        self.copyModel = copyModel
         self.actions = actions
         self.terminalSurfaceProvider = terminalSurfaceProvider
     }
@@ -119,7 +122,8 @@ public struct AppShellView: View {
                 imageActionsModel: imageActionsModel,
                 runModel: runModel,
                 buildModel: buildModel,
-                logsModel: logsModel
+                logsModel: logsModel,
+                copyModel: copyModel
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
