@@ -22,6 +22,7 @@ public struct CapsuleCommands: Commands {
     @Bindable private var shell: ShellState
     private let systemModel: SystemStatusModel
     private let actions: ShellActions
+    @Environment(\.openWindow) private var openWindow
 
     public init(
         updater: any UpdaterController,
@@ -51,6 +52,8 @@ public struct CapsuleCommands: Commands {
                 shell.toggleActivityPane()
             }
             .keyboardShortcut("j", modifiers: [.command])
+            Button("Open Log Window") { openWindow(id: LogWindow.id) }
+                .keyboardShortcut("l", modifiers: [.shift, .command])
         }
 
         // Resource — system lifecycle + a reserved command-palette hook (Milestone 11).

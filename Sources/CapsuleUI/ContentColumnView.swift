@@ -22,6 +22,7 @@ struct ContentColumnView: View {
     let imageActionsModel: ImageActionsModel
     let runModel: RunModel
     let buildModel: BuildModel
+    let logsModel: LogsModel
 
     private var onRecover: (RecoveryAction) -> Void { actions.recover }
 
@@ -44,7 +45,9 @@ struct ContentColumnView: View {
     private var runningContent: some View {
         switch section {
         case .containers:
-            ContainerListView(model: browserModel, lifecycle: lifecycleModel, stats: statsModel)
+            ContainerListView(
+                model: browserModel, lifecycle: lifecycleModel, stats: statsModel,
+                logsModel: logsModel)
         case .images:
             ImageListView(
                 model: imageBrowserModel, actions: imageActionsModel, runModel: runModel,
