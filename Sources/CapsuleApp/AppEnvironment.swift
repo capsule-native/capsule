@@ -117,6 +117,10 @@ public struct AppEnvironment {
             pasteboard.setString(command, forType: .string)
             shell.appendActivity("Copied to clipboard: \(command)")
         }
+        let openInTerminalApp: @MainActor ([String]) -> Void = { argv in
+            openCommandInTerminalApp(argv, executablePath: cliBackend.executableURL.path)
+            shell.appendActivity("Opened in Terminal: \(argv.joined(separator: " "))")
+        }
         let lifecycleModel = ContainerLifecycleModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
@@ -128,6 +132,7 @@ public struct AppEnvironment {
             terminalAvailable: { true },
             copyCommand: copyCommandToClipboard,
             launchTerminal: { request in shell.openTerminal(request) },
+            openExternalTerminal: openInTerminalApp,
             taskCenter: taskCenter
         )
         let runModel = RunModel(
@@ -199,4 +204,31 @@ public struct AppEnvironment {
             }
         )
     }
+}
+
+/// The detach fallback: write the argv to a temporary executable `.command` script and open
+/// it, which launches it in Terminal.app. The `container` token is resolved to its absolute
+/// path so the external shell can find it. Best-effort — a write/open failure is non-fatal.
+@MainActor
+func openCommandInTerminalApp(_ argv: [String], executablePath: String) {
+    guard !argv.isEmpty else { return }
+    let resolved = argv.enumerated().map { index, token in
+        index == 0 && token == "container" ? executablePath : token
+    }
+    let command = resolved.map(shellQuote).joined(separator: " ")
+    let script = "#!/bin/sh\nexec \(command)\n"
+    let url = FileManager.default.temporaryDirectory
+        .appendingPathComponent("capsule-\(UUID().uuidString).command")
+    do {
+        try script.write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+        NSWorkspace.shared.open(url)
+    } catch {
+        // Non-fatal: the embedded terminal remains available.
+    }
+}
+
+/// Single-quotes a token for safe inclusion in a `/bin/sh` command line.
+private func shellQuote(_ token: String) -> String {
+    "'" + token.replacingOccurrences(of: "'", with: "'\\''") + "'"
 }

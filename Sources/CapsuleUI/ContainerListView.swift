@@ -84,6 +84,9 @@ struct ContainerListView: View {
                         }, onCancel: { activeSheet = nil })
                 case .prune:
                     PruneSheet(lifecycle: lifecycle, onClose: { activeSheet = nil })
+                case let .exec(id):
+                    ExecSheet(
+                        containerID: id, lifecycle: lifecycle, onClose: { activeSheet = nil })
                 }
             }
     }
@@ -179,6 +182,12 @@ struct ContainerListView: View {
             Button("Stop…") {
                 activeSheet = .stopOptions(id: single.id, name: single.name)
             }
+        }
+
+        if let single = stoppable.first, stoppable.count == 1 {
+            Divider()
+            Button("Open Shell") { lifecycle.openShell(id: single.id) }
+            Button("Exec…") { activeSheet = .exec(id: single.id) }
         }
 
         Divider()
@@ -344,6 +353,7 @@ enum LifecycleSheet: Identifiable {
     case stopOptions(id: String, name: String)
     case confirm(ConfirmationRequest)
     case prune
+    case exec(id: String)
 
     var id: String {
         switch self {
@@ -351,6 +361,7 @@ enum LifecycleSheet: Identifiable {
         case let .stopOptions(id, _): return "stop-\(id)"
         case let .confirm(request): return "confirm-\(request.id)"
         case .prune: return "prune"
+        case let .exec(id): return "exec-\(id)"
         }
     }
 }

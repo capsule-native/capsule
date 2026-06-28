@@ -29,6 +29,7 @@ struct ActivityPaneView: View {
     var onRetryAttach: () -> Void = {}
     var onOpenShell: () -> Void = {}
     var onCloseTerminal: () -> Void = {}
+    var onOpenInTerminalApp: (TerminalRequest) -> Void = { _ in }
 
     @State private var dragStartHeight: Double?
 
@@ -129,6 +130,8 @@ struct ActivityPaneView: View {
                 Label(session.request.title, systemImage: "terminal")
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
+                Button("Open in Terminal.app") { onOpenInTerminalApp(session.request) }
+                    .help("Run this command in the external Terminal instead")
                 Button("Close", action: onCloseTerminal)
             }
             .padding(.horizontal, 12)
