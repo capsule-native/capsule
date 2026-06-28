@@ -1,0 +1,222 @@
+//
+//  MockBackend.swift
+//  Capsule
+//
+//  Copyright © 2026 Capsule. All rights reserved.
+//
+//  An in-memory `ContainerBackend` for unit tests and SwiftUI previews. It serves seeded
+//  data, mutates it on lifecycle calls, streams seeded log lines, and can be told to fail
+//  — so the whole stack above the port can be exercised without the `container` CLI.
+
+import Foundation
+
+public final class MockBackend: ContainerBackend, @unchecked Sendable {
+    private let lock = NSLock()
+
+    private var containers: [ContainerSummary]
+    private var images: [ImageSummary]
+    private var volumes: [VolumeSummary]
+    private var networks: [NetworkSummary]
+    private var registries: [RegistrySummary]
+    private var machines: [MachineSummary]
+    private var versionValue: BackendVersion
+    private var builder: BuilderStatus
+    private var logLines: [OutputLine]
+    private var systemRunStateValue: SystemRunState
+
+    /// When set, every `throws` command throws this instead of returning.
+    public var failure: BackendError?
+
+    public init(
+        containers: [ContainerSummary] = MockBackend.sampleContainers,
+        images: [ImageSummary] = MockBackend.sampleImages,
+        volumes: [VolumeSummary] = [],
+        networks: [NetworkSummary] = MockBackend.sampleNetworks,
+        registries: [RegistrySummary] = [],
+        machines: [MachineSummary] = [],
+        version: BackendVersion = BackendVersion(client: "1.0.0", server: "1.0.0"),
+        builder: BuilderStatus = BuilderStatus(isRunning: false),
+        logLines: [OutputLine] = MockBackend.sampleLogLines,
+        systemRunState: SystemRunState = .running
+    ) {
+        self.containers = containers
+        self.images = images
+        self.volumes = volumes
+        self.networks = networks
+        self.registries = registries
+        self.machines = machines
+        self.versionValue = version
+        self.builder = builder
+        self.logLines = logLines
+        self.systemRunStateValue = systemRunState
+    }
+
+    // MARK: - System & capabilities
+
+    public func version() async throws -> BackendVersion {
+        try withState { _ in versionValue }
+    }
+
+    public func systemStatus() async throws -> SystemRunState {
+        try withState { $0.systemRunStateValue }
+    }
+
+    public func startSystem() async throws {
+        try withState { $0.systemRunStateValue = .running }
+    }
+
+    public func stopSystem() async throws {
+        try withState { $0.systemRunStateValue = .stopped }
+    }
+
+    public func capabilities() async throws -> BackendCapabilities {
+        BackendCapabilities.derive(from: try await version())
+    }
+
+    // MARK: - Containers
+
+    public func listContainers(all: Bool) async throws -> [ContainerSummary] {
+        try withState { state in
+            all ? state.containers : state.containers.filter { $0.state == "running" }
+        }
+    }
+
+    public func inspectContainer(id: String) async throws -> Parsed<ContainerSummary> {
+        try withState { state in
+            let match = state.containers.first { $0.id == id }
+            return Parsed(value: match, raw: match.map { "\($0)" } ?? "")
+        }
+    }
+
+    public func startContainer(id: String) async throws {
+        try withState { state in
+            state.mutateContainer(id) { $0.state = "running" }
+        }
+    }
+
+    public func stopContainer(id: String) async throws {
+        try withState { state in
+            state.mutateContainer(id) {
+                $0.state = "stopped"
+                $0.ip = nil
+            }
+        }
+    }
+
+    public func removeContainer(id: String, force: Bool) async throws {
+        try withState { state in
+            state.containers.removeAll { $0.id == id }
+        }
+    }
+
+    public func followLogs(container id: String) -> AsyncThrowingStream<OutputLine, Error> {
+        seededStream()
+    }
+
+    // MARK: - Images
+
+    public func listImages() async throws -> [ImageSummary] {
+        try withState { $0.images }
+    }
+
+    public func inspectImage(reference: String) async throws -> Parsed<ImageSummary> {
+        try withState { state in
+            let match = state.images.first { $0.reference == reference }
+            return Parsed(value: match, raw: match.map { "\($0)" } ?? "")
+        }
+    }
+
+    public func removeImage(reference: String) async throws {
+        try withState { state in
+            state.images.removeAll { $0.reference == reference }
+        }
+    }
+
+    public func pullImage(reference: String) -> AsyncThrowingStream<OutputLine, Error> {
+        seededStream()
+    }
+
+    // MARK: - Volumes / networks / registries / machines / builder
+
+    public func listVolumes() async throws -> [VolumeSummary] { try withState { $0.volumes } }
+    public func listNetworks() async throws -> [NetworkSummary] { try withState { $0.networks } }
+    public func listRegistries() async throws -> [RegistrySummary] {
+        try withState { $0.registries }
+    }
+    public func listMachines() async throws -> [MachineSummary] { try withState { $0.machines } }
+    public func builderStatus() async throws -> BuilderStatus { try withState { $0.builder } }
+
+    // MARK: - Escape hatches
+
+    public func runRaw(_ arguments: [String]) async throws -> RawCommandOutput {
+        RawCommandOutput(exitCode: 0, stdout: "", stderr: "")
+    }
+
+    public func streamRaw(_ arguments: [String]) -> AsyncThrowingStream<OutputLine, Error> {
+        seededStream()
+    }
+
+    // MARK: - Internals
+
+    /// Runs `body` under the lock, throwing the injected `failure` first if present.
+    private func withState<T>(_ body: (MockBackend) throws -> T) throws -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        if let failure { throw failure }
+        return try body(self)
+    }
+
+    private func mutateContainer(_ id: String, _ change: (inout ContainerSummary) -> Void) {
+        guard let index = containers.firstIndex(where: { $0.id == id }) else { return }
+        change(&containers[index])
+    }
+
+    private func seededStream() -> AsyncThrowingStream<OutputLine, Error> {
+        lock.lock()
+        let lines = logLines
+        lock.unlock()
+        return AsyncThrowingStream { continuation in
+            for line in lines { continuation.yield(line) }
+            continuation.finish()
+        }
+    }
+}
+
+extension MockBackend {
+    public static let sampleContainers: [ContainerSummary] = [
+        ContainerSummary(
+            id: "a1b2c3d4",
+            name: "web",
+            image: "docker.io/library/alpine:latest",
+            state: "running",
+            ip: "192.168.64.3"
+        ),
+        ContainerSummary(
+            id: "e5f6a7b8",
+            name: "db",
+            image: "docker.io/library/postgres:16",
+            state: "stopped"
+        ),
+    ]
+
+    public static let sampleImages: [ImageSummary] = [
+        ImageSummary(id: "28bd5fe8", reference: "docker.io/library/alpine:latest", sizeBytes: 9218),
+        ImageSummary(
+            id: "9c7a4f10", reference: "docker.io/library/postgres:16", sizeBytes: 138_412_032),
+    ]
+
+    public static let sampleNetworks: [NetworkSummary] = [
+        NetworkSummary(
+            id: "default",
+            name: "default",
+            mode: "nat",
+            gateway: "192.168.64.1",
+            subnet: "192.168.64.0/24"
+        )
+    ]
+
+    public static let sampleLogLines: [OutputLine] = [
+        OutputLine(source: .stdout, text: "starting"),
+        OutputLine(source: .stdout, text: "ready"),
+    ]
+}

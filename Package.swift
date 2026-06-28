@@ -86,7 +86,10 @@ let package = Package(
                 "CapsuleCLIBackend",
                 "CapsuleAutomation",
                 "CapsuleDiagnostics",
-            ]
+            ],
+            // Real `container --format json` captures, used to verify decoding without
+            // spawning the CLI. See Tests/CapsuleUnitTests/Fixtures.
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "CapsuleIntegrationTests",

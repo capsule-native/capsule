@@ -45,6 +45,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.capsule.app
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_ENTITLEMENTS: App/Capsule.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: NO

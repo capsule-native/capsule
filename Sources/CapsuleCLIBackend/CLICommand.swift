@@ -1,0 +1,100 @@
+//
+//  CLICommand.swift
+//  Capsule
+//
+//  Copyright © 2026 Capsule. All rights reserved.
+//
+//  Typed factory for `container` argument vectors. This is the *only* place argv is
+//  assembled from typed inputs, so callers (the backend, and ultimately views) never
+//  hand-concatenate CLI strings. Each vector omits the executable itself — the runner
+//  owns `executableURL` — and prefers canonical subcommand names over their aliases.
+//
+//  Subcommand names and flags mirror `container` v1.0.0, verified against `--help`.
+
+import Foundation
+
+public enum CLICommand {
+    // MARK: - System
+
+    public static func version() -> [String] {
+        ArgumentBuilder("system", "version").flag("--format", "json").arguments
+    }
+
+    public static func systemStatus() -> [String] {
+        ArgumentBuilder("system", "status").arguments
+    }
+
+    public static func startSystem() -> [String] {
+        ArgumentBuilder("system", "start").arguments
+    }
+
+    public static func stopSystem() -> [String] {
+        ArgumentBuilder("system", "stop").arguments
+    }
+
+    // MARK: - Containers
+
+    public static func listContainers(all: Bool) -> [String] {
+        ArgumentBuilder("list").option("--all", enabled: all).flag("--format", "json").arguments
+    }
+
+    public static func inspectContainer(id: String) -> [String] {
+        ArgumentBuilder("inspect").adding(id).flag("--format", "json").arguments
+    }
+
+    public static func startContainer(id: String) -> [String] {
+        ArgumentBuilder("start").adding(id).arguments
+    }
+
+    public static func stopContainer(id: String) -> [String] {
+        ArgumentBuilder("stop").adding(id).arguments
+    }
+
+    public static func removeContainer(id: String, force: Bool) -> [String] {
+        ArgumentBuilder("delete").option("--force", enabled: force).adding(id).arguments
+    }
+
+    public static func followLogs(container id: String) -> [String] {
+        ArgumentBuilder("logs").option("--follow", enabled: true).adding(id).arguments
+    }
+
+    // MARK: - Images
+
+    public static func listImages() -> [String] {
+        ArgumentBuilder("image", "list").flag("--format", "json").arguments
+    }
+
+    public static func inspectImage(reference: String) -> [String] {
+        ArgumentBuilder("image", "inspect").adding(reference).flag("--format", "json").arguments
+    }
+
+    public static func pullImage(reference: String) -> [String] {
+        ArgumentBuilder("image", "pull").adding(reference).arguments
+    }
+
+    public static func removeImage(reference: String) -> [String] {
+        ArgumentBuilder("image", "delete").adding(reference).arguments
+    }
+
+    // MARK: - Volumes / networks / registries / machines / builder
+
+    public static func listVolumes() -> [String] {
+        ArgumentBuilder("volume", "list").flag("--format", "json").arguments
+    }
+
+    public static func listNetworks() -> [String] {
+        ArgumentBuilder("network", "list").flag("--format", "json").arguments
+    }
+
+    public static func listRegistries() -> [String] {
+        ArgumentBuilder("registry", "list").flag("--format", "json").arguments
+    }
+
+    public static func listMachines() -> [String] {
+        ArgumentBuilder("machine", "list").flag("--format", "json").arguments
+    }
+
+    public static func builderStatus() -> [String] {
+        ArgumentBuilder("builder", "status").flag("--format", "json").arguments
+    }
+}

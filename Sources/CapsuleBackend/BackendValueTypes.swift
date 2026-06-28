@@ -25,12 +25,15 @@ public struct ContainerSummary: Sendable, Equatable, Identifiable, Codable {
     public var name: String
     public var image: String
     public var state: String
+    /// The container's primary IPv4 address (without CIDR suffix), if attached.
+    public var ip: String?
 
-    public init(id: String, name: String, image: String, state: String) {
+    public init(id: String, name: String, image: String, state: String, ip: String? = nil) {
         self.id = id
         self.name = name
         self.image = image
         self.state = state
+        self.ip = ip
     }
 }
 
