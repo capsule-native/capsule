@@ -66,22 +66,44 @@ public final class ImageActionsModel {
     public func delete(reference: String) async {
         busy.insert(reference)
         defer { busy.remove(reference) }
+        if let detail = await performDelete(reference) {
+            notice = LifecycleNotice(detail: detail)
+        }
+    }
+
+    /// Bulk delete continues past failures and aggregates every dependency conflict into a
+    /// single notice, so a multi-select delete never hides a referenced image behind another.
+    public func deleteAll(references: [String]) async {
+        var failures: [String] = []
+        for reference in references {
+            busy.insert(reference)
+            let detail = await performDelete(reference)
+            busy.remove(reference)
+            if let detail { failures.append("\(reference): \(detail.explanation)") }
+        }
+        guard !failures.isEmpty else { return }
+        notice = LifecycleNotice(
+            detail: ErrorDetail(
+                title: failures.count == 1
+                    ? "Couldn’t delete an image" : "Couldn’t delete \(failures.count) images",
+                explanation: failures.joined(separator: "\n")))
+    }
+
+    /// Deletes one image, returning the failure detail (or nil on success / benign not-found).
+    private func performDelete(_ reference: String) async -> ErrorDetail? {
         do {
             try await backend.removeImage(reference: reference)
             await reloadList()
             onActivity("Deleted image “\(reference)”.")
+            return nil
         } catch {
             if isBenignAlreadyRemoved(error) {
                 await reloadList()
                 onActivity("Image “\(reference)” was already removed.")
-                return
+                return nil
             }
-            notice = LifecycleNotice(detail: normalize(error).detail)
+            return normalize(error).detail
         }
-    }
-
-    public func deleteAll(references: [String]) async {
-        for reference in references { await delete(reference: reference) }
     }
 
     // MARK: - Prune

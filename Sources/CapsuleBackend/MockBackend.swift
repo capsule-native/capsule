@@ -228,7 +228,8 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
 
     public func inspectImage(reference: String) async throws -> Parsed<ImageSummary> {
         try withState { state in
-            let match = state.images.first { $0.reference == reference }
+            // The CLI accepts a reference or an id; dangling images are addressed by id.
+            let match = state.images.first { $0.reference == reference || $0.id == reference }
             return Parsed(value: match, raw: match.map { "\($0)" } ?? "")
         }
     }

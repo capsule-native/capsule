@@ -18,24 +18,28 @@ public struct Image: Sendable, Equatable, Identifiable {
     public var tag: String?
     /// The full content digest (`sha256:…`), used verbatim for digest-centric copy actions.
     public var digest: String
+    /// The backend's own image identifier (the CLI's `id`), accepted by `inspect`/`delete`/
+    /// `tag`. Used to address dangling images, whose `<none>:<none>` reference is not usable.
+    public var imageID: String
     public var sizeBytes: Int64
     public var createdAt: Date?
 
     public init(
         reference: String, repository: String, tag: String?, digest: String,
-        sizeBytes: Int64, createdAt: Date? = nil
+        imageID: String, sizeBytes: Int64, createdAt: Date? = nil
     ) {
         self.reference = reference
         self.repository = repository
         self.tag = tag
         self.digest = digest
+        self.imageID = imageID
         self.sizeBytes = sizeBytes
         self.createdAt = createdAt
     }
 
-    /// A row id that is unique in practice: the reference for tagged images, and the digest
-    /// for dangling images (whose `<none>:<none>` reference would otherwise collide).
-    public var id: String { isDangling ? digest : reference }
+    /// A row id that doubles as the CLI identifier: the reference for tagged images, and the
+    /// backend id for dangling images (whose `<none>:<none>` reference can't address them).
+    public var id: String { isDangling ? imageID : reference }
 
     /// An untagged / unreferenced image (`<none>`), the prune target.
     public var isDangling: Bool { reference.isEmpty || reference.contains("<none>") }
@@ -60,6 +64,7 @@ extension Image {
             repository: repository,
             tag: tag,
             digest: summary.digest,
+            imageID: summary.id,
             sizeBytes: summary.sizeBytes,
             createdAt: summary.createdAt.flatMap(Container.parseDate)
         )

@@ -94,6 +94,19 @@ final class ImageActionsModelTests: XCTestCase {
         XCTAssertTrue(remaining?.isEmpty ?? false)
     }
 
+    func testDeleteAllAggregatesEveryDependencyConflict() async {
+        let backend = MockBackend(images: [img("a:1"), img("b:1", digest: "sha256:b")])
+        backend.failure = BackendError.nonZeroExit(
+            command: "container image delete", code: 1, stderr: "image is referenced by container")
+        let model = ImageActionsModel(backend: backend)
+
+        await model.deleteAll(references: ["a:1", "b:1"])
+
+        let explanation = model.notice?.detail.explanation ?? ""
+        XCTAssertTrue(explanation.contains("a:1"))
+        XCTAssertTrue(explanation.contains("b:1"), "every conflict is surfaced, not just the last")
+    }
+
     func testComputePruneTargetsReturnsDanglingByDefault() async {
         let backend = MockBackend(images: [
             img("alpine:latest", digest: "sha256:1"),

@@ -17,7 +17,6 @@ public enum ConfirmationKind: Sendable, Equatable {
     case exportNotStopped
     // Images (Milestone 6)
     case deleteImage
-    case pushImage
 }
 
 /// A request to confirm a destructive operation, as pure data the UI renders generically.
@@ -89,13 +88,4 @@ public struct ConfirmationRequest: Sendable, Equatable, Identifiable {
             confirmTitle: "Delete", targetIDs: ids, kind: .deleteImage)
     }
 
-    /// A push always confirms its destination so an image is never uploaded to the wrong
-    /// repository by accident.
-    public static func pushImage(reference: String, destination: String) -> ConfirmationRequest {
-        ConfirmationRequest(
-            title: "Push “\(reference)”?",
-            message: "This uploads the image to \(destination). Make sure the destination "
-                + "repository is correct before continuing.",
-            confirmTitle: "Push", targetIDs: [reference], kind: .pushImage)
-    }
 }

@@ -310,7 +310,7 @@ struct ContainerListView: View {
                 let name = model.allContainers.first { $0.id == id }?.name ?? id
                 presentExportPanel(id: id, name: name)
             }
-        case .deleteImage, .pushImage:
+        case .deleteImage:
             break  // image confirmations are routed from the images surface, not here
         }
     }
