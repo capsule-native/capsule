@@ -42,4 +42,15 @@ public enum CapsuleColors {
     public static var activitySurface: Color {
         Color(nsColor: .underPageBackgroundColor)
     }
+
+    /// The status-dot color for a container's lifecycle state.
+    public static func containerStateColor(_ state: ContainerState) -> Color {
+        switch state {
+        case .running: return .green
+        case .stopped: return .secondary
+        case .paused: return .orange
+        case .created: return .blue
+        case .unknown: return .gray
+        }
+    }
 }
