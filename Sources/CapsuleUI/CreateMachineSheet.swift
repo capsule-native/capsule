@@ -27,6 +27,15 @@ struct CreateMachineSheet: View {
         actions.canCreate(draft) && !busy
     }
 
+    private var homeMountDisplay: String {
+        switch draft.homeMount {
+        case "rw": return "read-write"
+        case "ro": return "read-only"
+        case "none": return "not mounted"
+        default: return draft.homeMount
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Label("Create Machine", systemImage: "desktopcomputer")
@@ -44,6 +53,7 @@ struct CreateMachineSheet: View {
                 .onChange(of: imageSelection) { _, selection in
                     if selection == Self.customImageTag {
                         useCustomImage = true
+                        draft.image = ""
                     } else {
                         useCustomImage = false
                         draft.image = selection
@@ -90,7 +100,7 @@ struct CreateMachineSheet: View {
                 .font(.caption).foregroundStyle(.secondary)
 
                 Text(
-                    "Your home directory will be mounted \(draft.homeMount). Files inside the machine persist across stops; deleting the machine erases them."
+                    "Your home directory will be mounted \(homeMountDisplay). Files inside the machine persist across stops; deleting the machine erases them."
                 )
                 .font(.caption).foregroundStyle(.secondary)
             }
