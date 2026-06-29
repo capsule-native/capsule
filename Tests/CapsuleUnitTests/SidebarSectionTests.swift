@@ -35,4 +35,19 @@ final class SidebarSectionTests: XCTestCase {
             XCTAssertFalse(section.symbolName.isEmpty)
         }
     }
+
+    func testVolumesAndNetworksSectionsDisabledWithoutFeatures() {
+        XCTAssertFalse(SidebarSection.volumes.isEnabled(features: []))
+        XCTAssertFalse(SidebarSection.networks.isEnabled(features: []))
+    }
+
+    func testVolumesAndNetworksSectionsEnabledWithFeatures() {
+        XCTAssertTrue(SidebarSection.volumes.isEnabled(features: [.volumes]))
+        XCTAssertTrue(SidebarSection.networks.isEnabled(features: [.networks]))
+    }
+
+    func testVolumesAndNetworksRequiredFeatures() {
+        XCTAssertEqual(SidebarSection.volumes.requiredFeature, .volumes)
+        XCTAssertEqual(SidebarSection.networks.requiredFeature, .networks)
+    }
 }

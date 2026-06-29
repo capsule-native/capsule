@@ -74,6 +74,15 @@ public enum SystemHealth: Sendable, Equatable {
         return []
     }
 
+    /// Whether `feature` is usable right now — the service is running *and* the build
+    /// reports the family. Resource surfaces and their Create / Delete / Clean-Up controls
+    /// gate on this so an OS or container build that lacks a family disables (rather than
+    /// errors on) that UI. Mirrors ``SidebarSection/isEnabled(features:)`` but folds in the
+    /// running check, since controls only ever render inside a running service.
+    public func supports(_ feature: SystemFeature) -> Bool {
+        isRunning && availableFeatures.contains(feature)
+    }
+
     /// How the banner should be tinted for this state.
     public var bannerKind: BannerKind {
         switch self {

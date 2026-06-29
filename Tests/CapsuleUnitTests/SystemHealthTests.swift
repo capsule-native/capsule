@@ -52,4 +52,22 @@ final class SystemHealthTests: XCTestCase {
             XCTAssertNotNil(feature.rawValue)
         }
     }
+
+    func testSupportsRequiresRunningAndFeature() {
+        let running = SystemHealth.running(
+            version: SystemVersion(client: "1.0.0", server: "1.0.0"),
+            features: [.volumes, .networks])
+        XCTAssertTrue(running.supports(.volumes))
+        XCTAssertTrue(running.supports(.networks))
+        // A family the build did not report is unsupported even while running.
+        XCTAssertFalse(running.supports(.machines))
+    }
+
+    func testSupportsFalseWhenNotRunning() {
+        XCTAssertFalse(SystemHealth.stopped.supports(.volumes))
+        XCTAssertFalse(SystemHealth.unknown.supports(.networks))
+        XCTAssertFalse(SystemHealth.checking.supports(.volumes))
+        XCTAssertFalse(
+            SystemHealth.unavailable(ErrorDetail(title: "x", explanation: "y")).supports(.networks))
+    }
 }
