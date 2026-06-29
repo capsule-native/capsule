@@ -59,7 +59,7 @@ final class CLIBackendIntegrationTests: XCTestCase {
     func testVolumeLifecycleAgainstRealCLI() async throws {
         try requireIntegration()
         let backend = CLIContainerBackend()
-        let name = "capsule-it-vol-\(UUID().uuidString.prefix(8))"
+        let name = "capsule-it-vol-\(UUID().uuidString.prefix(8).lowercased())"
 
         do {
             try await backend.createVolume(VolumeConfiguration(name: name))
@@ -90,7 +90,7 @@ final class CLIBackendIntegrationTests: XCTestCase {
     func testNetworkLifecycleAgainstRealCLI() async throws {
         try requireIntegration()
         let backend = CLIContainerBackend()
-        let name = "capsule-it-net-\(UUID().uuidString.prefix(8))"
+        let name = "capsule-it-net-\(UUID().uuidString.prefix(8).lowercased())"
 
         do {
             // No subnet: let the CLI auto-assign so the test never collides with `default`.
