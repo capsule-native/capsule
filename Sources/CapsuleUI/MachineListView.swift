@@ -30,9 +30,7 @@ struct MachineListView: View {
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {
                 case .create:
-                    // Placeholder — replaced by CreateMachineSheet in Task E1
-                    Text("Create machine — coming soon")
-                        .padding()
+                    CreateMachineSheet(actions: actions, onClose: { activeSheet = nil })
                 case let .settings(name):
                     // Placeholder — replaced by MachineSettingsSheet in Task F1
                     Text("Settings for \(name)")
