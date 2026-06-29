@@ -106,7 +106,10 @@ public struct CapsuleScene: Scene {
         }
 
         Settings {
-            PreferencesView(registriesModel: registriesModel, dnsModel: dnsModel)
+            PreferencesView(
+                registriesModel: registriesModel,
+                dnsModel: dnsModel,
+                systemHealth: systemModel.health)
         }
     }
 }

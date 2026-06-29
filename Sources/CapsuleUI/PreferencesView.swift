@@ -13,10 +13,16 @@ import SwiftUI
 public struct PreferencesView: View {
     private let registriesModel: RegistriesModel
     private let dnsModel: DNSModel
+    private let systemHealth: SystemHealth
 
-    public init(registriesModel: RegistriesModel, dnsModel: DNSModel) {
+    public init(
+        registriesModel: RegistriesModel,
+        dnsModel: DNSModel,
+        systemHealth: SystemHealth
+    ) {
         self.registriesModel = registriesModel
         self.dnsModel = dnsModel
+        self.systemHealth = systemHealth
     }
 
     public var body: some View {
@@ -24,6 +30,7 @@ public struct PreferencesView: View {
             RegistriesView(model: registriesModel)
                 .tabItem { Label("Registries", systemImage: "person.badge.key") }
             NetworkingView(model: dnsModel)
+                .disabled(!systemHealth.supports(.networks))
                 .tabItem { Label("Networking", systemImage: "network") }
         }
         .frame(width: 520, height: 420)
