@@ -69,4 +69,78 @@ final class DNSModelTests: XCTestCase {
         XCTAssertEqual(detail.title, "Administrator access required")
         XCTAssertTrue(detail.recoveryActions.contains(.grantPermission(.administrator)))
     }
+
+    func testAddDomainHandsOffCreateArgvWithLocalhost() {
+        var captured: [[String]] = []
+        let model = DNSModel(
+            backend: MockBackend(), runPrivilegedInTerminal: { captured.append($0) })
+
+        let result = model.addDomain(DNSDraft(domain: "test", localhostIP: "127.0.0.1"))
+
+        guard case .success = result else { return XCTFail("expected success") }
+        XCTAssertEqual(captured, [["system", "dns", "create", "--localhost", "127.0.0.1", "test"]])
+    }
+
+    func testAddDomainWithoutIPOmitsLocalhostFlag() {
+        var captured: [[String]] = []
+        let model = DNSModel(
+            backend: MockBackend(), runPrivilegedInTerminal: { captured.append($0) })
+
+        let result = model.addDomain(DNSDraft(domain: "test", localhostIP: "   "))
+
+        guard case .success = result else { return XCTFail("expected success") }
+        XCTAssertEqual(captured, [["system", "dns", "create", "test"]])
+    }
+
+    func testAddDomainEmptyNameFailsValidationWithoutHandoff() {
+        var captured: [[String]] = []
+        let model = DNSModel(
+            backend: MockBackend(), runPrivilegedInTerminal: { captured.append($0) })
+
+        let result = model.addDomain(DNSDraft(domain: "   ", localhostIP: ""))
+
+        guard case let .failure(.invalidInput(field, _)) = result else {
+            return XCTFail("expected .invalidInput for an empty domain")
+        }
+        XCTAssertEqual(field, "domain")
+        XCTAssertTrue(captured.isEmpty, "an invalid draft must not hand off")
+    }
+
+    func testAddDomainMalformedNameFailsValidation() {
+        var captured: [[String]] = []
+        let model = DNSModel(
+            backend: MockBackend(), runPrivilegedInTerminal: { captured.append($0) })
+
+        let result = model.addDomain(DNSDraft(domain: "bad domain!", localhostIP: ""))
+
+        guard case let .failure(.invalidInput(field, _)) = result else {
+            return XCTFail("expected .invalidInput for a malformed domain")
+        }
+        XCTAssertEqual(field, "domain")
+        XCTAssertTrue(captured.isEmpty)
+    }
+
+    func testAddDomainInvalidIPFailsValidation() {
+        var captured: [[String]] = []
+        let model = DNSModel(
+            backend: MockBackend(), runPrivilegedInTerminal: { captured.append($0) })
+
+        let result = model.addDomain(DNSDraft(domain: "test", localhostIP: "999.1.1.1"))
+
+        guard case let .failure(.invalidInput(field, _)) = result else {
+            return XCTFail("expected .invalidInput for a malformed IPv4 address")
+        }
+        XCTAssertEqual(field, "localhostIP")
+        XCTAssertTrue(captured.isEmpty)
+    }
+
+    func testDeleteDomainHandsOffDeleteArgv() {
+        var captured: [[String]] = []
+        let model = DNSModel(
+            backend: MockBackend(), runPrivilegedInTerminal: { captured.append($0) })
+
+        model.deleteDomain("test")
+
+        XCTAssertEqual(captured, [["system", "dns", "delete", "test"]])
+    }
 }
