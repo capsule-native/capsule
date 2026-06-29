@@ -133,6 +133,14 @@ public enum OutputParser {
         return BackendVersion(client: client, server: server)
     }
 
+    public static func parseComponentVersions(_ data: Data) throws -> [ComponentVersion] {
+        try lossyList(data, decode: CLIVersionComponent.self).map {
+            ComponentVersion(
+                appName: $0.appName, version: $0.version,
+                buildType: $0.buildType ?? "", commit: $0.commit ?? "")
+        }
+    }
+
     // MARK: - Networks
 
     public static func parseNetworks(_ data: Data) throws -> [NetworkSummary] {

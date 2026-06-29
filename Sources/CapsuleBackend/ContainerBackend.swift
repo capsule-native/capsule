@@ -44,6 +44,9 @@ public protocol ContainerBackend: Sendable {
     /// Disk usage for images, containers, and volumes (`system df`).
     func systemDiskUsage() async throws -> StorageUsage
 
+    /// Full component list from `container system version` (client, apiserver, …).
+    func systemComponentVersions() async throws -> [ComponentVersion]
+
     // MARK: Containers
 
     /// Lists containers; when `all` is false only running containers are returned.

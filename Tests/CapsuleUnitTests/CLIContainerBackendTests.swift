@@ -555,4 +555,19 @@ final class CLIContainerBackendTests: XCTestCase {
         XCTAssertEqual(stub.lastCall, ["system", "df", "--format", "json"])
         XCTAssertEqual(usage.images.total, 4)
     }
+
+    // MARK: - M10: system version component list
+
+    func testSystemComponentVersionsArgvAndDecode() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(
+            exitCode: 0,
+            stdout: String(decoding: Fixture.data("system-version"), as: UTF8.self),
+            stderr: "")
+        let backend = CLIContainerBackend(
+            executableURL: URL(fileURLWithPath: "/usr/bin/container"), runner: stub)
+        let comps = try await backend.systemComponentVersions()
+        XCTAssertEqual(stub.lastCall, ["system", "version", "--format", "json"])
+        XCTAssertEqual(comps.count, 2)
+    }
 }

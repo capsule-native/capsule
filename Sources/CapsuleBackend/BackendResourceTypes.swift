@@ -193,6 +193,22 @@ public struct CategoryUsage: Sendable, Equatable, Codable {
     }
 }
 
+/// One component of `container system version` (CLI client, API server, …).
+public struct ComponentVersion: Sendable, Equatable, Identifiable, Codable {
+    public var id: String { appName }
+    public var appName: String
+    public var version: String
+    public var buildType: String
+    public var commit: String
+
+    public init(appName: String, version: String, buildType: String, commit: String) {
+        self.appName = appName
+        self.version = version
+        self.buildType = buildType
+        self.commit = commit
+    }
+}
+
 /// Disk usage across images, containers, and volumes (`container system df`).
 public struct StorageUsage: Sendable, Equatable, Codable {
     public var images: CategoryUsage

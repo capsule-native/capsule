@@ -312,4 +312,13 @@ final class OutputParserTests: XCTestCase {
         XCTAssertEqual(version.client, "1.2.3")
         XCTAssertNil(version.server)
     }
+
+    func testParseComponentVersionsReadsArray() throws {
+        let comps = try OutputParser.parseComponentVersions(Fixture.data("system-version"))
+        XCTAssertEqual(comps.count, 2)
+        XCTAssertEqual(comps[0].appName, "container")
+        XCTAssertEqual(comps[0].version, "1.0.0")
+        XCTAssertEqual(comps[0].buildType, "release")
+        XCTAssertTrue(comps[1].appName.contains("apiserver"))
+    }
 }

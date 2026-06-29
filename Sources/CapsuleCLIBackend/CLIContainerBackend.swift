@@ -67,6 +67,11 @@ public struct CLIContainerBackend: ContainerBackend {
         return try OutputParser.parseDiskUsage(Data(output.stdout.utf8))
     }
 
+    public func systemComponentVersions() async throws -> [ComponentVersion] {
+        let output = try await runChecked(CLICommand.systemVersion())
+        return try OutputParser.parseComponentVersions(Data(output.stdout.utf8))
+    }
+
     // MARK: - Containers
 
     public func listContainers(all: Bool = false) async throws -> [ContainerSummary] {

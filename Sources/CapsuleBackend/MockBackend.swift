@@ -25,6 +25,15 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     private var logLines: [OutputLine]
     private var systemRunStateValue: SystemRunState
     private var sampleStats: [ContainerStatsSample]
+    public var componentVersions: [ComponentVersion] = [
+        ComponentVersion(
+            appName: "container", version: "1.0.0",
+            buildType: "release", commit: "ee848e3"),
+        ComponentVersion(
+            appName: "container-apiserver",
+            version: "container-apiserver version 1.0.0 (build: release, commit: ee848e3)",
+            buildType: "release", commit: "ee848e3"),
+    ]
     public var diskUsage = StorageUsage(
         images: CategoryUsage(
             total: 4, active: 1, sizeInBytes: 1_302_421_504, reclaimable: 974_934_016),
@@ -151,6 +160,9 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     }
 
     public func systemDiskUsage() async throws -> StorageUsage { try withState { $0.diskUsage } }
+    public func systemComponentVersions() async throws -> [ComponentVersion] {
+        try withState { $0.componentVersions }
+    }
 
     public func capabilities() async throws -> BackendCapabilities {
         BackendCapabilities.derive(from: try await version())

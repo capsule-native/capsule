@@ -129,6 +129,8 @@ struct CLIContainerStatsRecord: Decodable {
 struct CLIVersionComponent: Decodable {
     let appName: String
     let version: String
+    let buildType: String?
+    let commit: String?
 }
 
 // MARK: - Networks

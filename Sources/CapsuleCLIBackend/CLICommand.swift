@@ -21,6 +21,8 @@ public enum CLICommand {
         ArgumentBuilder("system", "version").flag("--format", "json").arguments
     }
 
+    public static func systemVersion() -> [String] { version() }  // same argv; named for clarity
+
     public static func systemStatus() -> [String] {
         ArgumentBuilder("system", "status").arguments
     }
