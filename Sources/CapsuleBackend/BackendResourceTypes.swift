@@ -131,15 +131,39 @@ public struct DNSDomainSummary: Sendable, Equatable, Identifiable, Codable {
     }
 }
 
-/// A backend's lightweight view of a container machine.
+/// A backend's lightweight view of a container machine (`machine list`).
 public struct MachineSummary: Sendable, Equatable, Identifiable, Codable {
     public var id: String { name }
     public var name: String
     public var state: String?
+    /// Raw creation timestamp (ISO-8601 or CLI display string); the domain parses it.
+    public var createdAt: String?
+    public var ipAddress: String?
+    public var cpus: Int?
+    public var memory: String?
+    public var disk: String?
+    public var isDefault: Bool
+    // Inspect-only detail (absent from `list`); surfaced read-only when present.
+    public var kernel: String?
+    public var nestedVirtualization: Bool?
+    public var homeMount: String?
 
-    public init(name: String, state: String? = nil) {
+    public init(
+        name: String, state: String? = nil, createdAt: String? = nil, ipAddress: String? = nil,
+        cpus: Int? = nil, memory: String? = nil, disk: String? = nil, isDefault: Bool = false,
+        kernel: String? = nil, nestedVirtualization: Bool? = nil, homeMount: String? = nil
+    ) {
         self.name = name
         self.state = state
+        self.createdAt = createdAt
+        self.ipAddress = ipAddress
+        self.cpus = cpus
+        self.memory = memory
+        self.disk = disk
+        self.isDefault = isDefault
+        self.kernel = kernel
+        self.nestedVirtualization = nestedVirtualization
+        self.homeMount = homeMount
     }
 }
 
