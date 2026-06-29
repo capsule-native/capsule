@@ -190,6 +190,43 @@ public enum CLICommand {
         ArgumentBuilder("machine", "list").flag("--format", "json").arguments
     }
 
+    public static func createMachine(_ config: MachineConfiguration) -> [String] {
+        config.arguments
+    }
+
+    public static func setMachine(name: String?, settings: MachineSettings) -> [String] {
+        settings.arguments(name: name)
+    }
+
+    public static func setDefaultMachine(id: String) -> [String] {
+        ArgumentBuilder("machine", "set-default").adding(id).arguments
+    }
+
+    public static func stopMachine(id: String?) -> [String] {
+        var b = ArgumentBuilder("machine", "stop")
+        if let id, !id.isEmpty { b = b.adding(id) }
+        return b.arguments
+    }
+
+    public static func deleteMachine(id: String) -> [String] {
+        ArgumentBuilder("machine", "delete").adding(id).arguments
+    }
+
+    public static func inspectMachine(id: String?) -> [String] {
+        var b = ArgumentBuilder("machine", "inspect")
+        if let id, !id.isEmpty { b = b.adding(id) }
+        return b.arguments  // NB: no --format; inspect emits JSON by default
+    }
+
+    public static func machineLogs(id: String?, tail: Int?, boot: Bool, follow: Bool) -> [String] {
+        var b = ArgumentBuilder("machine", "logs")
+        if boot { b = b.adding("--boot") }
+        if follow { b = b.adding("--follow") }
+        if let tail { b = b.adding("-n", String(tail)) }
+        if let id, !id.isEmpty { b = b.adding(id) }
+        return b.arguments
+    }
+
     public static func builderStatus() -> [String] {
         ArgumentBuilder("builder", "status").flag("--format", "json").arguments
     }

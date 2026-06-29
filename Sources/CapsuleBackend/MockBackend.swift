@@ -84,6 +84,17 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     /// Whether `pruneNetworks` has been invoked.
     public private(set) var didPruneNetworks = false
 
+    /// The configuration of the most recent `createMachine` call.
+    public private(set) var lastCreatedMachine: MachineConfiguration?
+    /// The (name, settings) of the most recent `setMachine` call.
+    public private(set) var lastMachineSettings: (name: String?, settings: MachineSettings)?
+    /// The id of the most recent `setDefaultMachine` call.
+    public private(set) var lastSetDefaultID: String?
+    /// The id of the most recent `stopMachine` call.
+    public private(set) var lastStoppedMachine: String?
+    /// The id of the most recent `deleteMachine` call.
+    public private(set) var lastDeletedMachine: String?
+
     /// Which way a recorded copy went (the mock has no real filesystem).
     public enum CopyDirectionTag: Sendable, Equatable { case toContainer, fromContainer }
 
@@ -473,6 +484,87 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         }
     }
     public func listMachines() async throws -> [MachineSummary] { try withState { $0.machines } }
+
+    public func inspectMachine(id: String?) async throws -> Parsed<MachineSummary> {
+        try withState { state in
+            let match =
+                id.flatMap { wanted in state.machines.first { $0.name == wanted } }
+                ?? state.machines.first { $0.isDefault } ?? state.machines.first
+            return Parsed(value: match, raw: match.map { "\($0)" } ?? "")
+        }
+    }
+
+    public func createMachine(
+        _ config: MachineConfiguration
+    )
+        -> AsyncThrowingStream<OutputLine, Error>
+    {
+        lock.lock()
+        lastCreatedMachine = config
+        if !machines.contains(where: { $0.name == (config.name ?? config.image) }) {
+            if config.setDefault { for i in machines.indices { machines[i].isDefault = false } }
+            machines.append(
+                MachineSummary(
+                    name: config.name ?? config.image,
+                    state: config.noBoot ? "stopped" : "running",
+                    cpus: config.cpus, memory: config.memory,
+                    isDefault: config.setDefault, homeMount: config.homeMount))
+        }
+        lock.unlock()
+        return seededStream()
+    }
+
+    public func setMachine(name: String?, settings: MachineSettings) async throws {
+        try withState { state in
+            state.lastMachineSettings = (name, settings)
+            let target = name ?? state.machines.first { $0.isDefault }?.name
+            guard let target, let idx = state.machines.firstIndex(where: { $0.name == target })
+            else { return }
+            if let c = settings.cpus { state.machines[idx].cpus = c }
+            if let m = settings.memory { state.machines[idx].memory = m }
+            if let h = settings.homeMount { state.machines[idx].homeMount = h }
+        }
+    }
+
+    public func setDefaultMachine(id: String) async throws {
+        try withState { state in
+            state.lastSetDefaultID = id
+            for i in state.machines.indices {
+                state.machines[i].isDefault = (state.machines[i].name == id)
+            }
+        }
+    }
+
+    public func stopMachine(id: String?) async throws {
+        try withState { state in
+            let target = id ?? state.machines.first { $0.isDefault }?.name
+            state.lastStoppedMachine = target
+            if let target, let idx = state.machines.firstIndex(where: { $0.name == target }) {
+                state.machines[idx].state = "stopped"
+            }
+        }
+    }
+
+    public func deleteMachine(id: String) async throws {
+        try withState { state in
+            state.lastDeletedMachine = id
+            state.machines.removeAll { $0.name == id }
+        }
+    }
+
+    public func fetchMachineLogs(id: String?, tail: Int?, boot: Bool) async throws -> [OutputLine] {
+        try withState { state in
+            let lines = state.logLines
+            if let tail, tail < lines.count { return Array(lines.suffix(tail)) }
+            return lines
+        }
+    }
+
+    public func followMachineLogs(id: String?, boot: Bool) -> AsyncThrowingStream<OutputLine, Error>
+    {
+        seededStream()
+    }
+
     public func builderStatus() async throws -> BuilderStatus { try withState { $0.builder } }
 
     // MARK: - Escape hatches
@@ -557,6 +649,16 @@ extension MockBackend {
             gateway: "192.168.64.1",
             subnet: "192.168.64.0/24"
         )
+    ]
+
+    public static let sampleMachines: [MachineSummary] = [
+        MachineSummary(
+            name: "default", state: "running", createdAt: "2026-06-20T09:15:00Z",
+            ipAddress: "192.168.66.2", cpus: 4, memory: "8G", disk: "20G", isDefault: true,
+            homeMount: "rw"),
+        MachineSummary(
+            name: "builder", state: "stopped", createdAt: "2026-06-18T14:02:30Z",
+            cpus: 2, memory: "4G", disk: "20G", isDefault: false, homeMount: "rw"),
     ]
 
     public static let sampleLogLines: [OutputLine] = [

@@ -360,6 +360,48 @@ public struct CLIContainerBackend: ContainerBackend {
         return try OutputParser.parseMachines(Data(output.stdout.utf8))
     }
 
+    public func inspectMachine(id: String?) async throws -> Parsed<MachineSummary> {
+        let output = try await runChecked(CLICommand.inspectMachine(id: id))
+        return Parsed(
+            value: OutputParser.parseMachine(Data(output.stdout.utf8)), raw: output.stdout)
+    }
+
+    public func createMachine(
+        _ config: MachineConfiguration
+    )
+        -> AsyncThrowingStream<OutputLine, Error>
+    {
+        streamRaw(CLICommand.createMachine(config))
+    }
+
+    public func setMachine(name: String?, settings: MachineSettings) async throws {
+        _ = try await runChecked(CLICommand.setMachine(name: name, settings: settings))
+    }
+
+    public func setDefaultMachine(id: String) async throws {
+        _ = try await runChecked(CLICommand.setDefaultMachine(id: id))
+    }
+
+    public func stopMachine(id: String?) async throws {
+        _ = try await runChecked(CLICommand.stopMachine(id: id))
+    }
+
+    public func deleteMachine(id: String) async throws {
+        _ = try await runChecked(CLICommand.deleteMachine(id: id))
+    }
+
+    public func fetchMachineLogs(id: String?, tail: Int?, boot: Bool) async throws -> [OutputLine] {
+        let output = try await runChecked(
+            CLICommand.machineLogs(id: id, tail: tail, boot: boot, follow: false))
+        return output.stdout.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { OutputLine(source: .stdout, text: String($0)) }
+    }
+
+    public func followMachineLogs(id: String?, boot: Bool) -> AsyncThrowingStream<OutputLine, Error>
+    {
+        streamRaw(CLICommand.machineLogs(id: id, tail: nil, boot: boot, follow: true))
+    }
+
     public func builderStatus() async throws -> BuilderStatus {
         let output = try await runChecked(CLICommand.builderStatus())
         return try OutputParser.parseBuilderStatus(Data(output.stdout.utf8))

@@ -162,6 +162,31 @@ public protocol ContainerBackend: Sendable {
     func listDNSDomains() async throws -> [DNSDomainSummary]
     func listRegistries() async throws -> [RegistrySummary]
     func listMachines() async throws -> [MachineSummary]
+
+    /// Returns the inspected summary of one machine (nil id → default machine).
+    func inspectMachine(id: String?) async throws -> Parsed<MachineSummary>
+
+    /// Creates a machine from a typed configuration; streams progress lines.
+    func createMachine(_ config: MachineConfiguration) -> AsyncThrowingStream<OutputLine, Error>
+
+    /// Applies settings to a machine (nil name → default machine).
+    func setMachine(name: String?, settings: MachineSettings) async throws
+
+    /// Marks one machine as the default, clearing the flag on all others.
+    func setDefaultMachine(id: String) async throws
+
+    /// Stops a running machine (nil id → default machine).
+    func stopMachine(id: String?) async throws
+
+    /// Permanently deletes a machine by id.
+    func deleteMachine(id: String) async throws
+
+    /// Fetches the tail of a machine's log (nil id → default machine).
+    func fetchMachineLogs(id: String?, tail: Int?, boot: Bool) async throws -> [OutputLine]
+
+    /// Follows a machine's log as a live stream (nil id → default machine).
+    func followMachineLogs(id: String?, boot: Bool) -> AsyncThrowingStream<OutputLine, Error>
+
     func builderStatus() async throws -> BuilderStatus
 
     /// Logs in to a registry. The password is delivered out-of-band (never on argv) so it

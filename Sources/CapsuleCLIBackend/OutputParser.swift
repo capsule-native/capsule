@@ -183,10 +183,25 @@ public enum OutputParser {
     }
 
     public static func parseMachines(_ data: Data) throws -> [MachineSummary] {
-        try lossyList(data, decode: CLIMachineRecord.self).compactMap { record in
-            guard let name = record.name else { return nil }
-            return MachineSummary(name: name, state: record.state)
+        try lossyList(data, decode: CLIMachineRecord.self).compactMap(Self.machine(from:))
+    }
+
+    /// Parses a single `machine inspect` object (the CLI emits one object, not an array).
+    public static func parseMachine(_ data: Data) -> MachineSummary? {
+        if let one = try? decoder.decode(CLIMachineRecord.self, from: data) {
+            return machine(from: one)
         }
+        return (try? parseMachines(data))?.first
+    }
+
+    private static func machine(from record: CLIMachineRecord) -> MachineSummary? {
+        guard let name = record.name else { return nil }
+        return MachineSummary(
+            name: name, state: record.state, createdAt: record.createdAt,
+            ipAddress: record.ipAddress, cpus: record.cpus, memory: record.memory,
+            disk: record.disk, isDefault: record.isDefault ?? false,
+            kernel: record.kernel, nestedVirtualization: record.nestedVirtualization,
+            homeMount: record.homeMount)
     }
 
     /// The builder is considered running when at least one record reports a `running`
