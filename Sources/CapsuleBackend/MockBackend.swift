@@ -19,6 +19,7 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     private var networks: [NetworkSummary]
     private var registries: [RegistrySummary]
     private var machines: [MachineSummary]
+    private var dnsDomains: [DNSDomainSummary]
     private var versionValue: BackendVersion
     private var builder: BuilderStatus
     private var logLines: [OutputLine]
@@ -70,6 +71,18 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     public private(set) var lastListedDirectory: (id: String, path: String)?
     /// Seeded directory entries returned by `listContainerDirectory`.
     public var containerFiles: [ContainerFileEntry] = MockBackend.sampleContainerFiles
+    /// The configuration of the most recent `createVolume` call.
+    public private(set) var lastCreatedVolume: VolumeConfiguration?
+    /// The names of the most recent `deleteVolumes` call.
+    public private(set) var lastDeletedVolumeNames: [String]?
+    /// Whether `pruneVolumes` has been invoked.
+    public private(set) var didPruneVolumes = false
+    /// The configuration of the most recent `createNetwork` call.
+    public private(set) var lastCreatedNetwork: NetworkConfiguration?
+    /// The names of the most recent `deleteNetworks` call.
+    public private(set) var lastDeletedNetworkNames: [String]?
+    /// Whether `pruneNetworks` has been invoked.
+    public private(set) var didPruneNetworks = false
 
     /// Which way a recorded copy went (the mock has no real filesystem).
     public enum CopyDirectionTag: Sendable, Equatable { case toContainer, fromContainer }
@@ -85,7 +98,8 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         builder: BuilderStatus = BuilderStatus(isRunning: false),
         logLines: [OutputLine] = MockBackend.sampleLogLines,
         systemRunState: SystemRunState = .running,
-        sampleStats: [ContainerStatsSample] = MockBackend.sampleStatsDefault
+        sampleStats: [ContainerStatsSample] = MockBackend.sampleStatsDefault,
+        dnsDomains: [DNSDomainSummary] = []
     ) {
         self.containers = containers
         self.images = images
@@ -98,6 +112,7 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         self.logLines = logLines
         self.systemRunStateValue = systemRunState
         self.sampleStats = sampleStats
+        self.dnsDomains = dnsDomains
     }
 
     // MARK: - System & capabilities
@@ -359,6 +374,78 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
 
     public func listVolumes() async throws -> [VolumeSummary] { try withState { $0.volumes } }
     public func listNetworks() async throws -> [NetworkSummary] { try withState { $0.networks } }
+
+    public func inspectVolume(names: [String]) async throws -> Parsed<[VolumeSummary]> {
+        try withState { state in
+            let matches = state.volumes.filter { names.contains($0.name) }
+            return Parsed(value: matches, raw: "\(matches)")
+        }
+    }
+
+    public func createVolume(_ config: VolumeConfiguration) async throws {
+        try withState { state in
+            state.lastCreatedVolume = config
+            if !state.volumes.contains(where: { $0.name == config.name }) {
+                state.volumes.append(VolumeSummary(name: config.name))
+            }
+        }
+    }
+
+    public func deleteVolumes(names: [String]) async throws {
+        try withState { state in
+            state.lastDeletedVolumeNames = names
+            state.volumes.removeAll { names.contains($0.name) }
+        }
+    }
+
+    public func pruneVolumes() async throws -> PruneResult {
+        try withState { state in
+            let removed = state.volumes.count
+            state.didPruneVolumes = true
+            state.volumes.removeAll()
+            return PruneResult(
+                reclaimedDescription: "Reclaimed \(removed) volume(s).", raw: "")
+        }
+    }
+
+    public func inspectNetwork(names: [String]) async throws -> Parsed<[NetworkSummary]> {
+        try withState { state in
+            let matches = state.networks.filter { names.contains($0.name) }
+            return Parsed(value: matches, raw: "\(matches)")
+        }
+    }
+
+    public func createNetwork(_ config: NetworkConfiguration) async throws {
+        try withState { state in
+            state.lastCreatedNetwork = config
+            if !state.networks.contains(where: { $0.name == config.name }) {
+                state.networks.append(
+                    NetworkSummary(id: config.name, name: config.name, subnet: config.subnet))
+            }
+        }
+    }
+
+    public func deleteNetworks(names: [String]) async throws {
+        try withState { state in
+            state.lastDeletedNetworkNames = names
+            state.networks.removeAll { names.contains($0.name) }
+        }
+    }
+
+    public func pruneNetworks() async throws -> PruneResult {
+        try withState { state in
+            let removable = state.networks.filter { !$0.isBuiltin }.count
+            state.didPruneNetworks = true
+            state.networks.removeAll { !$0.isBuiltin }
+            return PruneResult(
+                reclaimedDescription: "Reclaimed \(removable) network(s).", raw: "")
+        }
+    }
+
+    public func listDNSDomains() async throws -> [DNSDomainSummary] {
+        try withState { $0.dnsDomains }
+    }
+
     public func listRegistries() async throws -> [RegistrySummary] {
         try withState { $0.registries }
     }

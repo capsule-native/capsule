@@ -396,4 +396,94 @@ final class MockBackendTests: XCTestCase {
             XCTFail("expected failure")
         } catch {}
     }
+
+    // MARK: - Volumes / networks / DNS (M8)
+
+    func testCreateVolumeRecordsConfigAndAppendsToList() async throws {
+        let backend = MockBackend()
+        try await backend.createVolume(VolumeConfiguration(name: "data", size: "1G"))
+        XCTAssertEqual(backend.lastCreatedVolume?.name, "data")
+        XCTAssertEqual(backend.lastCreatedVolume?.size, "1G")
+        let names = try await backend.listVolumes().map(\.name)
+        XCTAssertTrue(names.contains("data"))
+    }
+
+    func testDeleteVolumesRemovesAndRecords() async throws {
+        let backend = MockBackend(volumes: [
+            VolumeSummary(name: "data"), VolumeSummary(name: "keep"),
+        ])
+        try await backend.deleteVolumes(names: ["data"])
+        XCTAssertEqual(backend.lastDeletedVolumeNames, ["data"])
+        let names = try await backend.listVolumes().map(\.name)
+        XCTAssertEqual(names, ["keep"])
+    }
+
+    func testPruneVolumesEmptiesAndReportsReclaimed() async throws {
+        let backend = MockBackend(volumes: [VolumeSummary(name: "a"), VolumeSummary(name: "b")])
+        XCTAssertFalse(backend.didPruneVolumes)
+        let result = try await backend.pruneVolumes()
+        XCTAssertTrue(backend.didPruneVolumes)
+        XCTAssertNotNil(result.reclaimedDescription)
+        let remaining = try await backend.listVolumes()
+        XCTAssertTrue(remaining.isEmpty)
+    }
+
+    func testInspectVolumeReturnsMatchesAndRaw() async throws {
+        let backend = MockBackend(volumes: [VolumeSummary(name: "data"), VolumeSummary(name: "x")])
+        let parsed = try await backend.inspectVolume(names: ["data"])
+        XCTAssertEqual(parsed.value?.map(\.name), ["data"])
+        XCTAssertFalse(parsed.raw.isEmpty)
+    }
+
+    func testCreateNetworkRecordsConfigAndAppends() async throws {
+        let backend = MockBackend()
+        try await backend.createNetwork(
+            NetworkConfiguration(name: "app-net", subnet: "10.0.0.0/24"))
+        XCTAssertEqual(backend.lastCreatedNetwork?.name, "app-net")
+        let names = try await backend.listNetworks().map(\.name)
+        XCTAssertTrue(names.contains("app-net"))
+    }
+
+    func testDeleteNetworksRemovesAndRecords() async throws {
+        let backend = MockBackend(networks: [
+            NetworkSummary(id: "app-net", name: "app-net"),
+            NetworkSummary(id: "default", name: "default", isBuiltin: true),
+        ])
+        try await backend.deleteNetworks(names: ["app-net"])
+        XCTAssertEqual(backend.lastDeletedNetworkNames, ["app-net"])
+        let names = try await backend.listNetworks().map(\.name)
+        XCTAssertEqual(names, ["default"])
+    }
+
+    func testPruneNetworksExcludesBuiltins() async throws {
+        let backend = MockBackend(networks: [
+            NetworkSummary(id: "app-net", name: "app-net"),
+            NetworkSummary(id: "default", name: "default", isBuiltin: true),
+        ])
+        XCTAssertFalse(backend.didPruneNetworks)
+        let result = try await backend.pruneNetworks()
+        XCTAssertTrue(backend.didPruneNetworks)
+        XCTAssertNotNil(result.reclaimedDescription)
+        let names = try await backend.listNetworks().map(\.name)
+        XCTAssertEqual(names, ["default"], "builtin networks survive prune")
+    }
+
+    func testListDNSDomainsReturnsSeeded() async throws {
+        let backend = MockBackend(dnsDomains: [DNSDomainSummary(domain: "capsule.test")])
+        let domains = try await backend.listDNSDomains()
+        XCTAssertEqual(domains.map(\.domain), ["capsule.test"])
+    }
+
+    func testVolumeNetworkOpsHonourInjectedFailure() async {
+        let backend = MockBackend()
+        backend.failure = BackendError.nonZeroExit(command: "x", code: 1, stderr: "boom")
+        do {
+            try await backend.createVolume(VolumeConfiguration(name: "data"))
+            XCTFail("expected the injected failure to throw")
+        } catch let BackendError.nonZeroExit(_, code, _) {
+            XCTAssertEqual(code, 1)
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
 }

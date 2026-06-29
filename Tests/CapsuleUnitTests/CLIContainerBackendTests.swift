@@ -458,4 +458,85 @@ final class CLIContainerBackendTests: XCTestCase {
             XCTFail("unexpected error: \(error)")
         }
     }
+
+    // MARK: - M8: volumes / networks / DNS
+
+    func testInspectVolumeDecodesFixtureAndBuildsArgvWithoutFormat() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(exitCode: 0, stdout: Fixture.text("volume-inspect"), stderr: "")
+        let parsed = try await makeBackend(stub).inspectVolume(names: ["capsule-m8-probe"])
+        XCTAssertEqual(parsed.value?.first?.name, "capsule-m8-probe")
+        XCTAssertEqual(parsed.value?.first?.sizeBytes, 536_870_912)
+        XCTAssertFalse(parsed.raw.isEmpty)
+        XCTAssertEqual(stub.lastCall, ["volume", "inspect", "capsule-m8-probe"])
+    }
+
+    func testCreateVolumeBuildsArgvFromConfig() async throws {
+        let stub = StubProcessRunner()
+        try await makeBackend(stub).createVolume(
+            VolumeConfiguration(name: "data", size: "1G", labels: ["env=dev"]))
+        XCTAssertEqual(
+            stub.lastCall, ["volume", "create", "--label", "env=dev", "-s", "1G", "data"])
+    }
+
+    func testDeleteVolumesBuildsArgv() async throws {
+        let stub = StubProcessRunner()
+        try await makeBackend(stub).deleteVolumes(names: ["a", "b"])
+        XCTAssertEqual(stub.lastCall, ["volume", "delete", "a", "b"])
+    }
+
+    func testPruneVolumesParsesReclaimedAndOnlyNonZeroExitFails() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(
+            exitCode: 0, stdout: "Reclaimed 3 MB in disk space\n", stderr: "noise")
+        let result = try await makeBackend(stub).pruneVolumes()
+        XCTAssertEqual(result.reclaimedDescription, "Reclaimed 3 MB in disk space")
+        XCTAssertEqual(stub.lastCall, ["volume", "prune"])
+
+        stub.result = CommandResult(exitCode: 1, stdout: "", stderr: "boom")
+        do {
+            _ = try await makeBackend(stub).pruneVolumes()
+            XCTFail("expected non-zero exit to throw")
+        } catch let BackendError.nonZeroExit(_, code, stderr) {
+            XCTAssertEqual(code, 1)
+            XCTAssertEqual(stderr, "boom")
+        }
+    }
+
+    func testInspectNetworkDecodesFixtureAndBuildsArgv() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(
+            exitCode: 0, stdout: Fixture.text("network-inspect"), stderr: "")
+        let parsed = try await makeBackend(stub).inspectNetwork(names: ["capsule-m8-net"])
+        XCTAssertEqual(parsed.value?.first?.name, "capsule-m8-net")
+        XCTAssertEqual(parsed.value?.first?.isBuiltin, false)
+        XCTAssertEqual(stub.lastCall, ["network", "inspect", "capsule-m8-net"])
+    }
+
+    func testCreateAndDeleteNetworkBuildArgv() async throws {
+        let stub = StubProcessRunner()
+        let backend = makeBackend(stub)
+        try await backend.createNetwork(
+            NetworkConfiguration(name: "app-net", subnet: "10.0.0.0/24"))
+        XCTAssertEqual(stub.lastCall, ["network", "create", "--subnet", "10.0.0.0/24", "app-net"])
+        try await backend.deleteNetworks(names: ["app-net"])
+        XCTAssertEqual(stub.lastCall, ["network", "delete", "app-net"])
+    }
+
+    func testPruneNetworksParsesReclaimed() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(exitCode: 0, stdout: "Reclaimed 0 B in disk space", stderr: "")
+        let result = try await makeBackend(stub).pruneNetworks()
+        XCTAssertEqual(result.reclaimedDescription, "Reclaimed 0 B in disk space")
+        XCTAssertEqual(stub.lastCall, ["network", "prune"])
+    }
+
+    func testListDNSDomainsDecodesFixtureAndBuildsArgv() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(exitCode: 0, stdout: Fixture.text("dns-ls"), stderr: "")
+        let domains = try await makeBackend(stub).listDNSDomains()
+        XCTAssertEqual(domains.map(\.domain), ["capsule.test"])
+        XCTAssertEqual(domains.first?.localhostIP, "127.0.0.1")
+        XCTAssertEqual(stub.lastCall, ["system", "dns", "list", "--format", "json"])
+    }
 }

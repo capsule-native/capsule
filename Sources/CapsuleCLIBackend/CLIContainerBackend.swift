@@ -271,6 +271,59 @@ public struct CLIContainerBackend: ContainerBackend {
         return try OutputParser.parseNetworks(Data(output.stdout.utf8))
     }
 
+    public func inspectVolume(names: [String]) async throws -> Parsed<[VolumeSummary]> {
+        let output = try await runChecked(CLICommand.inspectVolume(names: names))
+        let value = try? OutputParser.parseVolumes(Data(output.stdout.utf8))
+        return Parsed(value: value, raw: output.stdout)
+    }
+
+    public func createVolume(_ config: VolumeConfiguration) async throws {
+        _ = try await runChecked(CLICommand.createVolume(config))
+    }
+
+    public func deleteVolumes(names: [String]) async throws {
+        _ = try await runChecked(CLICommand.deleteVolumes(names: names))
+    }
+
+    public func pruneVolumes() async throws -> PruneResult {
+        // Like `pruneContainers`: prune exits 0 and prints a human "Reclaimed …" line, so a
+        // non-empty stderr is not a failure — only a non-zero exit is a real error.
+        let result = try await runner.run(CLICommand.pruneVolumes(), environment: [:])
+        guard result.isSuccess else {
+            throw BackendError.nonZeroExit(
+                command: "container volume prune", code: result.exitCode, stderr: result.stderr)
+        }
+        return OutputParser.parsePruneResult(stdout: result.stdout, stderr: result.stderr)
+    }
+
+    public func inspectNetwork(names: [String]) async throws -> Parsed<[NetworkSummary]> {
+        let output = try await runChecked(CLICommand.inspectNetwork(names: names))
+        let value = try? OutputParser.parseNetworks(Data(output.stdout.utf8))
+        return Parsed(value: value, raw: output.stdout)
+    }
+
+    public func createNetwork(_ config: NetworkConfiguration) async throws {
+        _ = try await runChecked(CLICommand.createNetwork(config))
+    }
+
+    public func deleteNetworks(names: [String]) async throws {
+        _ = try await runChecked(CLICommand.deleteNetworks(names: names))
+    }
+
+    public func pruneNetworks() async throws -> PruneResult {
+        let result = try await runner.run(CLICommand.pruneNetworks(), environment: [:])
+        guard result.isSuccess else {
+            throw BackendError.nonZeroExit(
+                command: "container network prune", code: result.exitCode, stderr: result.stderr)
+        }
+        return OutputParser.parsePruneResult(stdout: result.stdout, stderr: result.stderr)
+    }
+
+    public func listDNSDomains() async throws -> [DNSDomainSummary] {
+        let output = try await runChecked(CLICommand.listDNSDomains())
+        return try OutputParser.parseDNS(Data(output.stdout.utf8))
+    }
+
     public func listRegistries() async throws -> [RegistrySummary] {
         let output = try await runChecked(CLICommand.listRegistries())
         return try OutputParser.parseRegistries(Data(output.stdout.utf8))

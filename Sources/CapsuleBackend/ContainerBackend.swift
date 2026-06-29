@@ -127,6 +127,39 @@ public protocol ContainerBackend: Sendable {
 
     func listVolumes() async throws -> [VolumeSummary]
     func listNetworks() async throws -> [NetworkSummary]
+
+    // MARK: Volume mutation / inspection (M8)
+
+    /// Inspects one or more volumes, retaining the raw payload alongside the decoded rows.
+    func inspectVolume(names: [String]) async throws -> Parsed<[VolumeSummary]>
+
+    /// Creates a volume from a typed configuration.
+    func createVolume(_ config: VolumeConfiguration) async throws
+
+    /// Deletes one or more volumes by name (the CLI has no `--force`).
+    func deleteVolumes(names: [String]) async throws
+
+    /// Removes volumes with no container references; returns the reclaimed summary.
+    func pruneVolumes() async throws -> PruneResult
+
+    // MARK: Network mutation / inspection (M8)
+
+    /// Inspects one or more networks, retaining the raw payload alongside the decoded rows.
+    func inspectNetwork(names: [String]) async throws -> Parsed<[NetworkSummary]>
+
+    /// Creates a network from a typed configuration.
+    func createNetwork(_ config: NetworkConfiguration) async throws
+
+    /// Deletes one or more networks by name (the CLI has no `--force`).
+    func deleteNetworks(names: [String]) async throws
+
+    /// Removes networks with no connections; returns the reclaimed summary.
+    func pruneNetworks() async throws -> PruneResult
+
+    // MARK: DNS (M8 — list only; create/delete are privileged via the sudo Terminal handoff)
+
+    /// Lists local DNS domains (`system dns list`; no privilege required).
+    func listDNSDomains() async throws -> [DNSDomainSummary]
     func listRegistries() async throws -> [RegistrySummary]
     func listMachines() async throws -> [MachineSummary]
     func builderStatus() async throws -> BuilderStatus
