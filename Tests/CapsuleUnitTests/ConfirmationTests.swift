@@ -78,4 +78,38 @@ final class ConfirmationTests: XCTestCase {
         XCTAssertEqual(request.kind, .pruneVolumes)
         XCTAssertTrue(request.message.localizedCaseInsensitiveContains("destroy"))
     }
+
+    // MARK: - Networks (M8)
+
+    func testDeleteNetworkReturnsNilForBuiltin() {
+        let index = AttachmentIndex(volumes: [:], networks: [:])
+        XCTAssertNil(
+            ConfirmationRequest.deleteNetwork(
+                name: "default", isBuiltin: true, attachments: index),
+            "builtin networks are protected — no confirmation, Delete disabled in the UI")
+    }
+
+    func testDeleteNetworkConfirmsAndNamesConnectedContainers() {
+        let index = AttachmentIndex(volumes: [:], networks: ["app-net": ["web", "db"]])
+        let request = ConfirmationRequest.deleteNetwork(
+            name: "app-net", isBuiltin: false, attachments: index)
+        XCTAssertEqual(request?.kind, .deleteNetwork)
+        XCTAssertEqual(request?.targetIDs, ["app-net"])
+        XCTAssertTrue(request?.message.contains("app-net") ?? false)
+        XCTAssertTrue(request?.message.contains("web") ?? false, "connected containers are named")
+    }
+
+    func testDeleteNetworkWithoutConnectionsOmitsTheList() {
+        let index = AttachmentIndex(volumes: [:], networks: [:])
+        let request = ConfirmationRequest.deleteNetwork(
+            name: "idle", isBuiltin: false, attachments: index)
+        XCTAssertNotNil(request)
+        XCTAssertFalse(request?.message.contains("Connected containers") ?? true)
+    }
+
+    func testPruneNetworksConfirmation() {
+        let request = ConfirmationRequest.pruneNetworks()
+        XCTAssertEqual(request.kind, .pruneNetworks)
+        XCTAssertTrue(request.targetIDs.isEmpty)
+    }
 }

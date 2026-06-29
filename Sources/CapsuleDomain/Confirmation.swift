@@ -19,7 +19,9 @@ public enum ConfirmationKind: Sendable, Equatable {
     case deleteImage
     // Volumes (Milestone 8) — NO force variant (the CLI has no --force).
     case deleteVolume
+    case deleteNetwork
     case pruneVolumes
+    case pruneNetworks
 }
 
 /// A request to confirm a destructive operation, as pure data the UI renders generically.
@@ -127,6 +129,35 @@ public struct ConfirmationRequest: Sendable, Equatable, Identifiable {
                 + "volumes is permanently destroyed.",
             confirmTitle: "Clean Up",
             targetIDs: [], kind: .pruneVolumes)
+    }
+
+    // MARK: Networks (Milestone 8)
+
+    /// Deleting a network always confirms; a builtin (e.g. `default`) is protected and
+    /// returns no request so the UI disables Delete. The message names any connected
+    /// containers — there is no `--force`, so delete fails while they remain attached.
+    public static func deleteNetwork(
+        name: String, isBuiltin: Bool, attachments: AttachmentIndex
+    ) -> ConfirmationRequest? {
+        guard !isBuiltin else { return nil }
+        let connected = attachments.containers(forNetwork: name)
+        var message = "Delete network \(name)?"
+        if !connected.isEmpty {
+            message += " Connected containers: \(connected.joined(separator: ", "))."
+        }
+        return ConfirmationRequest(
+            title: "Delete network?", message: message,
+            confirmTitle: "Delete", targetIDs: [name], kind: .deleteNetwork)
+    }
+
+    /// Clean Up removes every network with no connections; builtin networks are never
+    /// touched. Always confirms (multi-item, data-affecting).
+    public static func pruneNetworks() -> ConfirmationRequest {
+        ConfirmationRequest(
+            title: "Clean Up Networks?",
+            message: "This removes every network with no connected containers. "
+                + "Builtin networks are never removed.",
+            confirmTitle: "Clean Up", targetIDs: [], kind: .pruneNetworks)
     }
 
 }
