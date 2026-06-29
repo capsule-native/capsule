@@ -136,6 +136,31 @@ public final class MachineActionsModel {
     public func restartRequired(_ name: String) -> Bool { pendingRestart.contains(name) }
     public func clearRestart(_ name: String) { pendingRestart.remove(name) }
 
+    // MARK: - Set-default + revert
+
+    @discardableResult
+    public func makeDefault(_ name: String, previousDefault: String?) async -> Bool {
+        busy.insert(name); defer { busy.remove(name) }
+        do {
+            try await backend.setDefaultMachine(id: name)
+            self.previousDefault = previousDefault
+            await reloadList()
+            onActivity("Made \u{201c}\(name)\u{201d} the default machine.")
+            banner = MachineBanner(kind: .madeDefault(name: name, previous: previousDefault))
+            return true
+        } catch { notice = LifecycleNotice(detail: normalize(error).detail); return false }
+    }
+
+    public func revertDefault() async {
+        guard let prev = previousDefault else { return }
+        do {
+            try await backend.setDefaultMachine(id: prev)
+            await reloadList()
+            onActivity("Reverted default machine to \u{201c}\(prev)\u{201d}.")
+            banner = nil
+        } catch { notice = LifecycleNotice(detail: normalize(error).detail) }
+    }
+
     // MARK: - Create
 
     @discardableResult
