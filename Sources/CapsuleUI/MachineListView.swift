@@ -13,7 +13,7 @@ import SwiftUI
 
 struct MachineListView: View {
     @Bindable var model: MachineBrowserModel
-    let actions: MachineActionsModel
+    @Bindable var actions: MachineActionsModel
 
     @State private var activeSheet: MachineSheet?
 
@@ -27,6 +27,11 @@ struct MachineListView: View {
             .searchable(text: $model.searchText, prompt: "Search machines")
             .toolbar { toolbarContent }
             .task { await model.refresh() }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if actions.banner != nil {
+                    MachineBannerView(actions: actions)
+                }
+            }
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {
                 case .create:
