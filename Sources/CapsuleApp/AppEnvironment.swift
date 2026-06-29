@@ -161,11 +161,15 @@ public struct AppEnvironment {
             shell.appendActivity("Copied to clipboard: \(command)")
         }
         let openInTerminalApp: @MainActor ([String]) -> Void = { argv in
-            openCommandInTerminalApp(argv, executablePath: cliBackend.executableURL.path)
+            let app = currentTerminalApp()
+            openCommandInTerminalApp(
+                argv, executablePath: cliBackend.executableURL.path, terminalApp: app)
             shell.appendActivity("Opened in Terminal: \(argv.joined(separator: " "))")
         }
         let runPrivilegedInTerminal: @MainActor ([String]) -> Void = { argv in
-            openPrivilegedCommandInTerminalApp(argv, executablePath: cliBackend.executableURL.path)
+            let app = currentTerminalApp()
+            openPrivilegedCommandInTerminalApp(
+                argv, executablePath: cliBackend.executableURL.path, terminalApp: app)
             shell.appendActivity("Opened in Terminal (sudo): \(argv.joined(separator: " "))")
         }
         let dnsModel = DNSModel(
@@ -281,32 +285,62 @@ public struct AppEnvironment {
     }
 }
 
-/// The detach fallback: write the argv to a temporary executable `.command` script and open
-/// it, which launches it in Terminal.app. The `container` token is resolved to its absolute
-/// path so the external shell can find it. Best-effort — a write/open failure is non-fatal.
-@MainActor
-func openCommandInTerminalApp(_ argv: [String], executablePath: String) {
-    guard !argv.isEmpty else { return }
-    let resolved = argv.enumerated().map { index, token in
-        index == 0 && token == "container" ? executablePath : token
-    }
-    let command = resolved.map(shellQuote).joined(separator: " ")
-    let script = "#!/bin/sh\nexec \(command)\n"
+/// Writes `script` to a throwaway `.command` and opens it: with `terminalApp` when set
+/// (falling back to the system `.command` handler if that open errors), else with the system
+/// handler directly. Sweeps the temp file after 10s. Non-fatal on any failure.
+// File-scope, NOT @MainActor — matches the existing `open*InTerminalApp` functions, which
+// compile un-annotated in this module (Swift 5 concurrency mode). Do not add @MainActor.
+private func openScriptInTerminal(_ script: String, terminalApp: URL?) {
     let url = FileManager.default.temporaryDirectory
         .appendingPathComponent("capsule-\(UUID().uuidString).command")
     do {
         try script.write(to: url, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
-        NSWorkspace.shared.open(url)
-        // Sweep the throwaway script once Terminal has had time to read it, so they don't
-        // accumulate in the temp directory.
+        if let terminalApp {
+            let configuration = NSWorkspace.OpenConfiguration()
+            NSWorkspace.shared.open(
+                [url], withApplicationAt: terminalApp, configuration: configuration
+            ) {
+                _, error in
+                if error != nil {
+                    // Chosen app couldn't open it — fall back to the default `.command` handler.
+                    NSWorkspace.shared.open(url)
+                }
+            }
+        } else {
+            NSWorkspace.shared.open(url)
+        }
         Task {
             try? await Task.sleep(for: .seconds(10))
             try? FileManager.default.removeItem(at: url)
         }
     } catch {
-        // Non-fatal: the embedded terminal remains available.
+        // Non-fatal: the embedded terminal / manual run remains available.
     }
+}
+
+/// Reads the saved TerminalPreference and resolves it to an installed app URL (or nil for the
+/// system default) at call time, so a settings change takes effect on the next handoff.
+/// (File-scope, not @MainActor — matches the existing handoff functions in this module.)
+private func currentTerminalApp() -> URL? {
+    let raw = UserDefaults.standard.string(forKey: TerminalPreference.storageKey) ?? ""
+    let preference = TerminalPreference(storage: raw) ?? .systemDefault
+    return resolveTerminalApp(
+        preference,
+        lookup: { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) },
+        fileExists: { FileManager.default.fileExists(atPath: $0) })
+}
+
+/// The detach fallback: write the argv to a temporary executable `.command` script and open
+/// it, which launches it in Terminal.app. The `container` token is resolved to its absolute
+/// path so the external shell can find it. Best-effort — a write/open failure is non-fatal.
+func openCommandInTerminalApp(_ argv: [String], executablePath: String, terminalApp: URL?) {
+    guard !argv.isEmpty else { return }
+    let resolved = argv.enumerated().map { index, token in
+        index == 0 && token == "container" ? executablePath : token
+    }
+    let command = resolved.map(shellQuote).joined(separator: " ")
+    openScriptInTerminal("#!/bin/sh\nexec \(command)\n", terminalApp: terminalApp)
 }
 
 /// Pure helper: builds the `#!/bin/sh` script body for a privileged Terminal handoff.
@@ -322,24 +356,11 @@ func privilegedTerminalScript(_ argv: [String], executablePath: String) -> Strin
 /// the operation runs with administrator rights. The container executable is given as an
 /// absolute path (the external shell has no Capsule context) and every token is shell-quoted.
 /// Best-effort — a write/open failure is non-fatal.
-@MainActor
-func openPrivilegedCommandInTerminalApp(_ argv: [String], executablePath: String) {
+func openPrivilegedCommandInTerminalApp(_ argv: [String], executablePath: String, terminalApp: URL?)
+{
     guard !argv.isEmpty else { return }
-    let script = privilegedTerminalScript(argv, executablePath: executablePath)
-    let url = FileManager.default.temporaryDirectory
-        .appendingPathComponent("capsule-\(UUID().uuidString).command")
-    do {
-        try script.write(to: url, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
-        NSWorkspace.shared.open(url)
-        // Sweep the throwaway script once Terminal has had time to read it.
-        Task {
-            try? await Task.sleep(for: .seconds(10))
-            try? FileManager.default.removeItem(at: url)
-        }
-    } catch {
-        // Non-fatal: DNS changes can still be run manually in Terminal.
-    }
+    openScriptInTerminal(
+        privilegedTerminalScript(argv, executablePath: executablePath), terminalApp: terminalApp)
 }
 
 /// Single-quotes a token for safe inclusion in a `/bin/sh` command line.
