@@ -50,10 +50,17 @@ public struct Container: Sendable, Equatable, Identifiable {
     public var state: ContainerState
     public var ip: String?
     public var createdAt: Date?
+    /// Configured volume-mount sources (`configuration.mounts[].type.volume.name`), mirrored from the
+    /// backend summary so the attachment index can map volumes → containers.
+    public var volumeMounts: [String]
+    /// Configured network names (`configuration.networks[].network`), mirrored from the
+    /// backend summary so the attachment index can map networks → containers.
+    public var networkNames: [String]
 
     public init(
         id: String, name: String, image: String, state: ContainerState,
-        ip: String? = nil, createdAt: Date? = nil
+        ip: String? = nil, createdAt: Date? = nil,
+        volumeMounts: [String] = [], networkNames: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -61,6 +68,8 @@ public struct Container: Sendable, Equatable, Identifiable {
         self.state = state
         self.ip = ip
         self.createdAt = createdAt
+        self.volumeMounts = volumeMounts
+        self.networkNames = networkNames
     }
 
     /// The leading 12 characters of the id, for compact display.
@@ -76,7 +85,9 @@ extension Container {
             image: summary.image,
             state: ContainerState(backendState: summary.state),
             ip: summary.ip,
-            createdAt: summary.createdAt.flatMap(Container.parseDate)
+            createdAt: summary.createdAt.flatMap(Container.parseDate),
+            volumeMounts: summary.volumeMounts,
+            networkNames: summary.networkNames
         )
     }
 

@@ -31,6 +31,22 @@ final class DomainModelTests: XCTestCase {
         XCTAssertEqual(container.shortID, "abcdef012345")
     }
 
+    func testContainerCarriesVolumeMountsAndNetworkNames() {
+        let summary = ContainerSummary(
+            id: "id", name: "web", image: "nginx", state: "running",
+            volumeMounts: ["data", "cache"], networkNames: ["default"])
+        let container = Container(summary: summary)
+        XCTAssertEqual(container.volumeMounts, ["data", "cache"])
+        XCTAssertEqual(container.networkNames, ["default"])
+    }
+
+    func testContainerAttachmentsDefaultEmptyWhenSummaryHasNone() {
+        let summary = ContainerSummary(id: "id", name: "n", image: "i", state: "running")
+        let container = Container(summary: summary)
+        XCTAssertTrue(container.volumeMounts.isEmpty)
+        XCTAssertTrue(container.networkNames.isEmpty)
+    }
+
     func testContainerCreationDateInvalidStringBecomesNil() {
         let summary = ContainerSummary(
             id: "id", name: "n", image: "i", state: "running", createdAt: "not-a-date")
