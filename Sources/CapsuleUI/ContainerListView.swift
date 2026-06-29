@@ -343,6 +343,8 @@ struct ContainerListView: View {
             }
         case .deleteImage:
             break  // image confirmations are routed from the images surface, not here
+        case .deleteVolume, .pruneVolumes:
+            break  // volume confirmations are routed from the volumes surface, not here
         }
     }
 

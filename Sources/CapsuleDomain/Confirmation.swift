@@ -17,6 +17,9 @@ public enum ConfirmationKind: Sendable, Equatable {
     case exportNotStopped
     // Images (Milestone 6)
     case deleteImage
+    // Volumes (Milestone 8) — NO force variant (the CLI has no --force).
+    case deleteVolume
+    case pruneVolumes
 }
 
 /// A request to confirm a destructive operation, as pure data the UI renders generically.
@@ -86,6 +89,44 @@ public struct ConfirmationRequest: Sendable, Equatable, Identifiable {
             message: "Deleting \(noun) is permanent. An image still referenced by a container "
                 + "can't be removed.",
             confirmTitle: "Delete", targetIDs: ids, kind: .deleteImage)
+    }
+
+    // MARK: Volumes (Milestone 8)
+
+    /// Deleting a volume always confirms — it permanently destroys data. When the volume is
+    /// still mounted, the message names the mounting containers and warns the delete will
+    /// fail until they are removed (there is no force-delete).
+    public static func deleteVolume(
+        names: [String], attachments: AttachmentIndex
+    ) -> ConfirmationRequest? {
+        guard !names.isEmpty else { return nil }
+        let mounters = Array(Set(names.flatMap { attachments.containers(forVolume: $0) })).sorted()
+        let subject =
+            names.count == 1
+            ? "Deleting \(names[0]) permanently destroys its data."
+            : "Deleting \(names.count) volumes permanently destroys their data."
+        var message = subject
+        if !mounters.isEmpty {
+            message +=
+                " It is mounted by: \(mounters.joined(separator: ", ")); "
+                + "delete will fail until they are removed."
+        }
+        return ConfirmationRequest(
+            title: names.count == 1 ? "Delete volume?" : "Delete \(names.count) volumes?",
+            message: message,
+            confirmTitle: "Delete",
+            targetIDs: names, kind: .deleteVolume)
+    }
+
+    /// Cleaning up volumes removes every volume with no container references and destroys
+    /// their data — always confirm.
+    public static func pruneVolumes() -> ConfirmationRequest {
+        ConfirmationRequest(
+            title: "Clean Up Volumes?",
+            message: "This removes all volumes with no container references. Data in those "
+                + "volumes is permanently destroyed.",
+            confirmTitle: "Clean Up",
+            targetIDs: [], kind: .pruneVolumes)
     }
 
 }

@@ -43,4 +43,39 @@ final class ConfirmationTests: XCTestCase {
 
         XCTAssertNil(ConfirmationRequest.deleteImage(ids: []), "nothing selected → no sheet")
     }
+
+    // MARK: - Volumes (M8)
+
+    func testDeleteVolumeWarnsDataLossAndCarriesKind() {
+        let request = ConfirmationRequest.deleteVolume(
+            names: ["data"], attachments: AttachmentIndex(volumes: [:], networks: [:]))
+        XCTAssertEqual(request?.kind, .deleteVolume)
+        XCTAssertEqual(request?.targetIDs, ["data"])
+        XCTAssertEqual(
+            request?.message, "Deleting data permanently destroys its data.",
+            "an unattached volume warns about data loss only")
+    }
+
+    func testDeleteVolumeIncludesMountingContainers() {
+        let index = AttachmentIndex(volumes: ["data": ["web", "db"]], networks: [:])
+        let request = ConfirmationRequest.deleteVolume(names: ["data"], attachments: index)
+        let message = request?.message ?? ""
+        XCTAssertTrue(message.contains("permanently destroys its data."))
+        XCTAssertTrue(message.contains("It is mounted by:"))
+        XCTAssertTrue(message.contains("web"))
+        XCTAssertTrue(message.contains("db"))
+        XCTAssertTrue(message.contains("delete will fail until they are removed"))
+    }
+
+    func testDeleteVolumeNilForEmptySelection() {
+        XCTAssertNil(
+            ConfirmationRequest.deleteVolume(
+                names: [], attachments: AttachmentIndex(volumes: [:], networks: [:])))
+    }
+
+    func testPruneVolumesConfirmation() {
+        let request = ConfirmationRequest.pruneVolumes()
+        XCTAssertEqual(request.kind, .pruneVolumes)
+        XCTAssertTrue(request.message.localizedCaseInsensitiveContains("destroy"))
+    }
 }
