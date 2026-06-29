@@ -1,0 +1,19 @@
+[
+  {
+    "configuration" : {
+      "creationDate" : "2026-06-29T07:15:32Z",
+      "driver" : "local",
+      "format" : "ext4",
+      "labels" : {
+        "role" : "scratch"
+      },
+      "name" : "capsule-m8-probe",
+      "options" : {
+        "size" : "512M"
+      },
+      "sizeInBytes" : 536870912,
+      "source" : "/Users/baroman/Library/Application Support/com.apple.container/volumes/capsule-m8-probe/volume.img"
+    },
+    "id" : "capsule-m8-probe"
+  }
+]

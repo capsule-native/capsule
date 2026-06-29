@@ -1,0 +1,23 @@
+[
+  {
+    "configuration" : {
+      "creationDate" : "2026-06-29T07:15:32Z",
+      "ipv4Subnet" : "10.88.0.0/24",
+      "labels" : {
+        "tier" : "test"
+      },
+      "mode" : "nat",
+      "name" : "capsule-m8-net",
+      "options" : {
+
+      },
+      "plugin" : "container-network-vmnet"
+    },
+    "id" : "capsule-m8-net",
+    "status" : {
+      "ipv4Gateway" : "10.88.0.1",
+      "ipv4Subnet" : "10.88.0.0/24",
+      "ipv6Subnet" : "fd65:1ffc:2bce:b6aa::/64"
+    }
+  }
+]
