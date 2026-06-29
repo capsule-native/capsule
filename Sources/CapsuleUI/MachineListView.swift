@@ -32,9 +32,14 @@ struct MachineListView: View {
                 case .create:
                     CreateMachineSheet(actions: actions, onClose: { activeSheet = nil })
                 case let .settings(name):
-                    // Placeholder — replaced by MachineSettingsSheet in Task F1
-                    Text("Settings for \(name)")
-                        .padding()
+                    if let machine = model.allMachines.first(where: { $0.name == name }) {
+                        MachineSettingsSheet(
+                            actions: actions, machine: machine,
+                            onClose: { activeSheet = nil })
+                    } else {
+                        Text("Machine \u{201c}\(name)\u{201d} not found.")
+                            .padding()
+                    }
                 case let .logs(name):
                     // Placeholder — replaced by MachineLogsSheet in Task G1
                     Text("Logs for \(name)")
