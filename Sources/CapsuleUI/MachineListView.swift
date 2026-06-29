@@ -37,8 +37,11 @@ struct MachineListView: View {
                             actions: actions, machine: machine,
                             onClose: { activeSheet = nil })
                     } else {
-                        Text("Machine \u{201c}\(name)\u{201d} not found.")
-                            .padding()
+                        VStack(spacing: 12) {
+                            Text("Machine \u{201c}\(name)\u{201d} not found.")
+                            Button("Dismiss") { activeSheet = nil }
+                        }
+                        .padding()
                     }
                 case let .logs(name):
                     // Placeholder — replaced by MachineLogsSheet in Task G1

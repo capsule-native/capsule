@@ -50,24 +50,24 @@ struct MachineSettingsSheet: View {
                     Text("None").tag("none")
                 }
                 .pickerStyle(.segmented)
-
-                // MARK: Restart note
-
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "arrow.clockwise.circle.fill")
-                        .foregroundStyle(.orange)
-                        .font(.title3)
-                    Text("Changes take effect after the machine restarts.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.orange.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .formStyle(.grouped)
+
+            // MARK: Restart note
+
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "arrow.clockwise.circle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.title3)
+                Text("Changes take effect after the machine restarts.")
+                    .font(.callout)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.orange.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
 
             // MARK: Command preview
 
