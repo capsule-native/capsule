@@ -55,6 +55,7 @@ public final class NetworkActionsModel {
         }
         if let conflict = NetworkValidation.subnetConflict(
             subnet: draft.subnet, against: existingNetworks)
+            ?? NetworkValidation.subnetConflict(subnet: draft.subnetV6, against: existingNetworks)
         {
             return .failure(.invalidInput(field: "subnet", message: conflict))
         }
@@ -87,12 +88,15 @@ public final class NetworkActionsModel {
         return "container " + config.arguments.joined(separator: " ")
     }
 
-    /// The live subnet-conflict message for the Create sheet (nil = clear). Surfaced here so
-    /// the sheet sources its inline warning from the model and never calls NetworkValidation.
+    /// The live subnet-conflict message for the Create sheet (nil = clear). Checks the IPv4
+    /// subnet first, then the IPv6 subnet; returns the first conflict message found. Surfaced
+    /// here so the sheet sources its inline warning from the model and never calls
+    /// NetworkValidation directly.
     public func subnetConflictMessage(
         for draft: NetworkDraft, against existingNetworks: [Network]
     ) -> String? {
         NetworkValidation.subnetConflict(subnet: draft.subnet, against: existingNetworks)
+            ?? NetworkValidation.subnetConflict(subnet: draft.subnetV6, against: existingNetworks)
     }
 
     /// Whether the draft is valid enough to create: a non-empty name and no subnet conflict.

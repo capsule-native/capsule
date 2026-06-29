@@ -177,6 +177,26 @@ final class VolumeActionsModelTests: XCTestCase {
         XCTAssertEqual(model.commandPreview(for: VolumeDraft()), "container volume create")
     }
 
+    /// TDD (Item 1): The preview must reflect entered fields even when the name is empty.
+    /// Before the tolerant-helper fix this returned "container volume create" (collapsed).
+    func testCommandPreviewIncludesFieldsEvenWithEmptyName() {
+        let model = VolumeActionsModel(backend: MockBackend())
+        let draft = VolumeDraft(
+            name: "",  // invalid — name not yet entered
+            size: "10G",
+            labels: [KeyValueRow(key: "env", value: "dev")])
+
+        let preview = model.commandPreview(for: draft)
+
+        XCTAssertTrue(preview.contains("-s 10G"), "size must appear in preview even without a name")
+        XCTAssertTrue(
+            preview.contains("--label env=dev"),
+            "label must appear in preview even without a name")
+        XCTAssertNotEqual(
+            preview, "container volume create",
+            "preview must not collapse when fields are entered")
+    }
+
     func testValidationMessageAndIsValidTrackValidity() {
         let model = VolumeActionsModel(backend: MockBackend())
         XCTAssertNil(model.validationMessage(VolumeDraft(name: "data")))

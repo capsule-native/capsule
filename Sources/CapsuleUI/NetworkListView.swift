@@ -117,6 +117,8 @@ struct NetworkListView: View {
         let targets = networks(for: ids)
         let deletable = targets.filter { !$0.isBuiltin }
         if let single = targets.first, targets.count == 1 {
+            Button("Inspect") { model.selection = [single.id] }
+            Divider()
             Button("Copy Name") { Pasteboard.copy(single.name) }
             if let subnet = single.ipv4Subnet {
                 Button("Copy Subnet") { Pasteboard.copy(subnet) }
@@ -156,8 +158,9 @@ struct NetworkListView: View {
     // MARK: - Destructive actions
 
     /// Builtin networks are filtered out (protected). A single non-builtin target uses the
-    /// domain builder (which embeds the connected-container warning); a multi-select builds a
-    /// combined confirmation inline.
+    /// singular domain builder (which checks isBuiltin and names connected containers); a
+    /// multi-select uses the plural builder which aggregates connected containers for all
+    /// selected networks.
     private func requestDelete(ids: Set<Network.ID>) {
         let targets = networks(for: ids).filter { !$0.isBuiltin }
         guard !targets.isEmpty else { return }
@@ -171,12 +174,11 @@ struct NetworkListView: View {
             }
         } else {
             let names = targets.map(\.name)
-            activeSheet = .confirm(
-                ConfirmationRequest(
-                    title: "Delete \(names.count) networks?",
-                    message: "This permanently removes the selected networks. A network with "
-                        + "connected containers can't be removed until they detach.",
-                    confirmTitle: "Delete", targetIDs: names, kind: .deleteNetwork))
+            if let request = ConfirmationRequest.deleteNetwork(
+                names: names, attachments: attachmentIndex())
+            {
+                activeSheet = .confirm(request)
+            }
         }
     }
 

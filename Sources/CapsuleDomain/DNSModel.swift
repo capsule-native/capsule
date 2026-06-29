@@ -58,9 +58,12 @@ public final class DNSModel {
             let summaries = try await backend.listDNSDomains()
             domains = summaries.map(DNSDomain.init(summary:))
             loadState = .loaded
+            onActivity("Loaded \(domains.count) DNS domain(s).")
         } catch {
+            let err = normalize(error)
             domains = []
-            loadState = .unavailable(normalize(error).detail)
+            loadState = .unavailable(err.detail)
+            onActivity("Failed to load DNS domains: \(err.detail.explanation)")
         }
     }
 

@@ -309,6 +309,14 @@ func openCommandInTerminalApp(_ argv: [String], executablePath: String) {
     }
 }
 
+/// Pure helper: builds the `#!/bin/sh` script body for a privileged Terminal handoff.
+/// The returned script uses `exec sudo <abs-executablePath> <shell-quoted argv>`. This
+/// function is pure (no IO, no NSWorkspace) and is unit-testable independently of IO.
+func privilegedTerminalScript(_ argv: [String], executablePath: String) -> String {
+    let command = ([executablePath] + argv).map(shellQuote).joined(separator: " ")
+    return "#!/bin/sh\nexec sudo \(command)\n"
+}
+
 /// The privileged variant of ``openCommandInTerminalApp``: writes a `.command` script whose
 /// body is `exec sudo <container-path> <args…>`, so the user authenticates in Terminal and
 /// the operation runs with administrator rights. The container executable is given as an
@@ -317,8 +325,7 @@ func openCommandInTerminalApp(_ argv: [String], executablePath: String) {
 @MainActor
 func openPrivilegedCommandInTerminalApp(_ argv: [String], executablePath: String) {
     guard !argv.isEmpty else { return }
-    let command = ([executablePath] + argv).map(shellQuote).joined(separator: " ")
-    let script = "#!/bin/sh\nexec sudo \(command)\n"
+    let script = privilegedTerminalScript(argv, executablePath: executablePath)
     let url = FileManager.default.temporaryDirectory
         .appendingPathComponent("capsule-\(UUID().uuidString).command")
     do {

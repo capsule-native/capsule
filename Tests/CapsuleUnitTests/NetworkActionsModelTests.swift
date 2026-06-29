@@ -110,6 +110,23 @@ final class NetworkActionsModelTests: XCTestCase {
             "an empty subnet is allowed (the runtime auto-assigns)")
     }
 
+    /// TDD (Item 3): An IPv6 subnet overlap must also block creation.
+    func testSubnetV6ConflictBlocksCreate() {
+        let existing = [
+            Network(
+                summary: NetworkSummary(
+                    id: "existing", name: "existing",
+                    ipv6Subnet: "fd00::/64"))
+        ]
+        let draft = NetworkDraft(name: "new-net", subnetV6: "fd00::/64")
+        let m = model(MockBackend())
+
+        XCTAssertFalse(m.canCreate(draft, against: existing), "IPv6 overlap must block create")
+        XCTAssertNotNil(
+            m.subnetConflictMessage(for: draft, against: existing),
+            "subnetConflictMessage must be non-nil for IPv6 overlap")
+    }
+
     // MARK: Create
 
     func testCreateSucceedsReloadsAndClearsNotice() async {

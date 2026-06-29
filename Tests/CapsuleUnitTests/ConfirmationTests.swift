@@ -112,4 +112,24 @@ final class ConfirmationTests: XCTestCase {
         XCTAssertEqual(request.kind, .pruneNetworks)
         XCTAssertTrue(request.targetIDs.isEmpty)
     }
+
+    /// TDD (Item 2): Plural network-delete builder names connected containers.
+    func testDeleteNetworkPluralNamesConnectedContainers() {
+        let index = AttachmentIndex(
+            volumes: [:],
+            networks: ["net-a": ["web"], "net-b": ["db"]])
+        let request = ConfirmationRequest.deleteNetwork(
+            names: ["net-a", "net-b"], attachments: index)
+        XCTAssertNotNil(request)
+        XCTAssertEqual(request?.targetIDs, ["net-a", "net-b"])
+        XCTAssertEqual(request?.kind, .deleteNetwork)
+        XCTAssertTrue(request?.message.contains("web") ?? false, "names connected containers")
+        XCTAssertTrue(request?.message.contains("db") ?? false, "names connected containers")
+    }
+
+    func testDeleteNetworkPluralReturnsNilForEmpty() {
+        XCTAssertNil(
+            ConfirmationRequest.deleteNetwork(
+                names: [], attachments: AttachmentIndex(volumes: [:], networks: [:])))
+    }
 }

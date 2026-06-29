@@ -145,26 +145,36 @@ public final class VolumeActionsModel {
                     field: "size",
                     message: "Size must be a number with a K/M/G/T/P suffix, e.g. 10G."))
         }
-        let config = VolumeConfiguration(
-            name: name,
-            size: size.isEmpty ? nil : size,
-            options: draft.options.compactMap(\.token),
-            labels: draft.labels.compactMap(\.token))
-        return .success(config)
+        return .success(configuration(from: draft, name: name))
     }
 
     // MARK: - Domain-primitive accessors (consumed by CreateVolumeSheet)
 
-    /// The `container …` command the current draft would run, or the bare `container volume
-    /// create` shell while the draft is still invalid. Returns a plain String so the sheet
-    /// never names `VolumeConfiguration` or touches `.arguments`.
+    /// The `container …` command the current draft would run. Renders live: entered fields
+    /// (size, labels, options) appear even when the name is not yet entered. Returns a plain
+    /// String so the sheet never names `VolumeConfiguration` or touches `.arguments`.
     public func commandPreview(for draft: VolumeDraft) -> String {
-        switch validatedConfiguration(draft) {
-        case let .success(config):
-            return (["container"] + config.arguments).joined(separator: " ")
-        case .failure:
-            return "container volume create"
-        }
+        let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let config = configuration(from: draft, name: name)
+        var argv = ["container"] + config.arguments
+        // When name is empty the positional would be an empty token — drop it so the
+        // preview stays clean ("container volume create --label k=v" not "…k=v ").
+        if name.isEmpty { argv.removeLast() }
+        return argv.joined(separator: " ")
+    }
+
+    // MARK: - Private helpers
+
+    /// Builds a `VolumeConfiguration` from a draft tolerantly: name may be empty and an
+    /// invalid size string is silently dropped to nil. Shared by `validatedConfiguration`
+    /// (post-strict-checks) and `commandPreview` (pre-checks, for live UI rendering).
+    private func configuration(from draft: VolumeDraft, name: String) -> VolumeConfiguration {
+        let size = draft.size.trimmingCharacters(in: .whitespacesAndNewlines)
+        return VolumeConfiguration(
+            name: name,
+            size: size.isEmpty || !VolumeDraft.isValidSize(size) ? nil : size,
+            options: draft.options.compactMap(\.token),
+            labels: draft.labels.compactMap(\.token))
     }
 
     /// nil when the draft is valid; otherwise the human-readable reason (for inline display).

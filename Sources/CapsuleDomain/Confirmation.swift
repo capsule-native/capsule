@@ -150,6 +150,33 @@ public struct ConfirmationRequest: Sendable, Equatable, Identifiable {
             confirmTitle: "Delete", targetIDs: [name], kind: .deleteNetwork)
     }
 
+    /// Plural variant for bulk-deleting multiple networks. Returns nil for empty. Aggregates
+    /// each network's connected containers from the attachment index and names them in the
+    /// message. The builtin-protection check lives upstream (the view pre-filters); this
+    /// builder assumes every supplied name is deletable.
+    public static func deleteNetwork(
+        names: [String], attachments: AttachmentIndex
+    ) -> ConfirmationRequest? {
+        guard !names.isEmpty else { return nil }
+        let connected =
+            Array(Set(names.flatMap { attachments.containers(forNetwork: $0) })).sorted()
+        let subject =
+            names.count == 1
+            ? "Deleting \(names[0]) permanently removes it."
+            : "Permanently removes \(names.count) selected networks."
+        var message = subject
+        if !connected.isEmpty {
+            message +=
+                " Connected containers: \(connected.joined(separator: ", "));"
+                + " delete will fail until they detach."
+        }
+        return ConfirmationRequest(
+            title: names.count == 1 ? "Delete network?" : "Delete \(names.count) networks?",
+            message: message,
+            confirmTitle: "Delete",
+            targetIDs: names, kind: .deleteNetwork)
+    }
+
     /// Clean Up removes every network with no connections; builtin networks are never
     /// touched. Always confirms (multi-item, data-affecting).
     public static func pruneNetworks() -> ConfirmationRequest {
