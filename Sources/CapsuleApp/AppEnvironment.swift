@@ -37,6 +37,7 @@ public struct AppEnvironment {
     public var volumeActionsModel: VolumeActionsModel
     public var taskCenter: TaskCenter
     public var registriesModel: RegistriesModel
+    public var dnsModel: DNSModel
     public var runModel: RunModel
     public var buildModel: BuildModel
     public var logsModel: LogsModel
@@ -60,6 +61,7 @@ public struct AppEnvironment {
         volumeActionsModel: VolumeActionsModel,
         taskCenter: TaskCenter,
         registriesModel: RegistriesModel,
+        dnsModel: DNSModel,
         runModel: RunModel,
         buildModel: BuildModel,
         logsModel: LogsModel,
@@ -82,6 +84,7 @@ public struct AppEnvironment {
         self.volumeActionsModel = volumeActionsModel
         self.taskCenter = taskCenter
         self.registriesModel = registriesModel
+        self.dnsModel = dnsModel
         self.runModel = runModel
         self.buildModel = buildModel
         self.logsModel = logsModel
@@ -161,6 +164,16 @@ public struct AppEnvironment {
             openCommandInTerminalApp(argv, executablePath: cliBackend.executableURL.path)
             shell.appendActivity("Opened in Terminal: \(argv.joined(separator: " "))")
         }
+        let runPrivilegedInTerminal: @MainActor ([String]) -> Void = { argv in
+            openPrivilegedCommandInTerminalApp(argv, executablePath: cliBackend.executableURL.path)
+            shell.appendActivity("Opened in Terminal (sudo): \(argv.joined(separator: " "))")
+        }
+        let dnsModel = DNSModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) },
+            runPrivilegedInTerminal: runPrivilegedInTerminal
+        )
         let lifecycleModel = ContainerLifecycleModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
@@ -215,6 +228,7 @@ public struct AppEnvironment {
             volumeActionsModel: volumeActionsModel,
             taskCenter: taskCenter,
             registriesModel: registriesModel,
+            dnsModel: dnsModel,
             runModel: runModel,
             buildModel: buildModel,
             logsModel: logsModel,
@@ -245,6 +259,17 @@ public struct AppEnvironment {
                     shell.openTerminal(
                         TerminalRequest(
                             containerID: nil, title: "Terminal", argv: command, kind: .retry))
+                case .grantPermission(.administrator):
+                    // SAFETY NET ONLY. DNS create/delete already perform the privileged handoff
+                    // directly from the per-row Add/Delete buttons in Settings > Networking
+                    // (DNSModel builds the DNSConfiguration argv and calls
+                    // runPrivilegedInTerminal). RecoveryAction.grantPermission carries no
+                    // command, so we do NOT replay a specific argv here — there is no pending
+                    // command. Point the user at the pane that does the privileged work.
+                    shell.appendActivity(
+                        "Administrator access is required. Open Settings > Networking to add or "
+                            + "remove a DNS domain \u{2014} Capsule opens Terminal with sudo to finish it."
+                    )
                 case .editConfiguration, .grantPermission:
                     shell.appendActivity("Action “\(action.title)” is not available yet.")
                 }
@@ -281,6 +306,32 @@ func openCommandInTerminalApp(_ argv: [String], executablePath: String) {
         }
     } catch {
         // Non-fatal: the embedded terminal remains available.
+    }
+}
+
+/// The privileged variant of ``openCommandInTerminalApp``: writes a `.command` script whose
+/// body is `exec sudo <container-path> <args…>`, so the user authenticates in Terminal and
+/// the operation runs with administrator rights. The container executable is given as an
+/// absolute path (the external shell has no Capsule context) and every token is shell-quoted.
+/// Best-effort — a write/open failure is non-fatal.
+@MainActor
+func openPrivilegedCommandInTerminalApp(_ argv: [String], executablePath: String) {
+    guard !argv.isEmpty else { return }
+    let command = ([executablePath] + argv).map(shellQuote).joined(separator: " ")
+    let script = "#!/bin/sh\nexec sudo \(command)\n"
+    let url = FileManager.default.temporaryDirectory
+        .appendingPathComponent("capsule-\(UUID().uuidString).command")
+    do {
+        try script.write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+        NSWorkspace.shared.open(url)
+        // Sweep the throwaway script once Terminal has had time to read it.
+        Task {
+            try? await Task.sleep(for: .seconds(10))
+            try? FileManager.default.removeItem(at: url)
+        }
+    } catch {
+        // Non-fatal: DNS changes can still be run manually in Terminal.
     }
 }
 

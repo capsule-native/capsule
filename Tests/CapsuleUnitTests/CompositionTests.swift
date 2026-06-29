@@ -75,4 +75,12 @@ final class CompositionTests: XCTestCase {
         XCTAssertTrue(environment.networkActionsModel.busy.isEmpty)
         XCTAssertNil(environment.networkActionsModel.notice)
     }
+
+    @MainActor
+    func testLiveEnvironmentBuildsDNSModel() {
+        let environment = AppEnvironment.live()
+
+        XCTAssertEqual(environment.dnsModel.loadState, .idle)
+        XCTAssertTrue(environment.dnsModel.domains.isEmpty)
+    }
 }
