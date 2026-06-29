@@ -67,9 +67,11 @@ public final class MachineActionsModel {
         func trimmed(_ s: String) -> String? {
             let t = s.trimmingCharacters(in: .whitespacesAndNewlines); return t.isEmpty ? nil : t
         }
+        let image = draft.image.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = trimmed(draft.name) ?? MachineValidation.derivedName(fromImage: image)
         return MachineConfiguration(
-            image: draft.image.trimmingCharacters(in: .whitespacesAndNewlines),
-            name: trimmed(draft.name),
+            image: image,
+            name: name,
             cpus: trimmed(draft.cpus).flatMap(Int.init),
             memory: trimmed(draft.memory),
             homeMount: trimmed(draft.homeMount),
@@ -83,6 +85,7 @@ public final class MachineActionsModel {
 
     public func createProblem(_ draft: MachineDraft) -> String? {
         MachineValidation.imageProblem(draft.image)
+            ?? MachineValidation.nameProblem(draft.name)
             ?? MachineValidation.cpusProblem(draft.cpus)
             ?? MachineValidation.memoryProblem(draft.memory)
             ?? MachineValidation.homeMountProblem(draft.homeMount)

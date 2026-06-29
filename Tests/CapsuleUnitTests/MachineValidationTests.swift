@@ -32,4 +32,19 @@ final class MachineValidationTests: XCTestCase {
         XCTAssertNil(MachineValidation.homeMountProblem("rw"))
         XCTAssertNotNil(MachineValidation.homeMountProblem("maybe"))
     }
+    func test_derivedName() {
+        XCTAssertEqual(MachineValidation.derivedName(fromImage: "alpine:3.22"), "alpine-3-22")
+        XCTAssertEqual(MachineValidation.derivedName(fromImage: "ubuntu:24.04"), "ubuntu-24-04")
+        XCTAssertEqual(
+            MachineValidation.derivedName(fromImage: "docker.io/library/alpine:3.22"), "alpine-3-22"
+        )
+    }
+    func test_nameProblem() {
+        XCTAssertNil(MachineValidation.nameProblem(""))  // empty → will be derived
+        XCTAssertNil(MachineValidation.nameProblem("dev"))  // valid
+        XCTAssertNotNil(MachineValidation.nameProblem("Dev"))  // uppercase
+        XCTAssertNotNil(MachineValidation.nameProblem("a.b"))  // dot not allowed
+        XCTAssertNotNil(MachineValidation.nameProblem("-x"))  // leading hyphen
+        XCTAssertNotNil(MachineValidation.nameProblem("x-"))  // trailing hyphen
+    }
 }

@@ -40,6 +40,18 @@ final class MachineActionsModelCreateTests: XCTestCase {
         XCTAssertEqual(mock.lastCreatedMachine?.image, "alpine:3.22")
         if case .created = a.banner?.kind {} else { XCTFail("expected created banner") }
     }
+    func test_commandPreview_derivesNameWhenBlank() {
+        let a = make(MockBackend(machines: []))
+        var d = MachineDraft(); d.image = "alpine:3.22"  // name left blank
+        XCTAssertTrue(
+            a.commandPreview(for: d).contains("--name alpine-3-22"),
+            "Preview must include the derived --name when the user leaves name blank")
+    }
+    func test_canCreate_falseForInvalidTypedName() {
+        let a = make(MockBackend(machines: []))
+        var d = MachineDraft(); d.image = "alpine:3.22"; d.name = "Dev"  // uppercase → invalid
+        XCTAssertFalse(a.canCreate(d))
+    }
     func test_create_taskCenter_backgroundsAndSetsBannerOnSuccess() async {
         let mock = MockBackend(machines: [])
         let taskCenter = TaskCenter()
