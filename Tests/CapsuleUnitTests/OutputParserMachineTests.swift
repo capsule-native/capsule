@@ -10,23 +10,36 @@ import XCTest
 @testable import CapsuleCLIBackend
 
 final class OutputParserMachineTests: XCTestCase {
+    // Real `container machine list --format json` captured 2026-06-29.
     func test_parseMachines_listShape() throws {
         let json = """
-            [{"name":"dev","state":"running","cpus":4,"memory":"8G","disk":"20G",
-              "ipAddress":"192.168.66.2","default":true}]
+            [{"memory":2147483648,"default":true,"ipAddress":"192.168.64.9",
+              "id":"capsule-probe","createdDate":"2026-06-29T20:03:11Z",
+              "status":"running","cpus":2,"diskSize":78643200}]
             """
         let rows = try OutputParser.parseMachines(Data(json.utf8))
         XCTAssertEqual(rows.count, 1)
-        XCTAssertEqual(rows[0].name, "dev")
-        XCTAssertEqual(rows[0].cpus, 4)
-        XCTAssertTrue(rows[0].isDefault)
+        let m = rows[0]
+        XCTAssertEqual(m.name, "capsule-probe")  // id → name
+        XCTAssertEqual(m.state, "running")  // status → state
+        XCTAssertEqual(m.cpus, 2)
+        XCTAssertTrue(m.isDefault)
+        XCTAssertEqual(m.memory, "2G")  // 2147483648 bytes → "2G"
+        XCTAssertEqual(m.disk, "75M")  // 78643200 bytes → "75M"
+        XCTAssertEqual(m.ipAddress, "192.168.64.9")
     }
+
+    // A record without `id` is silently dropped; one with `id` is kept.
     func test_parseMachines_dropsUnnamed_keepsValid() throws {
-        let json = #"[{"state":"running"},{"name":"ok"}]"#
+        let json = #"[{"status":"running"},{"id":"ok"}]"#
         XCTAssertEqual(try OutputParser.parseMachines(Data(json.utf8)).map(\.name), ["ok"])
     }
+
+    // Real `container machine inspect` emits an ARRAY of one object.
     func test_parseMachine_single() throws {
-        let json = #"{"name":"dev","state":"running"}"#
-        XCTAssertEqual(OutputParser.parseMachine(Data(json.utf8))?.name, "dev")
+        let json = #"[{"id":"dev","status":"running"}]"#
+        let m = OutputParser.parseMachine(Data(json.utf8))
+        XCTAssertEqual(m?.name, "dev")
+        XCTAssertEqual(m?.state, "running")
     }
 }

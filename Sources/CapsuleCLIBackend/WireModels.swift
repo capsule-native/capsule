@@ -243,50 +243,31 @@ struct CLIRegistryRecord: Decodable {
     let host: String?
 }
 
+/// One element of `container machine list --format json` / `container machine inspect`.
+///
+/// Shape locked to the real CLI output (captured 2026-06-29):
+/// ```
+/// { "id": "capsule-probe", "status": "running", "cpus": 2,
+///   "memory": 2147483648, "diskSize": 78643200,
+///   "ipAddress": "192.168.64.9", "createdDate": "2026-06-29T20:03:11Z",
+///   "default": true, "homeMount": "rw" }
+/// ```
+/// `id` is the machine NAME. `memory`/`diskSize` are raw bytes (Int64).
+/// `default` is a Swift keyword, so it is mapped via `CodingKeys`.
 struct CLIMachineRecord: Decodable {
-    let name: String?
-    let state: String?
+    let id: String?
+    let status: String?
     let cpus: Int?
-    let memory: String?
-    let disk: String?
+    let memory: Int64?
+    let diskSize: Int64?
     let ipAddress: String?
-    let createdAt: String?
-    let kernel: String?
-    let homeMount: String?
-    let nestedVirtualization: Bool?
+    let createdDate: String?
     let isDefault: Bool?
+    let homeMount: String?
 
     enum CodingKeys: String, CodingKey {
-        case name, state, cpus, memory, disk, kernel
-        case ipAddress, ipAddress2 = "ip", ipAddress3 = "address"
-        case createdAt, createdAt2 = "created", createdAt3 = "creationDate"
-        case homeMount, homeMount2 = "home-mount"
-        case nestedVirtualization, isDefault = "default", isDefault2 = "isDefault"
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        name = try c.decodeIfPresent(String.self, forKey: .name)
-        state = try c.decodeIfPresent(String.self, forKey: .state)
-        cpus = try c.decodeIfPresent(Int.self, forKey: .cpus)
-        memory = try c.decodeIfPresent(String.self, forKey: .memory)
-        disk = try c.decodeIfPresent(String.self, forKey: .disk)
-        kernel = try c.decodeIfPresent(String.self, forKey: .kernel)
-        ipAddress =
-            try c.decodeIfPresent(String.self, forKey: .ipAddress)
-            ?? c.decodeIfPresent(String.self, forKey: .ipAddress2)
-            ?? c.decodeIfPresent(String.self, forKey: .ipAddress3)
-        createdAt =
-            try c.decodeIfPresent(String.self, forKey: .createdAt)
-            ?? c.decodeIfPresent(String.self, forKey: .createdAt2)
-            ?? c.decodeIfPresent(String.self, forKey: .createdAt3)
-        homeMount =
-            try c.decodeIfPresent(String.self, forKey: .homeMount)
-            ?? c.decodeIfPresent(String.self, forKey: .homeMount2)
-        nestedVirtualization = try c.decodeIfPresent(Bool.self, forKey: .nestedVirtualization)
-        isDefault =
-            try c.decodeIfPresent(Bool.self, forKey: .isDefault)
-            ?? c.decodeIfPresent(Bool.self, forKey: .isDefault2)
+        case id, status, cpus, memory, diskSize, ipAddress, createdDate, homeMount
+        case isDefault = "default"
     }
 }
 

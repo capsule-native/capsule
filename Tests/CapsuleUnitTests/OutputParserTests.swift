@@ -208,7 +208,7 @@ final class OutputParserTests: XCTestCase {
         XCTAssertEqual(volumes, [VolumeSummary(name: "data", source: "/var/lib/x")])
 
         let machines = try OutputParser.parseMachines(
-            Data(#"[{"name":"default","state":"running"}]"#.utf8)
+            Data(#"[{"id":"default","status":"running"}]"#.utf8)
         )
         XCTAssertEqual(machines, [MachineSummary(name: "default", state: "running")])
 

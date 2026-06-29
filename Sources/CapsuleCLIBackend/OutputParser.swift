@@ -186,22 +186,40 @@ public enum OutputParser {
         try lossyList(data, decode: CLIMachineRecord.self).compactMap(Self.machine(from:))
     }
 
-    /// Parses a single `machine inspect` object (the CLI emits one object, not an array).
+    /// Parses `machine inspect` output into a `MachineSummary`.
+    /// The real CLI emits an array of one object; a bare single-object fallback is also
+    /// tried so that both shapes succeed.
     public static func parseMachine(_ data: Data) -> MachineSummary? {
+        if let first = (try? parseMachines(data))?.first { return first }
         if let one = try? decoder.decode(CLIMachineRecord.self, from: data) {
             return machine(from: one)
         }
-        return (try? parseMachines(data))?.first
+        return nil
     }
 
     private static func machine(from record: CLIMachineRecord) -> MachineSummary? {
-        guard let name = record.name else { return nil }
+        guard let name = record.id else { return nil }
         return MachineSummary(
-            name: name, state: record.state, createdAt: record.createdAt,
-            ipAddress: record.ipAddress, cpus: record.cpus, memory: record.memory,
-            disk: record.disk, isDefault: record.isDefault ?? false,
-            kernel: record.kernel, nestedVirtualization: record.nestedVirtualization,
+            name: name, state: record.status, createdAt: record.createdDate,
+            ipAddress: record.ipAddress, cpus: record.cpus,
+            memory: formatBinarySize(record.memory),
+            disk: formatBinarySize(record.diskSize),
+            isDefault: record.isDefault ?? false,
+            kernel: nil, nestedVirtualization: nil,
             homeMount: record.homeMount)
+    }
+
+    /// Formats a raw byte count into a human-readable binary size string matching the
+    /// CLI table display: "2G", "75M", etc. Exact multiples emit an integer suffix;
+    /// non-exact multiples emit one decimal place (e.g. "1.5G").
+    private static func formatBinarySize(_ bytes: Int64?) -> String? {
+        guard let bytes else { return nil }
+        let units: [(String, Int64)] = [("G", 1 << 30), ("M", 1 << 20), ("K", 1 << 10)]
+        for (suffix, unit) in units where bytes >= unit {
+            if bytes % unit == 0 { return "\(bytes / unit)\(suffix)" }
+            return String(format: "%.1f%@", Double(bytes) / Double(unit), suffix)
+        }
+        return "\(bytes)B"
     }
 
     /// The builder is considered running when at least one record reports a `running`
