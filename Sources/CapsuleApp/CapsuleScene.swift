@@ -103,7 +103,8 @@ public struct CapsuleScene: Scene {
                 updater: updater,
                 shell: shell,
                 systemModel: systemModel,
-                actions: actions
+                actions: actions,
+                machineActionsModel: machineActionsModel
             )
         }
 

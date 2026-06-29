@@ -192,6 +192,17 @@ struct MachineListView: View {
             }
             .help("Reload machines")
 
+            Button {
+                let targets = machines(for: model.selection)
+                if let single = targets.first {
+                    actions.openShell(name: single.name)
+                }
+            } label: {
+                Label("Open Shell", systemImage: "terminal")
+            }
+            .disabled(model.selection.count != 1)
+            .help("Open a shell in the selected machine")
+
             Button(role: .destructive) {
                 let targets = machines(for: model.selection)
                 if let single = targets.first {

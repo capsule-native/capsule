@@ -22,18 +22,21 @@ public struct CapsuleCommands: Commands {
     @Bindable private var shell: ShellState
     private let systemModel: SystemStatusModel
     private let actions: ShellActions
+    private let machineActionsModel: MachineActionsModel
     @Environment(\.openWindow) private var openWindow
 
     public init(
         updater: any UpdaterController,
         shell: ShellState,
         systemModel: SystemStatusModel,
-        actions: ShellActions
+        actions: ShellActions,
+        machineActionsModel: MachineActionsModel
     ) {
         self.updater = updater
         self.shell = shell
         self.systemModel = systemModel
         self.actions = actions
+        self.machineActionsModel = machineActionsModel
     }
 
     public var body: some Commands {
@@ -54,6 +57,23 @@ public struct CapsuleCommands: Commands {
             .keyboardShortcut("j", modifiers: [.command])
             Button("Open Log Window") { openWindow(id: LogWindow.id) }
                 .keyboardShortcut("l", modifiers: [.shift, .command])
+        }
+
+        // Machine — navigate to the Machines surface and open shells.
+        CommandMenu("Machine") {
+            Button("Create Machine\u{2026}") {
+                // Navigates to the Machines surface so the user can press Create in the
+                // toolbar. Opening the create sheet directly would require plumbing new
+                // state through ShellState; the toolbar button is the canonical entry.
+                shell.selection = .machines
+            }
+
+            Divider()
+
+            Button("Open Machine Shell") {
+                // Empty name → domain resolves to the default machine (machine run -it).
+                machineActionsModel.openShell(name: "")
+            }
         }
 
         // Resource — system lifecycle + a reserved command-palette hook (Milestone 11).
