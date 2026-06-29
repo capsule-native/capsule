@@ -5,6 +5,7 @@
 //  Copyright © 2026 Capsule. All rights reserved.
 //
 import XCTest
+
 @testable import CapsuleBackend
 @testable import CapsuleDomain
 

@@ -8,6 +8,7 @@
 //  container-source init (LogsModel(backend:)) still compiles and works unchanged.
 
 import XCTest
+
 @testable import CapsuleBackend
 @testable import CapsuleDomain
 
