@@ -73,6 +73,37 @@ final class OutputParserTests: XCTestCase {
         XCTAssertEqual(rows.first?.createdAt, "2026-06-20T09:15:00Z")
     }
 
+    func testParseContainersPopulatesVolumeMountsAndNetworkNames() throws {
+        // Pins the real JSON keys against containers-with-mounts.json — a real
+        // `container list -a --format json` capture of a container mounting a named
+        // volume and attached to a user network (see Fixtures/README.md). `.contains`
+        // (not exact equality) keeps the assertion robust to the runtime's exact
+        // attachment order/set while still proving the keys decode.
+        let rows = try OutputParser.parseContainers(Fixture.data("containers-with-mounts"))
+        let fx = try XCTUnwrap(
+            rows.first(where: { $0.name == "capsule-fx" }),
+            "the throwaway capsule-fx container must be present in the fixture")
+        XCTAssertTrue(
+            fx.volumeMounts.contains("capsule-fx-vol"),
+            "configuration.mounts[].type.volume.name must map to volumeMounts; got \(fx.volumeMounts)"
+        )
+        XCTAssertTrue(
+            fx.networkNames.contains("capsule-fx-net"),
+            "configuration.networks[].network must map to networkNames; got \(fx.networkNames)")
+    }
+
+    func testParseContainersDefaultsAttachmentsToEmptyWhenAbsent() throws {
+        let json = """
+            [{"id":"abc","configuration":{"id":"web",\
+            "image":{"reference":"r"}},\
+            "status":{"state":"running","networks":[]}}]
+            """
+        let rows = try OutputParser.parseContainers(Data(json.utf8))
+        let row = try XCTUnwrap(rows.first)
+        XCTAssertEqual(row.volumeMounts, [])
+        XCTAssertEqual(row.networkNames, [])
+    }
+
     func testParseStatsEmptyArray() throws {
         XCTAssertEqual(try OutputParser.parseStats(Data("[]".utf8)).count, 0)
     }

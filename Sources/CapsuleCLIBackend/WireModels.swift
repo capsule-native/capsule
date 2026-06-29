@@ -57,9 +57,32 @@ struct CLIContainerRecord: Decodable {
         let id: String
         let image: ImageDescription
         let creationDate: String?
+        // The CLI lists *configured* attachments here — the cross-reference source.
+        // `mounts[].type.volume.name` is the attached volume name; the configured
+        // `networks[].network` is the network NAME (distinct from `Status.Attachment`,
+        // which carries addresses, not names).
+        let mounts: [ConfiguredMount]?
+        let networks: [ConfiguredNetwork]?
 
         struct ImageDescription: Decodable {
             let reference: String
+        }
+
+        struct ConfiguredMount: Decodable {
+            // A volume mount carries the volume NAME at `type.volume.name`.
+            // `source` is the host path (volume.img), NOT the name; bind mounts
+            // have no `type.volume`. Verified against the real CLI capture.
+            let type: MountType?
+            struct MountType: Decodable {
+                let volume: VolumeRef?
+                struct VolumeRef: Decodable { let name: String }
+            }
+            /// The attached volume's name, or nil for a non-volume (bind) mount.
+            var volumeName: String? { type?.volume?.name }
+        }
+
+        struct ConfiguredNetwork: Decodable {
+            let network: String?
         }
     }
 

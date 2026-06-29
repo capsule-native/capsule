@@ -29,10 +29,17 @@ public struct ContainerSummary: Sendable, Equatable, Identifiable, Codable {
     public var ip: String?
     /// The container's creation timestamp as the raw ISO-8601 string the CLI emits.
     public var createdAt: String?
+    /// The volume name (`type.volume.name`) of each `configuration.mounts[]` entry that is a named-volume mount, used to
+    /// cross-reference volumes against the containers using them. Empty when unmounted.
+    public var volumeMounts: [String]
+    /// The `network` of each `configuration.networks[]` entry, used to cross-reference
+    /// networks against the containers connected to them.
+    public var networkNames: [String]
 
     public init(
         id: String, name: String, image: String, state: String,
-        ip: String? = nil, createdAt: String? = nil
+        ip: String? = nil, createdAt: String? = nil,
+        volumeMounts: [String] = [], networkNames: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -40,6 +47,8 @@ public struct ContainerSummary: Sendable, Equatable, Identifiable, Codable {
         self.state = state
         self.ip = ip
         self.createdAt = createdAt
+        self.volumeMounts = volumeMounts
+        self.networkNames = networkNames
     }
 }
 

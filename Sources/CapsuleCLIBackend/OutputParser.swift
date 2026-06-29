@@ -76,7 +76,9 @@ public enum OutputParser {
                 image: record.configuration.image.reference,
                 state: record.status.state,
                 ip: record.status.networks.lazy.compactMap(\.ipAddress).first,
-                createdAt: record.configuration.creationDate
+                createdAt: record.configuration.creationDate,
+                volumeMounts: (record.configuration.mounts ?? []).compactMap(\.volumeName),
+                networkNames: (record.configuration.networks ?? []).compactMap(\.network)
             )
         }
     }
