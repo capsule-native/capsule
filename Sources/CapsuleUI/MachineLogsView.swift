@@ -6,7 +6,7 @@
 //
 //  A sheet presenting machine logs split into Boot log and Session log sub-tabs.
 //  Both LogsModel instances are supplied by MachineActionsModel.makeLogsModels()
-//  so that CapsuleUI never needs to import CapsuleBackend.
+//  so this view stays free of any backend-module dependency.
 
 import CapsuleDomain
 import SwiftUI
