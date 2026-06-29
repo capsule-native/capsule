@@ -93,3 +93,25 @@ public enum CIDR {
         return bytes
     }
 }
+
+extension CIDR {
+    /// Whether two CIDR blocks share any address. Returns `false` when the families differ
+    /// or either string is malformed, so a bad input never reports a phantom conflict.
+    public static func overlaps(_ lhs: String, _ rhs: String) -> Bool {
+        guard let a = parse(lhs), let b = parse(rhs), a.isIPv6 == b.isIPv6 else { return false }
+        return sameNetwork(a.bytes, b.bytes, prefixBits: min(a.prefixLength, b.prefixLength))
+    }
+
+    /// Compares two equal-length address byte arrays over the leading `prefixBits` bits.
+    private static func sameNetwork(_ a: [UInt8], _ b: [UInt8], prefixBits: Int) -> Bool {
+        guard a.count == b.count else { return false }
+        let fullBytes = prefixBits / 8
+        let remainingBits = prefixBits % 8
+        for index in 0..<fullBytes where a[index] != b[index] { return false }
+        if remainingBits > 0 {
+            let mask = UInt8(truncatingIfNeeded: 0xFF << (8 - remainingBits))
+            if (a[fullBytes] & mask) != (b[fullBytes] & mask) { return false }
+        }
+        return true
+    }
+}

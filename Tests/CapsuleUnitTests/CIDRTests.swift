@@ -45,3 +45,35 @@ final class CIDRTests: XCTestCase {
         XCTAssertNil(CIDR.parse(""))  // empty string
     }
 }
+
+extension CIDRTests {
+    // MARK: - overlaps
+
+    func testOverlapTrueWhenOneContainsTheOther() {
+        XCTAssertTrue(CIDR.overlaps("10.0.0.0/8", "10.1.2.0/24"))
+        XCTAssertTrue(CIDR.overlaps("192.168.64.0/24", "192.168.64.128/25"))
+    }
+
+    func testIdenticalSubnetsOverlap() {
+        XCTAssertTrue(CIDR.overlaps("10.0.0.0/24", "10.0.0.0/24"))
+    }
+
+    func testAdjacentIPv4SubnetsDoNotOverlap() {
+        XCTAssertFalse(CIDR.overlaps("10.0.0.0/24", "10.0.1.0/24"))
+    }
+
+    func testIPv6OverlapAndNonOverlap() {
+        XCTAssertTrue(CIDR.overlaps("fd00::/16", "fd00:1::/32"))
+        XCTAssertFalse(CIDR.overlaps("fd00::/16", "fe00::/16"))
+    }
+
+    func testDifferentFamiliesNeverOverlap() {
+        XCTAssertFalse(CIDR.overlaps("10.0.0.0/8", "fd00::/8"))
+    }
+
+    func testMalformedInputsNeverOverlap() {
+        XCTAssertFalse(CIDR.overlaps("garbage", "10.0.0.0/8"))
+        XCTAssertFalse(CIDR.overlaps("10.0.0.0/8", "garbage"))
+        XCTAssertFalse(CIDR.overlaps("garbage", "more-garbage"))
+    }
+}
