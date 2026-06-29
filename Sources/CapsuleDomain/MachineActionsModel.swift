@@ -183,6 +183,30 @@ public final class MachineActionsModel {
         } catch { notice = LifecycleNotice(detail: normalize(error).detail) }
     }
 
+    // MARK: - Shell + implicit-boot
+
+    public func shellArgv(name: String) -> [String] {
+        var argv = ["container", "machine", "run", "-it"]
+        if !name.isEmpty { argv += ["-n", name] }
+        return argv
+    }
+
+    public func openShell(name: String) {
+        if currentState(name) != .running {
+            banner = MachineBanner(kind: .implicitBoot(name: name))
+        }
+        let request = TerminalRequest(
+            containerID: nil, title: "Machine \u{00b7} \(name)", argv: shellArgv(name: name),
+            kind: .execShell)
+        if terminalAvailable() { launchTerminal(request) } else { copyCommand(request.argv) }
+    }
+
+    public func restartNow(_ name: String) async {
+        await stop(name)
+        clearRestart(name)
+        openShell(name: name)
+    }
+
     // MARK: - Create
 
     @discardableResult
