@@ -252,17 +252,28 @@ final class OutputParserTests: XCTestCase {
     // MARK: - DNS (M8)
 
     func testParsesDNSDomains() throws {
+        // Real `container system dns list --format json` shape: an array of bare
+        // domain-name strings (the fixture is a live capture).
         let rows = try OutputParser.parseDNS(Fixture.data("dns-ls"))
         XCTAssertEqual(rows.count, 1)
-        XCTAssertEqual(rows.first?.domain, "capsule.test")
-        XCTAssertEqual(rows.first?.localhostIP, "127.0.0.1")
-        XCTAssertEqual(rows.first?.id, "capsule.test")
+        XCTAssertEqual(rows.first?.domain, "test")
+        XCTAssertNil(rows.first?.localhostIP, "the list output carries only names, no localhost IP")
+        XCTAssertEqual(rows.first?.id, "test")
+    }
+
+    /// The real `container system dns list --format json` emits an array of bare
+    /// domain-name STRINGS, e.g. `["test","app.local"]` — not objects. (Verified live.)
+    func testParsesDNSDomainsFromBareStringArray() throws {
+        let rows = try OutputParser.parseDNS(Data(#"["test","app.local"]"#.utf8))
+        XCTAssertEqual(rows.map(\.domain), ["test", "app.local"])
+        XCTAssertNil(rows.first?.localhostIP)
     }
 
     func testParsesEmptyDNSList() throws {
         XCTAssertEqual(try OutputParser.parseDNS(Data("[]".utf8)).count, 0)
     }
 
+    /// Drift tolerance: also accept an object form, in case a future CLI build adds detail.
     func testParseDNSAcceptsDomainAndNameFallbackKeys() throws {
         let byDomain = try OutputParser.parseDNS(Data(#"[{"domain":"a.test"}]"#.utf8))
         XCTAssertEqual(byDomain.first?.domain, "a.test")

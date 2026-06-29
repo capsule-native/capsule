@@ -202,12 +202,12 @@ struct CLIVolumeRecord: Decodable {
     var resolvedCreatedAt: String? { configuration?.creationDate }
 }
 
-/// One element of `container system dns list --format json`. The list is sudo-gated and
-/// empty on the dev machine, so the keys are pinned schema-faithfully from the apple/
-/// container 1.0.0 binary. Real-capture key: the primary key is `domainName` (with
-/// `localhost`), which supersedes the `domain`/`name`-only sketch in contract Appendix A
-/// §4.4 — those remain accepted as fallbacks. Lenient + all-optional, like the other
-/// empty-observed families.
+/// One element of `container system dns list --format json`. **Verified against the live
+/// CLI:** the list emits an array of bare domain-name STRINGS (e.g. `["test"]`) — it does NOT
+/// return objects, and it never echoes the create-time `--localhost` IP. We decode that
+/// string form, and ALSO tolerate an object form (`domainName`/`domain`/`name` + `localhost`)
+/// so a future build that adds detail still parses. Lenient + all-optional, like the other
+/// families.
 struct CLIDNSRecord: Decodable {
     let domainName: String?
     let domain: String?
@@ -215,6 +215,27 @@ struct CLIDNSRecord: Decodable {
     let localhost: String?
 
     var resolvedDomain: String? { domainName ?? domain ?? name }
+
+    private enum CodingKeys: String, CodingKey { case domainName, domain, name, localhost }
+
+    init(from decoder: Decoder) throws {
+        // Real shape: a bare string. Try that first.
+        if let single = try? decoder.singleValueContainer(),
+            let value = try? single.decode(String.self)
+        {
+            domainName = value
+            domain = nil
+            name = nil
+            localhost = nil
+            return
+        }
+        // Drift tolerance: an object with name/localhost keys.
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        domainName = try container.decodeIfPresent(String.self, forKey: .domainName)
+        domain = try container.decodeIfPresent(String.self, forKey: .domain)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        localhost = try container.decodeIfPresent(String.self, forKey: .localhost)
+    }
 }
 
 struct CLIRegistryRecord: Decodable {

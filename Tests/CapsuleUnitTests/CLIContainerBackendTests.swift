@@ -535,8 +535,9 @@ final class CLIContainerBackendTests: XCTestCase {
         let stub = StubProcessRunner()
         stub.result = CommandResult(exitCode: 0, stdout: Fixture.text("dns-ls"), stderr: "")
         let domains = try await makeBackend(stub).listDNSDomains()
-        XCTAssertEqual(domains.map(\.domain), ["capsule.test"])
-        XCTAssertEqual(domains.first?.localhostIP, "127.0.0.1")
+        XCTAssertEqual(domains.map(\.domain), ["test"])
+        XCTAssertNil(
+            domains.first?.localhostIP, "the list output carries only names, no localhost IP")
         XCTAssertEqual(stub.lastCall, ["system", "dns", "list", "--format", "json"])
     }
 }
