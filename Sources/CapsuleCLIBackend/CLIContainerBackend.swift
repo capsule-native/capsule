@@ -177,6 +177,18 @@ public struct CLIContainerBackend: ContainerBackend {
             .map { OutputLine(source: .stdout, text: String($0)) }
     }
 
+    public func fetchSystemLogs(last: String) async throws -> [OutputLine] {
+        let output = try await runChecked(CLICommand.systemLogs(last: last))
+        let text = output.stdout.hasSuffix("\n") ? String(output.stdout.dropLast()) : output.stdout
+        guard !text.isEmpty else { return [] }
+        return text.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { OutputLine(source: .stdout, text: String($0)) }
+    }
+
+    public func followSystemLogs() -> AsyncThrowingStream<OutputLine, Error> {
+        streamRaw(CLICommand.systemLogsFollow())
+    }
+
     public func runContainer(_ config: RunConfiguration) async throws -> String {
         // apple/container prints the new container id on stdout for a detached run; take the
         // last non-empty line as the id (any progress lines precede it).

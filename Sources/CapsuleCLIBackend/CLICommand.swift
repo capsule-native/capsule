@@ -47,6 +47,14 @@ public enum CLICommand {
         ArgumentBuilder("system", "property", "list").arguments  // default format is toml
     }
 
+    public static func systemLogs(last: String) -> [String] {
+        ArgumentBuilder("system", "logs").flag("--last", last).arguments
+    }
+
+    public static func systemLogsFollow() -> [String] {
+        ArgumentBuilder("system", "logs").option("--follow", enabled: true).arguments
+    }
+
     // MARK: - Containers
 
     public static func listContainers(all: Bool) -> [String] {

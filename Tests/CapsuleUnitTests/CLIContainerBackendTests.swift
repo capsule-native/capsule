@@ -596,4 +596,23 @@ final class CLIContainerBackendTests: XCTestCase {
         XCTAssertEqual(stub.lastCall, ["system", "property", "list"])
         XCTAssertTrue(toml.contains("[build]"))
     }
+
+    func testSystemLogsArgvAndSplit() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(exitCode: 0, stdout: "line one\nline two\n", stderr: "")
+        let backend = CLIContainerBackend(
+            executableURL: URL(fileURLWithPath: "/usr/bin/container"), runner: stub)
+        let lines = try await backend.fetchSystemLogs(last: "1h")
+        XCTAssertEqual(stub.lastCall, ["system", "logs", "--last", "1h"])
+        XCTAssertEqual(lines.map(\.text), ["line one", "line two"])
+    }
+
+    func testFetchSystemLogsEmptyIsEmptyNotBlankLine() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(exitCode: 0, stdout: "", stderr: "")
+        let backend = CLIContainerBackend(
+            executableURL: URL(fileURLWithPath: "/usr/bin/container"), runner: stub)
+        let lines = try await backend.fetchSystemLogs(last: "5m")
+        XCTAssertTrue(lines.isEmpty)
+    }
 }

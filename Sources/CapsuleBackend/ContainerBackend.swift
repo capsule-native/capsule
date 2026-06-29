@@ -53,6 +53,12 @@ public protocol ContainerBackend: Sendable {
     /// Raw TOML text from `container system property list` (verbatim stdout, for editor/export).
     func systemPropertiesTOML() async throws -> String
 
+    /// Fetches a snapshot of the system service logs over the last `last` window (e.g. "5m","1h","1d").
+    func fetchSystemLogs(last: String) async throws -> [OutputLine]
+
+    /// Follows the system service logs as a live stream.
+    func followSystemLogs() -> AsyncThrowingStream<OutputLine, Error>
+
     // MARK: Containers
 
     /// Lists containers; when `all` is false only running containers are returned.

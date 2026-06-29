@@ -203,6 +203,20 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         try withState { $0.propertiesTOML }
     }
 
+    public var systemLogLines: [OutputLine] = [
+        OutputLine(source: .stdout, text: "apiserver: started"),
+        OutputLine(source: .stdout, text: "apiserver: listening"),
+    ]
+
+    public func fetchSystemLogs(last: String) async throws -> [OutputLine] { systemLogLines }
+
+    public func followSystemLogs() -> AsyncThrowingStream<OutputLine, Error> {
+        AsyncThrowingStream { continuation in
+            for line in systemLogLines { continuation.yield(line) }
+            continuation.finish()
+        }
+    }
+
     public func capabilities() async throws -> BackendCapabilities {
         BackendCapabilities.derive(from: try await version())
     }
