@@ -32,3 +32,44 @@ public struct ContainerAttachmentInfo: Sendable, Equatable {
         )
     }
 }
+
+/// A best-effort cross-reference from volumes/networks to the containers using them, built
+/// from the most recent `container list -a`. Pure: the browser models build it and stamp
+/// `attachedContainers`/`connectedContainers`, and the confirmation builders read it.
+public struct AttachmentIndex: Sendable, Equatable {
+    /// `volumeName -> [containerName]`.
+    public let volumes: [String: [String]]
+    /// `networkName -> [containerName]`.
+    public let networks: [String: [String]]
+
+    public init(volumes: [String: [String]], networks: [String: [String]]) {
+        self.volumes = volumes
+        self.networks = networks
+    }
+
+    /// The containers mounting `name`, or `[]` when none.
+    public func containers(forVolume name: String) -> [String] {
+        volumes[name] ?? []
+    }
+
+    /// The containers connected to `name`, or `[]` when none.
+    public func containers(forNetwork name: String) -> [String] {
+        networks[name] ?? []
+    }
+
+    /// Folds the per-container attachment slices into the two name→containers maps,
+    /// preserving the input container order within each bucket.
+    public static func build(from containers: [ContainerAttachmentInfo]) -> AttachmentIndex {
+        var volumes: [String: [String]] = [:]
+        var networks: [String: [String]] = [:]
+        for container in containers {
+            for source in container.volumeSources {
+                volumes[source, default: []].append(container.containerName)
+            }
+            for network in container.networkNames {
+                networks[network, default: []].append(container.containerName)
+            }
+        }
+        return AttachmentIndex(volumes: volumes, networks: networks)
+    }
+}

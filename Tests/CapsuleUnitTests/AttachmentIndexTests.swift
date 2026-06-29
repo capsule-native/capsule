@@ -29,4 +29,35 @@ final class AttachmentIndexTests: XCTestCase {
         XCTAssertEqual(info.volumeSources, ["pg"])
         XCTAssertEqual(info.networkNames, ["backend"])
     }
+
+    // MARK: - AttachmentIndex.build
+
+    func testBuildMapsVolumesAndNetworksToContainersInInputOrder() {
+        let containers = [
+            ContainerAttachmentInfo(
+                containerName: "web", volumeSources: ["data"], networkNames: ["default"]),
+            ContainerAttachmentInfo(
+                containerName: "api", volumeSources: ["data", "logs"],
+                networkNames: ["default", "backend"]),
+        ]
+        let index = AttachmentIndex.build(from: containers)
+        XCTAssertEqual(index.containers(forVolume: "data"), ["web", "api"])
+        XCTAssertEqual(index.containers(forVolume: "logs"), ["api"])
+        XCTAssertEqual(index.containers(forNetwork: "default"), ["web", "api"])
+        XCTAssertEqual(index.containers(forNetwork: "backend"), ["api"])
+    }
+
+    func testBuildWithNoAttachmentsYieldsEmptyMaps() {
+        let index = AttachmentIndex.build(from: [
+            ContainerAttachmentInfo(containerName: "web", volumeSources: [], networkNames: [])
+        ])
+        XCTAssertTrue(index.volumes.isEmpty)
+        XCTAssertTrue(index.networks.isEmpty)
+    }
+
+    func testQueriesReturnEmptyArrayForUnknownNames() {
+        let index = AttachmentIndex.build(from: [])
+        XCTAssertEqual(index.containers(forVolume: "nope"), [])
+        XCTAssertEqual(index.containers(forNetwork: "nope"), [])
+    }
 }
