@@ -88,5 +88,7 @@ final class NetworkBrowserModelTests: XCTestCase {
         let model = NetworkBrowserModel(backend: backend)
         let inspection = await model.inspect(name: "default")
         XCTAssertEqual(inspection.value?.name, "default")
+        XCTAssertFalse(
+            inspection.rawJSON.isEmpty, "raw payload must be retained even on successful decode")
     }
 }
