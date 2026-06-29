@@ -189,6 +189,10 @@ public struct CLIContainerBackend: ContainerBackend {
         streamRaw(CLICommand.systemLogsFollow())
     }
 
+    public func setKernel(_ config: KernelConfiguration) -> AsyncThrowingStream<OutputLine, Error> {
+        streamRaw(CLICommand.setKernel(config))
+    }
+
     public func runContainer(_ config: RunConfiguration) async throws -> String {
         // apple/container prints the new container id on stdout for a detached run; take the
         // last non-empty line as the id (any progress lines precede it).

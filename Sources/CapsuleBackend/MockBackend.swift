@@ -143,6 +143,9 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     /// The id of the most recent `deleteMachine` call.
     public private(set) var lastDeletedMachine: String?
 
+    /// The configuration of the most recent `setKernel` call.
+    public private(set) var lastKernelConfiguration: KernelConfiguration?
+
     /// Which way a recorded copy went (the mock has no real filesystem).
     public enum CopyDirectionTag: Sendable, Equatable { case toContainer, fromContainer }
 
@@ -213,6 +216,15 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     public func followSystemLogs() -> AsyncThrowingStream<OutputLine, Error> {
         AsyncThrowingStream { continuation in
             for line in systemLogLines { continuation.yield(line) }
+            continuation.finish()
+        }
+    }
+
+    public func setKernel(_ config: KernelConfiguration) -> AsyncThrowingStream<OutputLine, Error> {
+        lastKernelConfiguration = config
+        return AsyncThrowingStream { continuation in
+            continuation.yield(OutputLine(source: .stdout, text: "Installing kernel…"))
+            continuation.yield(OutputLine(source: .stdout, text: "Done."))
             continuation.finish()
         }
     }

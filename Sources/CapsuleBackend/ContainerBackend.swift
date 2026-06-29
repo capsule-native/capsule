@@ -59,6 +59,9 @@ public protocol ContainerBackend: Sendable {
     /// Follows the system service logs as a live stream.
     func followSystemLogs() -> AsyncThrowingStream<OutputLine, Error>
 
+    /// Installs/sets the default kernel (`system kernel set`); streams download/install progress.
+    func setKernel(_ config: KernelConfiguration) -> AsyncThrowingStream<OutputLine, Error>
+
     // MARK: Containers
 
     /// Lists containers; when `all` is false only running containers are returned.

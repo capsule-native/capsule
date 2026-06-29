@@ -243,3 +243,45 @@ public struct SystemProperties: Sendable, Equatable, Codable {
     public init(sections: [PropertySection]) { self.sections = sections }
     public func section(_ name: String) -> PropertySection? { sections.first { $0.name == name } }
 }
+
+/// Architecture for a kernel install.
+public enum KernelArch: String, Sendable, Equatable, Codable, CaseIterable {
+    case arm64, amd64
+}
+
+/// Where a kernel comes from. `recommended` downloads a known-good kernel and takes
+/// precedence over all other flags (so its argv omits arch/binary/tar).
+public enum KernelSource: Sendable, Equatable {
+    case recommended
+    case localBinary(path: String)
+    case remoteTar(url: String, member: String?)
+}
+
+/// A typed `container system kernel set` invocation.
+public struct KernelConfiguration: Sendable, Equatable {
+    public var source: KernelSource
+    public var arch: KernelArch
+    public var force: Bool
+
+    public init(source: KernelSource, arch: KernelArch = .arm64, force: Bool = false) {
+        self.source = source
+        self.arch = arch
+        self.force = force
+    }
+
+    /// The argv after `container`: flags in source-dependent order.
+    public var arguments: [String] {
+        var argv = ["system", "kernel", "set"]
+        switch source {
+        case .recommended:
+            argv.append("--recommended")
+        case .localBinary(let path):
+            argv += ["--arch", arch.rawValue, "--binary", path]
+        case .remoteTar(let url, let member):
+            argv += ["--arch", arch.rawValue, "--tar", url]
+            if let member, !member.isEmpty { argv += ["--binary", member] }
+        }
+        if force { argv.append("--force") }
+        return argv
+    }
+}

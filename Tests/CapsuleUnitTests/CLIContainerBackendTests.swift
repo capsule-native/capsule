@@ -615,4 +615,19 @@ final class CLIContainerBackendTests: XCTestCase {
         let lines = try await backend.fetchSystemLogs(last: "5m")
         XCTAssertTrue(lines.isEmpty)
     }
+
+    // MARK: - Kernel set
+
+    func testSetKernelStreamsAndArgv() async throws {
+        let stub = StubProcessRunner()
+        stub.streamLines = [OutputLine(source: .stdout, text: "Installing")]
+        let backend = CLIContainerBackend(
+            executableURL: URL(fileURLWithPath: "/usr/bin/container"), runner: stub)
+        var got: [String] = []
+        for try await line in backend.setKernel(.init(source: .recommended)) {
+            got.append(line.text)
+        }
+        XCTAssertEqual(stub.lastCall, ["system", "kernel", "set", "--recommended"])
+        XCTAssertEqual(got, ["Installing"])
+    }
 }

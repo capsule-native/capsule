@@ -25,6 +25,7 @@ public enum OperationKind: String, Sendable, CaseIterable {
     case systemStart
     case copy
     case machineCreate
+    case systemKernelInstall
 
     public var title: String {
         switch self {
@@ -38,6 +39,7 @@ public enum OperationKind: String, Sendable, CaseIterable {
         case .systemStart: return "Start Services"
         case .copy: return "Copy"
         case .machineCreate: return "Create Machine"
+        case .systemKernelInstall: return "Install Kernel"
         }
     }
 
@@ -53,6 +55,7 @@ public enum OperationKind: String, Sendable, CaseIterable {
         case .systemStart: return "power"
         case .copy: return "doc.on.doc"
         case .machineCreate: return "cpu"
+        case .systemKernelInstall: return "cpu.fill"
         }
     }
 }

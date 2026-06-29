@@ -296,4 +296,6 @@ public enum CLICommand {
     public static func listDNSDomains() -> [String] {
         ArgumentBuilder("system", "dns", "list").flag("--format", "json").arguments
     }
+
+    public static func setKernel(_ config: KernelConfiguration) -> [String] { config.arguments }
 }
