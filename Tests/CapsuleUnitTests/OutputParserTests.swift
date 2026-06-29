@@ -320,5 +320,9 @@ final class OutputParserTests: XCTestCase {
         XCTAssertEqual(comps[0].version, "1.0.0")
         XCTAssertEqual(comps[0].buildType, "release")
         XCTAssertTrue(comps[1].appName.contains("apiserver"))
+        // The apiserver's messy full version string must be preserved verbatim, not cleaned.
+        XCTAssertEqual(
+            comps[1].version,
+            "container-apiserver version 1.0.0 (build: release, commit: ee848e3)")
     }
 }
