@@ -85,10 +85,10 @@ struct ContentColumnView: View {
     }
 
     /// True only for a running service whose build does not report the family of a *gated*
-    /// resource surface (volumes / networks). Containers / images / machines keep their own
-    /// routing untouched — this phase owns capability gating and scopes it to the two M8
-    /// surfaces, so the `runningContent` switch (and the arms Phases 3-4 added to it) is left
-    /// intact and the gate composes additively around its dispatch.
+    /// resource surface (volumes / networks / machines). Containers / images keep their own
+    /// routing untouched — capability gating scopes itself to these gated surfaces, so the
+    /// `runningContent` switch is left intact and the gate composes additively around its
+    /// dispatch.
     private var isGatedSurfaceUnavailable: Bool {
         switch section {
         case .volumes, .networks, .machines:
