@@ -345,6 +345,8 @@ struct ContainerListView: View {
             break  // image confirmations are routed from the images surface, not here
         case .deleteVolume, .pruneVolumes, .deleteNetwork, .pruneNetworks:
             break  // volume/network confirmations are routed from their own surfaces, not here
+        case .deleteMachine:
+            break  // machine confirmations are routed from the machines surface, not here
         }
     }
 

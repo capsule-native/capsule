@@ -22,6 +22,8 @@ public enum ConfirmationKind: Sendable, Equatable {
     case deleteNetwork
     case pruneVolumes
     case pruneNetworks
+    // Machines (Milestone 9)
+    case deleteMachine
 }
 
 /// A request to confirm a destructive operation, as pure data the UI renders generically.
@@ -185,6 +187,18 @@ public struct ConfirmationRequest: Sendable, Equatable, Identifiable {
             message: "This removes every network with no connected containers. "
                 + "Builtin networks are never removed.",
             confirmTitle: "Clean Up", targetIDs: [], kind: .pruneNetworks)
+    }
+
+    // MARK: Machines (Milestone 9)
+
+    /// Deleting a machine always confirms — it permanently removes the machine's persistent
+    /// storage (home directory and disk). There is no undo.
+    public static func deleteMachine(name: String) -> ConfirmationRequest {
+        ConfirmationRequest(
+            title: "Delete machine?",
+            message: "Deleting \(name) permanently removes its persistent storage "
+                + "(home directory and disk). This cannot be undone.",
+            confirmTitle: "Delete", targetIDs: [name], kind: .deleteMachine)
     }
 
 }
