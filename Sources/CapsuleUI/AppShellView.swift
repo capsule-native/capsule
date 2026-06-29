@@ -149,6 +149,16 @@ public struct AppShellView: View {
                 .padding(.top, 6)
             }
 
+            if let notice = machineActionsModel.notice {
+                LifecycleNoticeView(
+                    notice: notice,
+                    onAction: { _ in machineActionsModel.notice = nil },
+                    onForceStop: { _ in machineActionsModel.notice = nil },
+                    onDismiss: { machineActionsModel.notice = nil }
+                )
+                .padding(.top, 6)
+            }
+
             ContentColumnView(
                 section: shell.selection,
                 health: systemModel.health,

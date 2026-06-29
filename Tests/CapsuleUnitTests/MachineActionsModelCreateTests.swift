@@ -40,4 +40,15 @@ final class MachineActionsModelCreateTests: XCTestCase {
         XCTAssertEqual(mock.lastCreatedMachine?.image, "alpine:3.22")
         if case .created = a.banner?.kind {} else { XCTFail("expected created banner") }
     }
+    func test_create_taskCenter_backgroundsAndSetsBannerOnSuccess() async {
+        let mock = MockBackend(machines: [])
+        let taskCenter = TaskCenter()
+        let a = MachineActionsModel(backend: mock, reloadList: {}, taskCenter: taskCenter)
+        var d = MachineDraft(); d.image = "alpine:3.22"; d.name = "dev"
+        let ok = await a.create(draft: d)
+        XCTAssertTrue(ok)  // returns true immediately; task is enqueued
+        await taskCenter.tasks.last?.wait()
+        XCTAssertNotNil(mock.lastCreatedMachine)
+        if case .created = a.banner?.kind {} else { XCTFail("expected created banner") }
+    }
 }

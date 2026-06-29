@@ -91,7 +91,7 @@ struct ContentColumnView: View {
     /// intact and the gate composes additively around its dispatch.
     private var isGatedSurfaceUnavailable: Bool {
         switch section {
-        case .volumes, .networks:
+        case .volumes, .networks, .machines:
             return !section.isEnabled(features: health.availableFeatures)
         default:
             return false

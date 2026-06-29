@@ -91,16 +91,6 @@ public final class ContainerLifecycleModel {
                 argv: ["container", "exec", "-it", id] + argv, kind: .execShell))
     }
 
-    /// Opens an interactive login shell in a container machine
-    /// (`machine run -it [-n <name>]`), falling back to the clipboard.
-    public func openMachineShell(name: String?) {
-        var argv = ["container", "machine", "run", "-it"]
-        if let name, !name.isEmpty { argv += ["-n", name] }
-        let title = name.map { "Machine · \($0)" } ?? "Machine shell"
-        launchOrCopy(
-            TerminalRequest(containerID: nil, title: title, argv: argv, kind: .execShell))
-    }
-
     /// Starts a stopped container attached to its main process (`start -ai`) in the embedded
     /// terminal — the interactive counterpart to the read-only `logs --follow` attach.
     public func attachInteractively(id: String) {

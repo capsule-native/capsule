@@ -19,7 +19,6 @@ public final class MachineActionsModel {
 
     public private(set) var busy: Set<String> = []
     public var notice: LifecycleNotice?
-    public var confirmation: ConfirmationRequest?
     public var banner: MachineBanner?
     public var pendingRestart: Set<String> = []
 
@@ -138,14 +137,20 @@ public final class MachineActionsModel {
 
     // MARK: - Stop + Delete
 
-    public func stop(_ name: String) async {
+    @discardableResult
+    public func stop(_ name: String) async -> Bool {
         busy.insert(name); defer { busy.remove(name) }
         do {
             try await backend.stopMachine(id: name)
+            await reloadList()
             pendingRestart.remove(name)
             onActivity("Stopped machine \u{201c}\(name)\u{201d}.")
             banner = MachineBanner(kind: .stopped(name: name))
-        } catch { notice = LifecycleNotice(detail: normalize(error).detail) }
+            return true
+        } catch {
+            notice = LifecycleNotice(detail: normalize(error).detail)
+            return false
+        }
     }
 
     public func delete(_ name: String) async {
@@ -177,6 +182,7 @@ public final class MachineActionsModel {
         guard let prev = previousDefault else { return }
         do {
             try await backend.setDefaultMachine(id: prev)
+            previousDefault = nil
             await reloadList()
             onActivity("Reverted default machine to \u{201c}\(prev)\u{201d}.")
             banner = nil
@@ -202,7 +208,7 @@ public final class MachineActionsModel {
     }
 
     public func restartNow(_ name: String) async {
-        await stop(name)
+        guard await stop(name) else { return }
         clearRestart(name)
         openShell(name: name)
     }
@@ -215,8 +221,10 @@ public final class MachineActionsModel {
     public func makeLogsModels() -> (boot: LogsModel, session: LogsModel) {
         let boot = LogsModel(source: .machine(backend))
         boot.boot = true
+        boot.follow = false
         let session = LogsModel(source: .machine(backend))
         session.boot = false
+        session.follow = false
         return (boot, session)
     }
 
@@ -234,18 +242,20 @@ public final class MachineActionsModel {
         let config = configuration(from: draft)
         let name = config.name ?? config.image
         if let taskCenter {
-            let task = taskCenter.runStreaming(
+            taskCenter.runStreaming(
                 kind: .machineCreate, title: "Create machine \(name)",
-                onSuccess: { [weak self] in await self?.reloadList() }
+                onSuccess: { [weak self] in
+                    await self?.reloadList()
+                    self?.onActivity("Created machine \u{201c}\(name)\u{201d}.")
+                    self?.banner = MachineBanner(kind: .created(name: name))
+                }
             ) { [backend] in backend.createMachine(config) }
-            await task.wait()
-            guard case .succeeded = task.state else { return false }
-        } else {
-            do { for try await _ in backend.createMachine(config) {} } catch {
-                notice = LifecycleNotice(detail: normalize(error).detail); return false
-            }
-            await reloadList()
+            return true  // enqueued; the sheet dismisses and Activity shows progress
         }
+        do { for try await _ in backend.createMachine(config) {} } catch {
+            notice = LifecycleNotice(detail: normalize(error).detail); return false
+        }
+        await reloadList()
         onActivity("Created machine \u{201c}\(name)\u{201d}.")
         banner = MachineBanner(kind: .created(name: name))
         return true

@@ -210,17 +210,6 @@ final class ContainerLifecycleModelTests: XCTestCase {
         XCTAssertEqual(request?.argv, ["container", "exec", "-it", "c1", "sh"])
     }
 
-    func testMachineShellBuildsArgv() {
-        var request: TerminalRequest?
-        let m = ContainerLifecycleModel(
-            backend: MockBackend(), terminalAvailable: { true },
-            launchTerminal: { request = $0 })
-        m.openMachineShell(name: "default")
-        XCTAssertEqual(request?.argv, ["container", "machine", "run", "-it", "-n", "default"])
-        m.openMachineShell(name: nil)
-        XCTAssertEqual(request?.argv, ["container", "machine", "run", "-it"])
-    }
-
     func testExecShellCopiesWhenTerminalUnavailable() {
         var copied: [String]?
         let m = ContainerLifecycleModel(

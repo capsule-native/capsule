@@ -67,6 +67,8 @@ public struct CapsuleCommands: Commands {
                 // state through ShellState; the toolbar button is the canonical entry.
                 shell.selection = .machines
             }
+            .disabled(
+                !SidebarSection.machines.isEnabled(features: systemModel.health.availableFeatures))
 
             Divider()
 
@@ -74,6 +76,8 @@ public struct CapsuleCommands: Commands {
                 // Empty name → domain resolves to the default machine (machine run -it).
                 machineActionsModel.openShell(name: "")
             }
+            .disabled(
+                !SidebarSection.machines.isEnabled(features: systemModel.health.availableFeatures))
         }
 
         // Resource — system lifecycle + a reserved command-palette hook (Milestone 11).

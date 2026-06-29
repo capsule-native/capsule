@@ -42,6 +42,10 @@ struct MachineLogsView: View {
             bootModel.start(id: name)
             sessionModel.start(id: name)
         }
+        .onDisappear {
+            bootModel.stop()
+            sessionModel.stop()
+        }
     }
 
     // MARK: - Header
