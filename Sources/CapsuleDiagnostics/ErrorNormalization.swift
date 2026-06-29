@@ -35,6 +35,21 @@ public enum ErrorNormalizer {
         return daemonSignatures.contains { lowered.contains($0) }
     }
 
+    /// Substrings in a backend's stderr (or command) that signal the operation requires
+    /// administrator privileges (e.g. `system dns create/delete`). The CLI prints
+    /// `(try sudo?)` on a privileged-command failure, and its help reads "must run as an
+    /// administrator". Checked AHEAD of the daemon signatures so an admin-gated failure maps
+    /// to a clean permission prompt rather than a generic outage.
+    private static let administratorSignatures = [
+        "try sudo?",
+        "must run as an administrator",
+    ]
+
+    private static func hasAdministratorSignature(_ text: String) -> Bool {
+        let lowered = text.lowercased()
+        return administratorSignatures.contains { lowered.contains($0) }
+    }
+
     /// Maps any `Error` to a `CapsuleError`.
     ///
     /// A value that is already a `CapsuleError` passes through unchanged; a
@@ -62,6 +77,14 @@ public enum ErrorNormalizer {
             )
 
         case let .nonZeroExit(command, code, stderr):
+            if hasAdministratorSignature(stderr) || hasAdministratorSignature(command) {
+                let trimmed = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+                return .permissionRequired(
+                    kind: .administrator,
+                    message: trimmed.isEmpty
+                        ? "This operation requires administrator privileges." : trimmed
+                )
+            }
             if hasDaemonSignature(stderr) || hasDaemonSignature(command) {
                 let trimmed = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
                 return .daemonUnavailable(

@@ -106,4 +106,58 @@ final class ErrorNormalizerTests: XCTestCase {
         let error = BackendError.decodingFailed("bad json")
         XCTAssertEqual(ErrorNormalizer.normalize(error), .unknown(message: "bad json"))
     }
+
+    // MARK: - Administrator signature mapping (M8)
+
+    func testSudoHintBecomesPermissionRequiredAdministrator() {
+        let error = BackendError.nonZeroExit(
+            command: "container system dns create capsule.test", code: 1,
+            stderr: "Error: cannot create domain (try sudo?)")
+        guard case let .permissionRequired(kind, message) = ErrorNormalizer.normalize(error) else {
+            return XCTFail("expected .permissionRequired")
+        }
+        XCTAssertEqual(kind, .administrator)
+        XCTAssertTrue(message.contains("try sudo?"), "message preserves the CLI stderr")
+    }
+
+    func testMustRunAsAdministratorBecomesPermissionRequired() {
+        let error = BackendError.nonZeroExit(
+            command: "container system dns delete capsule.test", code: 1,
+            stderr: "This command must run as an administrator.")
+        guard case .permissionRequired(.administrator, _) = ErrorNormalizer.normalize(error) else {
+            return XCTFail("expected .permissionRequired(.administrator)")
+        }
+    }
+
+    func testAdministratorSignatureTakesPrecedenceOverDaemonSignature() {
+        // stderr carries BOTH an admin hint and a daemon-ish word ("apiserver"); the admin
+        // check runs first, so this resolves to permissionRequired, not daemonUnavailable.
+        let error = BackendError.nonZeroExit(
+            command: "container system dns create capsule.test", code: 1,
+            stderr: "apiserver: cannot create domain (try sudo?)")
+        guard case .permissionRequired(.administrator, _) = ErrorNormalizer.normalize(error) else {
+            return XCTFail("admin signature must win over the daemon signature")
+        }
+    }
+
+    func testAdministratorPermissionDetailIsActionable() {
+        let error = BackendError.nonZeroExit(
+            command: "container system dns create capsule.test", code: 1,
+            stderr: "Error: cannot create domain (try sudo?)")
+        let detail = ErrorNormalizer.detail(for: error)
+        XCTAssertEqual(detail.title, "Administrator access required")
+        XCTAssertTrue(detail.recoveryActions.contains(.grantPermission(.administrator)))
+    }
+
+    func testEmptyAdminStderrFallsBackToDefaultMessage() {
+        let error = BackendError.nonZeroExit(
+            command: "container system dns create capsule.test (try sudo?)", code: 1, stderr: "")
+        guard
+            case let .permissionRequired(.administrator, message) = ErrorNormalizer.normalize(
+                error)
+        else {
+            return XCTFail("expected .permissionRequired(.administrator) from the command hint")
+        }
+        XCTAssertEqual(message, "This operation requires administrator privileges.")
+    }
 }
