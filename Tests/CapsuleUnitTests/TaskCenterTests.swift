@@ -191,4 +191,9 @@ final class TaskCenterTests: XCTestCase {
 
         XCTAssertTrue(center.tasks.isEmpty)
     }
+
+    func test_machineCreate_kind_titleAndSymbol() {
+        XCTAssertEqual(OperationKind.machineCreate.title, "Create Machine")
+        XCTAssertFalse(OperationKind.machineCreate.symbolName.isEmpty)
+    }
 }
