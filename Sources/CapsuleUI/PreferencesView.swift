@@ -27,6 +27,8 @@ public struct PreferencesView: View {
 
     public var body: some View {
         TabView {
+            TerminalPreferenceView()
+                .tabItem { Label("General", systemImage: "gearshape") }
             RegistriesView(model: registriesModel)
                 .tabItem { Label("Registries", systemImage: "person.badge.key") }
             NetworkingView(model: dnsModel)
