@@ -45,10 +45,26 @@ public struct VolumeSummary: Sendable, Equatable, Identifiable, Codable {
     public var id: String { name }
     public var name: String
     public var source: String?
+    public var sizeBytes: Int64?
+    public var options: [String: String]
+    public var labels: [String: String]
+    /// Raw ISO-8601 creation timestamp; the domain parses it into a `Date`.
+    public var createdAt: String?
 
-    public init(name: String, source: String? = nil) {
+    public init(
+        name: String,
+        source: String? = nil,
+        sizeBytes: Int64? = nil,
+        options: [String: String] = [:],
+        labels: [String: String] = [:],
+        createdAt: String? = nil
+    ) {
         self.name = name
         self.source = source
+        self.sizeBytes = sizeBytes
+        self.options = options
+        self.labels = labels
+        self.createdAt = createdAt
     }
 }
 
@@ -59,19 +75,37 @@ public struct NetworkSummary: Sendable, Equatable, Identifiable, Codable {
     public var mode: String?
     public var gateway: String?
     public var subnet: String?
+    public var plugin: String?
+    public var ipv6Subnet: String?
+    public var labels: [String: String]
+    /// Raw ISO-8601 creation timestamp; the domain parses it into a `Date`.
+    public var createdAt: String?
+    /// True for runtime-managed networks (labeled `…resource.role: builtin`, e.g. `default`)
+    /// that must not be deleted.
+    public var isBuiltin: Bool
 
     public init(
         id: String,
         name: String,
         mode: String? = nil,
         gateway: String? = nil,
-        subnet: String? = nil
+        subnet: String? = nil,
+        plugin: String? = nil,
+        ipv6Subnet: String? = nil,
+        labels: [String: String] = [:],
+        createdAt: String? = nil,
+        isBuiltin: Bool = false
     ) {
         self.id = id
         self.name = name
         self.mode = mode
         self.gateway = gateway
         self.subnet = subnet
+        self.plugin = plugin
+        self.ipv6Subnet = ipv6Subnet
+        self.labels = labels
+        self.createdAt = createdAt
+        self.isBuiltin = isBuiltin
     }
 }
 
@@ -82,6 +116,18 @@ public struct RegistrySummary: Sendable, Equatable, Identifiable, Codable {
 
     public init(server: String) {
         self.server = server
+    }
+}
+
+/// A backend's lightweight view of a local DNS domain (`system dns list`).
+public struct DNSDomainSummary: Sendable, Equatable, Identifiable, Codable {
+    public var id: String { domain }
+    public var domain: String
+    public var localhostIP: String?
+
+    public init(domain: String, localhostIP: String? = nil) {
+        self.domain = domain
+        self.localhostIP = localhostIP
     }
 }
 

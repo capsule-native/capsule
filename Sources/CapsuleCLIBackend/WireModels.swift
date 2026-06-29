@@ -124,11 +124,21 @@ struct CLINetworkRecord: Decodable {
     struct Configuration: Decodable {
         let name: String
         let mode: String?
+        let plugin: String?
+        let labels: [String: String]?
+        let options: [String: String]?
+        let creationDate: String?
     }
 
     struct Status: Decodable {
         let ipv4Gateway: String?
         let ipv4Subnet: String?
+        let ipv6Subnet: String?
+    }
+
+    /// Runtime-managed networks (e.g. `default`) carry this label and must not be deleted.
+    var isBuiltin: Bool {
+        configuration.labels?["com.apple.container.resource.role"] == "builtin"
     }
 }
 
@@ -139,9 +149,49 @@ struct CLINetworkRecord: Decodable {
 // decoding, an unverified populated shape degrades to an empty/partial list rather than
 // crashing.
 
+// Real-capture shape: `container volume list/inspect` nests fields under `configuration`
+// (sizeInBytes/driver/format/options/labels/creationDate) with a top-level `id`. This
+// nested shape supersedes the flat sketch in contract Appendix A §4.4; the flat name/source
+// fields remain only as lenient fallbacks for an alternate/older shape.
 struct CLIVolumeRecord: Decodable {
+    let id: String?
+    let configuration: Configuration?
+    // Flat fallbacks for an alternate/older shape (keeps lenient decode tolerant).
     let name: String?
     let source: String?
+
+    struct Configuration: Decodable {
+        let name: String?
+        let source: String?
+        let driver: String?
+        let format: String?
+        let labels: [String: String]?
+        let options: [String: String]?
+        let sizeInBytes: Int64?
+        let creationDate: String?
+    }
+
+    var resolvedName: String? { configuration?.name ?? name ?? id }
+    var resolvedSource: String? { configuration?.source ?? source }
+    var resolvedSizeBytes: Int64? { configuration?.sizeInBytes }
+    var resolvedOptions: [String: String] { configuration?.options ?? [:] }
+    var resolvedLabels: [String: String] { configuration?.labels ?? [:] }
+    var resolvedCreatedAt: String? { configuration?.creationDate }
+}
+
+/// One element of `container system dns list --format json`. The list is sudo-gated and
+/// empty on the dev machine, so the keys are pinned schema-faithfully from the apple/
+/// container 1.0.0 binary. Real-capture key: the primary key is `domainName` (with
+/// `localhost`), which supersedes the `domain`/`name`-only sketch in contract Appendix A
+/// §4.4 — those remain accepted as fallbacks. Lenient + all-optional, like the other
+/// empty-observed families.
+struct CLIDNSRecord: Decodable {
+    let domainName: String?
+    let domain: String?
+    let name: String?
+    let localhost: String?
+
+    var resolvedDomain: String? { domainName ?? domain ?? name }
 }
 
 struct CLIRegistryRecord: Decodable {

@@ -133,9 +133,9 @@ final class OutputParserTests: XCTestCase {
         }
     }
 
-    // MARK: - Networks
+    // MARK: - Networks (M8 enrichment)
 
-    func testParsesRealNetworkListIntoRows() throws {
+    func testParsesRealNetworkListIntoRowsWithBuiltinMarker() throws {
         let rows = try OutputParser.parseNetworks(Fixture.data("network-ls"))
 
         let network = try XCTUnwrap(rows.first)
@@ -144,6 +144,22 @@ final class OutputParserTests: XCTestCase {
         XCTAssertEqual(network.mode, "nat")
         XCTAssertEqual(network.gateway, "192.168.64.1")
         XCTAssertEqual(network.subnet, "192.168.64.0/24")
+        XCTAssertEqual(network.plugin, "container-network-vmnet")
+        XCTAssertEqual(network.ipv6Subnet, "fdb6:5eb:8ee:85cf::/64")
+        XCTAssertTrue(network.isBuiltin, "the resource.role:builtin label marks it protected")
+        XCTAssertEqual(network.labels["com.apple.container.resource.role"], "builtin")
+    }
+
+    func testParsesNetworkInspectAsNonBuiltin() throws {
+        let rows = try OutputParser.parseNetworks(Fixture.data("network-inspect"))
+
+        let network = try XCTUnwrap(rows.first)
+        XCTAssertEqual(network.name, "capsule-m8-net")
+        XCTAssertEqual(network.subnet, "10.88.0.0/24")
+        XCTAssertEqual(network.gateway, "10.88.0.1")
+        XCTAssertEqual(network.ipv6Subnet, "fd65:1ffc:2bce:b6aa::/64")
+        XCTAssertFalse(network.isBuiltin, "a user-created network is not builtin")
+        XCTAssertEqual(network.labels["tier"], "test")
     }
 
     // MARK: - Volumes / registries / machines / builder
@@ -179,6 +195,48 @@ final class OutputParserTests: XCTestCase {
         XCTAssertTrue(
             try OutputParser.parseBuilderStatus(Data(#"[{"state":"running"}]"#.utf8)).isRunning
         )
+    }
+
+    // MARK: - Volumes (M8 enrichment)
+
+    func testParsesRealVolumeListWithMetadata() throws {
+        let rows = try OutputParser.parseVolumes(Fixture.data("volume-ls"))
+
+        XCTAssertEqual(rows.count, 1)
+        let volume = try XCTUnwrap(rows.first)
+        XCTAssertEqual(volume.name, "capsule-m8-probe")
+        XCTAssertEqual(volume.sizeBytes, 536_870_912)
+        XCTAssertEqual(volume.options["size"], "512M")
+        XCTAssertEqual(volume.labels["role"], "scratch")
+        XCTAssertEqual(volume.createdAt, "2026-06-29T07:15:32Z")
+        XCTAssertEqual(volume.source?.hasSuffix("capsule-m8-probe/volume.img"), true)
+    }
+
+    func testParsesVolumeInspectPayload() throws {
+        let rows = try OutputParser.parseVolumes(Fixture.data("volume-inspect"))
+        XCTAssertEqual(rows.first?.name, "capsule-m8-probe")
+        XCTAssertEqual(rows.first?.sizeBytes, 536_870_912)
+    }
+
+    // MARK: - DNS (M8)
+
+    func testParsesDNSDomains() throws {
+        let rows = try OutputParser.parseDNS(Fixture.data("dns-ls"))
+        XCTAssertEqual(rows.count, 1)
+        XCTAssertEqual(rows.first?.domain, "capsule.test")
+        XCTAssertEqual(rows.first?.localhostIP, "127.0.0.1")
+        XCTAssertEqual(rows.first?.id, "capsule.test")
+    }
+
+    func testParsesEmptyDNSList() throws {
+        XCTAssertEqual(try OutputParser.parseDNS(Data("[]".utf8)).count, 0)
+    }
+
+    func testParseDNSAcceptsDomainAndNameFallbackKeys() throws {
+        let byDomain = try OutputParser.parseDNS(Data(#"[{"domain":"a.test"}]"#.utf8))
+        XCTAssertEqual(byDomain.first?.domain, "a.test")
+        let byName = try OutputParser.parseDNS(Data(#"[{"name":"b.test"}]"#.utf8))
+        XCTAssertEqual(byName.first?.domain, "b.test")
     }
 
     // MARK: - Version

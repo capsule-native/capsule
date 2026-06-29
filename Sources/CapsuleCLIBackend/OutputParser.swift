@@ -140,7 +140,12 @@ public enum OutputParser {
                 name: record.configuration.name,
                 mode: record.configuration.mode,
                 gateway: record.status?.ipv4Gateway,
-                subnet: record.status?.ipv4Subnet
+                subnet: record.status?.ipv4Subnet,
+                plugin: record.configuration.plugin,
+                ipv6Subnet: record.status?.ipv6Subnet,
+                labels: record.configuration.labels ?? [:],
+                createdAt: record.configuration.creationDate,
+                isBuiltin: record.isBuiltin
             )
         }
     }
@@ -149,8 +154,22 @@ public enum OutputParser {
 
     public static func parseVolumes(_ data: Data) throws -> [VolumeSummary] {
         try lossyList(data, decode: CLIVolumeRecord.self).compactMap { record in
-            guard let name = record.name else { return nil }
-            return VolumeSummary(name: name, source: record.source)
+            guard let name = record.resolvedName else { return nil }
+            return VolumeSummary(
+                name: name,
+                source: record.resolvedSource,
+                sizeBytes: record.resolvedSizeBytes,
+                options: record.resolvedOptions,
+                labels: record.resolvedLabels,
+                createdAt: record.resolvedCreatedAt
+            )
+        }
+    }
+
+    public static func parseDNS(_ data: Data) throws -> [DNSDomainSummary] {
+        try lossyList(data, decode: CLIDNSRecord.self).compactMap { record in
+            guard let domain = record.resolvedDomain else { return nil }
+            return DNSDomainSummary(domain: domain, localhostIP: record.localhost)
         }
     }
 
