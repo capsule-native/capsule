@@ -24,6 +24,8 @@ public struct CapsuleScene: Scene {
     @State private var statsModel: ContainerStatsModel
     @State private var imageBrowserModel: ImageBrowserModel
     @State private var imageActionsModel: ImageActionsModel
+    @State private var volumeBrowserModel: VolumeBrowserModel
+    @State private var volumeActionsModel: VolumeActionsModel
     @State private var taskCenter: TaskCenter
     @State private var registriesModel: RegistriesModel
     @State private var runModel: RunModel
@@ -47,6 +49,8 @@ public struct CapsuleScene: Scene {
         self._statsModel = State(initialValue: environment.statsModel)
         self._imageBrowserModel = State(initialValue: environment.imageBrowserModel)
         self._imageActionsModel = State(initialValue: environment.imageActionsModel)
+        self._volumeBrowserModel = State(initialValue: environment.volumeBrowserModel)
+        self._volumeActionsModel = State(initialValue: environment.volumeActionsModel)
         self._taskCenter = State(initialValue: environment.taskCenter)
         self._registriesModel = State(initialValue: environment.registriesModel)
         self._runModel = State(initialValue: environment.runModel)
@@ -69,6 +73,8 @@ public struct CapsuleScene: Scene {
                 statsModel: statsModel,
                 imageBrowserModel: imageBrowserModel,
                 imageActionsModel: imageActionsModel,
+                volumeBrowserModel: volumeBrowserModel,
+                volumeActionsModel: volumeActionsModel,
                 taskCenter: taskCenter,
                 runModel: runModel,
                 buildModel: buildModel,

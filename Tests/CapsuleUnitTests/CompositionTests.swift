@@ -55,4 +55,14 @@ final class CompositionTests: XCTestCase {
         XCTAssertEqual(environment.copyModel.direction, .toContainer)
         XCTAssertTrue(environment.taskCenter.tasks.isEmpty)
     }
+
+    @MainActor
+    func testLiveEnvironmentExposesVolumeModels() {
+        let environment = AppEnvironment.live()
+
+        XCTAssertEqual(environment.volumeBrowserModel.loadState, .idle)
+        XCTAssertTrue(environment.volumeBrowserModel.allVolumes.isEmpty)
+        XCTAssertTrue(environment.volumeActionsModel.busy.isEmpty)
+        XCTAssertNil(environment.volumeActionsModel.notice)
+    }
 }

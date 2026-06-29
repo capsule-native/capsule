@@ -31,6 +31,8 @@ public struct AppEnvironment {
     public var statsModel: ContainerStatsModel
     public var imageBrowserModel: ImageBrowserModel
     public var imageActionsModel: ImageActionsModel
+    public var volumeBrowserModel: VolumeBrowserModel
+    public var volumeActionsModel: VolumeActionsModel
     public var taskCenter: TaskCenter
     public var registriesModel: RegistriesModel
     public var runModel: RunModel
@@ -50,6 +52,8 @@ public struct AppEnvironment {
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
+        volumeBrowserModel: VolumeBrowserModel,
+        volumeActionsModel: VolumeActionsModel,
         taskCenter: TaskCenter,
         registriesModel: RegistriesModel,
         runModel: RunModel,
@@ -68,6 +72,8 @@ public struct AppEnvironment {
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
+        self.volumeBrowserModel = volumeBrowserModel
+        self.volumeActionsModel = volumeActionsModel
         self.taskCenter = taskCenter
         self.registriesModel = registriesModel
         self.runModel = runModel
@@ -115,6 +121,17 @@ public struct AppEnvironment {
             onActivity: { line in shell.appendActivity(line) },
             reloadList: { await imageBrowserModel.refresh() },
             taskCenter: taskCenter
+        )
+        let volumeBrowserModel = VolumeBrowserModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) }
+        )
+        let volumeActionsModel = VolumeActionsModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) },
+            reloadList: { await volumeBrowserModel.refresh() }
         )
         let copyCommandToClipboard: @MainActor ([String]) -> Void = { argv in
             let command = argv.joined(separator: " ")
@@ -175,6 +192,8 @@ public struct AppEnvironment {
             statsModel: statsModel,
             imageBrowserModel: imageBrowserModel,
             imageActionsModel: imageActionsModel,
+            volumeBrowserModel: volumeBrowserModel,
+            volumeActionsModel: volumeActionsModel,
             taskCenter: taskCenter,
             registriesModel: registriesModel,
             runModel: runModel,

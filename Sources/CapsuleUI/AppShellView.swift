@@ -21,6 +21,8 @@ public struct AppShellView: View {
     let statsModel: ContainerStatsModel
     @Bindable var imageBrowserModel: ImageBrowserModel
     @Bindable var imageActionsModel: ImageActionsModel
+    @Bindable var volumeBrowserModel: VolumeBrowserModel
+    let volumeActionsModel: VolumeActionsModel
     @Bindable var taskCenter: TaskCenter
     @Bindable var runModel: RunModel
     @Bindable var buildModel: BuildModel
@@ -38,6 +40,8 @@ public struct AppShellView: View {
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
+        volumeBrowserModel: VolumeBrowserModel,
+        volumeActionsModel: VolumeActionsModel,
         taskCenter: TaskCenter,
         runModel: RunModel,
         buildModel: BuildModel,
@@ -54,6 +58,8 @@ public struct AppShellView: View {
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
+        self.volumeBrowserModel = volumeBrowserModel
+        self.volumeActionsModel = volumeActionsModel
         self.taskCenter = taskCenter
         self.runModel = runModel
         self.buildModel = buildModel
@@ -111,6 +117,16 @@ public struct AppShellView: View {
                 .padding(.top, 6)
             }
 
+            if let notice = volumeActionsModel.notice {
+                LifecycleNoticeView(
+                    notice: notice,
+                    onAction: { _ in volumeActionsModel.notice = nil },
+                    onForceStop: { _ in volumeActionsModel.notice = nil },
+                    onDismiss: { volumeActionsModel.notice = nil }
+                )
+                .padding(.top, 6)
+            }
+
             ContentColumnView(
                 section: shell.selection,
                 health: systemModel.health,
@@ -120,6 +136,8 @@ public struct AppShellView: View {
                 statsModel: statsModel,
                 imageBrowserModel: imageBrowserModel,
                 imageActionsModel: imageActionsModel,
+                volumeBrowserModel: volumeBrowserModel,
+                volumeActionsModel: volumeActionsModel,
                 runModel: runModel,
                 buildModel: buildModel,
                 logsModel: logsModel,
@@ -152,6 +170,8 @@ public struct AppShellView: View {
                     ContainerInspectorView(model: browserModel, stats: statsModel)
                 case .images:
                     ImageInspectorView(model: imageBrowserModel)
+                case .volumes:
+                    VolumeInspectorView(model: volumeBrowserModel)
                 default:
                     InspectorView(section: shell.selection)
                 }
