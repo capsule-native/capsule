@@ -91,6 +91,51 @@ public final class MachineActionsModel {
 
     public func canCreate(_ draft: MachineDraft) -> Bool { createProblem(draft) == nil }
 
+    // MARK: - Settings (set)
+
+    private func settings(from draft: MachineSettingsDraft) -> MachineSettings {
+        func trimmed(_ s: String) -> String? {
+            let t = s.trimmingCharacters(in: .whitespacesAndNewlines); return t.isEmpty ? nil : t
+        }
+        return MachineSettings(
+            cpus: trimmed(draft.cpus).flatMap(Int.init), memory: trimmed(draft.memory),
+            homeMount: trimmed(draft.homeMount))
+    }
+
+    public func settingsProblem(_ draft: MachineSettingsDraft) -> String? {
+        MachineValidation.cpusProblem(draft.cpus)
+            ?? MachineValidation.memoryProblem(draft.memory)
+            ?? MachineValidation.homeMountProblem(draft.homeMount)
+    }
+
+    public func settingsPreview(name: String?, draft: MachineSettingsDraft) -> String {
+        "container " + settings(from: draft).arguments(name: name).joined(separator: " ")
+    }
+
+    @discardableResult
+    public func apply(settings draft: MachineSettingsDraft, to name: String) async -> Bool {
+        if let problem = settingsProblem(draft) {
+            notice = LifecycleNotice(
+                detail: ErrorDetail(
+                    title: "Can\u{2019}t update settings", explanation: problem,
+                    recoveryActions: []))
+            return false
+        }
+        busy.insert(name); defer { busy.remove(name) }
+        do {
+            try await backend.setMachine(name: name, settings: settings(from: draft))
+            await reloadList()
+            pendingRestart.insert(name)
+            onActivity("Updated \u{201c}\(name)\u{201d}; restart to apply.")
+            return true
+        } catch {
+            notice = LifecycleNotice(detail: normalize(error).detail); return false
+        }
+    }
+
+    public func restartRequired(_ name: String) -> Bool { pendingRestart.contains(name) }
+    public func clearRestart(_ name: String) { pendingRestart.remove(name) }
+
     // MARK: - Create
 
     @discardableResult
