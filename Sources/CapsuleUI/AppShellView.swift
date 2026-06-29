@@ -200,6 +200,8 @@ public struct AppShellView: View {
                     NetworkInspectorView(model: networkBrowserModel)
                 case .volumes:
                     VolumeInspectorView(model: volumeBrowserModel)
+                case .machines:
+                    MachineInspectorView(model: machineBrowserModel, actions: machineActionsModel)
                 default:
                     InspectorView(section: shell.selection)
                 }
