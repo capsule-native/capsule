@@ -207,6 +207,19 @@ public final class MachineActionsModel {
         openShell(name: name)
     }
 
+    // MARK: - Logs factory
+
+    /// Returns a pair of `LogsModel` instances pre-configured for machine logs:
+    /// one for the boot log (`boot == true`) and one for the session log (`boot == false`).
+    /// CapsuleUI calls this to avoid importing CapsuleBackend directly.
+    public func makeLogsModels() -> (boot: LogsModel, session: LogsModel) {
+        let boot = LogsModel(source: .machine(backend))
+        boot.boot = true
+        let session = LogsModel(source: .machine(backend))
+        session.boot = false
+        return (boot, session)
+    }
+
     // MARK: - Create
 
     @discardableResult

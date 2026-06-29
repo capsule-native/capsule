@@ -6,6 +6,7 @@
 //
 
 import XCTest
+
 @testable import CapsuleBackend
 @testable import CapsuleDomain
 
@@ -39,5 +40,12 @@ final class MachineActionsModelShellTests: XCTestCase {
             currentState: { _ in .running }, terminalAvailable: { true }, launchTerminal: { _ in })
         a.openShell(name: "dev")
         XCTAssertNil(a.banner)
+    }
+
+    func test_makeLogsModels_bootSplit() {
+        let a = MachineActionsModel(backend: MockBackend(machines: []), reloadList: {})
+        let pair = a.makeLogsModels()
+        XCTAssertTrue(pair.boot.boot)
+        XCTAssertFalse(pair.session.boot)
     }
 }

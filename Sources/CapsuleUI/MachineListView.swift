@@ -49,9 +49,11 @@ struct MachineListView: View {
                         .padding()
                     }
                 case let .logs(name):
-                    // Placeholder — replaced by MachineLogsSheet in Task G1
-                    Text("Logs for \(name)")
-                        .padding()
+                    MachineLogsView(
+                        name: name,
+                        models: actions.makeLogsModels(),
+                        onClose: { activeSheet = nil }
+                    )
                 case let .confirm(request):
                     ConfirmationSheet(
                         request: request,
