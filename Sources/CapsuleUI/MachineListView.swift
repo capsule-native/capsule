@@ -189,6 +189,17 @@ struct MachineListView: View {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
             .help("Reload machines")
+
+            Button(role: .destructive) {
+                let targets = machines(for: model.selection)
+                if let single = targets.first {
+                    activeSheet = .confirm(.deleteMachine(name: single.name))
+                }
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .disabled(model.selection.count != 1)
+            .help("Delete the selected machine")
         }
     }
 
