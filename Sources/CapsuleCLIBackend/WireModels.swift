@@ -274,3 +274,20 @@ struct CLIMachineRecord: Decodable {
 struct CLIBuilderRecord: Decodable {
     let state: String?
 }
+
+// MARK: - System df
+
+/// `container system df --format json` shape. Each category mixes item counts
+/// (`total`/`active`) with byte totals (`reclaimable`/`sizeInBytes`).
+struct CLIDiskUsageRecord: Decodable {
+    let images: Category
+    let containers: Category
+    let volumes: Category
+
+    struct Category: Decodable {
+        let total: Int
+        let active: Int
+        let reclaimable: Int
+        let sizeInBytes: Int
+    }
+}

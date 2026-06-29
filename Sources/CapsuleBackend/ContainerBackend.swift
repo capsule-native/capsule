@@ -41,6 +41,9 @@ public protocol ContainerBackend: Sendable {
     /// Stops the container system service (`container system stop`).
     func stopSystem() async throws
 
+    /// Disk usage for images, containers, and volumes (`system df`).
+    func systemDiskUsage() async throws -> StorageUsage
+
     // MARK: Containers
 
     /// Lists containers; when `all` is false only running containers are returned.

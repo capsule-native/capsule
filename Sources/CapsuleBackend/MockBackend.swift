@@ -25,6 +25,12 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     private var logLines: [OutputLine]
     private var systemRunStateValue: SystemRunState
     private var sampleStats: [ContainerStatsSample]
+    public var diskUsage = StorageUsage(
+        images: CategoryUsage(
+            total: 4, active: 1, sizeInBytes: 1_302_421_504, reclaimable: 974_934_016),
+        containers: CategoryUsage(
+            total: 1, active: 0, sizeInBytes: 454_991_872, reclaimable: 454_991_872),
+        volumes: CategoryUsage(total: 0, active: 0, sizeInBytes: 0, reclaimable: 0))
 
     /// When set, every `throws` command throws this instead of returning.
     public var failure: BackendError?
@@ -143,6 +149,8 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     public func stopSystem() async throws {
         try withState { $0.systemRunStateValue = .stopped }
     }
+
+    public func systemDiskUsage() async throws -> StorageUsage { try withState { $0.diskUsage } }
 
     public func capabilities() async throws -> BackendCapabilities {
         BackendCapabilities.derive(from: try await version())

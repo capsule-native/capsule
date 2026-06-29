@@ -540,4 +540,19 @@ final class CLIContainerBackendTests: XCTestCase {
             domains.first?.localhostIP, "the list output carries only names, no localhost IP")
         XCTAssertEqual(stub.lastCall, ["system", "dns", "list", "--format", "json"])
     }
+
+    // MARK: - M10: system df
+
+    func testSystemDiskUsageArgvAndDecode() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(
+            exitCode: 0,
+            stdout: String(decoding: Fixture.data("system-df"), as: UTF8.self),
+            stderr: "")
+        let backend = CLIContainerBackend(
+            executableURL: URL(fileURLWithPath: "/usr/bin/container"), runner: stub)
+        let usage = try await backend.systemDiskUsage()
+        XCTAssertEqual(stub.lastCall, ["system", "df", "--format", "json"])
+        XCTAssertEqual(usage.images.total, 4)
+    }
 }

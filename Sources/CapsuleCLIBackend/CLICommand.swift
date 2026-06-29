@@ -33,6 +33,10 @@ public enum CLICommand {
         ArgumentBuilder("system", "stop").arguments
     }
 
+    public static func systemDiskUsage() -> [String] {
+        ArgumentBuilder("system", "df").flag("--format", "json").arguments
+    }
+
     // MARK: - Containers
 
     public static func listContainers(all: Bool) -> [String] {

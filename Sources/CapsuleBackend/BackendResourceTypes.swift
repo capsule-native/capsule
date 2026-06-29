@@ -175,3 +175,33 @@ public struct BuilderStatus: Sendable, Equatable, Codable {
         self.isRunning = isRunning
     }
 }
+
+/// A backend's view of disk usage for one resource category (`system df`).
+/// `total`/`active` are item COUNTS; `sizeInBytes`/`reclaimable` are BYTES.
+public struct CategoryUsage: Sendable, Equatable, Codable {
+    public var total: Int
+    public var active: Int
+    public var sizeInBytes: Int
+    public var reclaimable: Int
+    public var inUseBytes: Int { max(0, sizeInBytes - reclaimable) }
+
+    public init(total: Int, active: Int, sizeInBytes: Int, reclaimable: Int) {
+        self.total = total
+        self.active = active
+        self.sizeInBytes = sizeInBytes
+        self.reclaimable = reclaimable
+    }
+}
+
+/// Disk usage across images, containers, and volumes (`container system df`).
+public struct StorageUsage: Sendable, Equatable, Codable {
+    public var images: CategoryUsage
+    public var containers: CategoryUsage
+    public var volumes: CategoryUsage
+
+    public init(images: CategoryUsage, containers: CategoryUsage, volumes: CategoryUsage) {
+        self.images = images
+        self.containers = containers
+        self.volumes = volumes
+    }
+}

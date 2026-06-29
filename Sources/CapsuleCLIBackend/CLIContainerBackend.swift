@@ -62,6 +62,11 @@ public struct CLIContainerBackend: ContainerBackend {
         _ = try await runChecked(CLICommand.stopSystem())
     }
 
+    public func systemDiskUsage() async throws -> StorageUsage {
+        let output = try await runChecked(CLICommand.systemDiskUsage())
+        return try OutputParser.parseDiskUsage(Data(output.stdout.utf8))
+    }
+
     // MARK: - Containers
 
     public func listContainers(all: Bool = false) async throws -> [ContainerSummary] {

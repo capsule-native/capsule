@@ -230,6 +230,26 @@ public enum OutputParser {
         return BuilderStatus(isRunning: running)
     }
 
+    // MARK: - System df
+
+    public static func parseDiskUsage(_ data: Data) throws -> StorageUsage {
+        let record: CLIDiskUsageRecord
+        do {
+            record = try decoder.decode(CLIDiskUsageRecord.self, from: data)
+        } catch {
+            throw BackendError.decodingFailed(String(describing: error))
+        }
+        func map(_ c: CLIDiskUsageRecord.Category) -> CategoryUsage {
+            CategoryUsage(
+                total: c.total, active: c.active,
+                sizeInBytes: c.sizeInBytes, reclaimable: c.reclaimable)
+        }
+        return StorageUsage(
+            images: map(record.images),
+            containers: map(record.containers),
+            volumes: map(record.volumes))
+    }
+
     // MARK: - Lenient decoding
 
     /// Decodes a JSON array element-by-element, dropping (rather than throwing on)

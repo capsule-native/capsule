@@ -281,6 +281,19 @@ final class OutputParserTests: XCTestCase {
         XCTAssertEqual(byName.first?.domain, "b.test")
     }
 
+    // MARK: - System df
+
+    func testParseDiskUsageSplitsCountsFromBytes() throws {
+        let usage = try OutputParser.parseDiskUsage(Fixture.data("system-df"))
+        XCTAssertEqual(usage.images.total, 4)
+        XCTAssertEqual(usage.images.active, 1)
+        XCTAssertEqual(usage.images.sizeInBytes, 1_302_421_504)
+        XCTAssertEqual(usage.images.reclaimable, 974_934_016)
+        XCTAssertEqual(usage.images.inUseBytes, 1_302_421_504 - 974_934_016)
+        XCTAssertEqual(usage.containers.total, 1)
+        XCTAssertEqual(usage.volumes.sizeInBytes, 0)
+    }
+
     // MARK: - Version
 
     func testParsesRealVersionWithClientAndServer() throws {
