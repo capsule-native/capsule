@@ -36,7 +36,11 @@ struct ContentColumnView: View {
             if section == .system {
                 SystemDetailView(health: health, actions: actions)
             } else if health.isRunning {
-                runningContent
+                if isGatedSurfaceUnavailable {
+                    unsupportedSurface
+                } else {
+                    runningContent
+                }
             } else {
                 healthState
             }
@@ -73,6 +77,32 @@ struct ContentColumnView: View {
             Label(section.title, systemImage: section.symbolName)
         } description: {
             Text("\(section.title) will appear here.")
+        }
+    }
+
+    /// True only for a running service whose build does not report the family of a *gated*
+    /// resource surface (volumes / networks). Containers / images / machines keep their own
+    /// routing untouched — this phase owns capability gating and scopes it to the two M8
+    /// surfaces, so the `runningContent` switch (and the arms Phases 3-4 added to it) is left
+    /// intact and the gate composes additively around its dispatch.
+    private var isGatedSurfaceUnavailable: Bool {
+        switch section {
+        case .volumes, .networks:
+            return !section.isEnabled(features: health.availableFeatures)
+        default:
+            return false
+        }
+    }
+
+    /// Shown when the service is running but this build does not report the section's family
+    /// (e.g. an OS / container build without `volumes` or `networks`). The whole surface —
+    /// list, Create…, Delete, Clean Up — is withheld rather than erroring on use, satisfying
+    /// the acceptance rule that unsupported families are hidden, not errored.
+    private var unsupportedSurface: some View {
+        ContentUnavailableView {
+            Label("\(section.title) unavailable", systemImage: "exclamationmark.octagon")
+        } description: {
+            Text("\(section.title) are not supported by the current container build.")
         }
     }
 
