@@ -12,6 +12,45 @@ import CapsuleBackend
 import Foundation
 import Observation
 
+// MARK: - LogSource
+
+/// A source-agnostic seam for log streaming and fetching. Lets `LogsModel` drive both
+/// container logs and machine logs through identical code paths.
+public struct LogSource: Sendable {
+    public var follow: @Sendable (String, Bool) -> AsyncThrowingStream<OutputLine, Error>
+    public var fetch: @Sendable (String, Int?, Bool) async throws -> [OutputLine]
+
+    public init(
+        follow: @escaping @Sendable (String, Bool) -> AsyncThrowingStream<OutputLine, Error>,
+        fetch: @escaping @Sendable (String, Int?, Bool) async throws -> [OutputLine]
+    ) {
+        self.follow = follow
+        self.fetch = fetch
+    }
+
+    /// A source that reads container logs via `followLogs` / `fetchLogs`.
+    public static func container(_ backend: any ContainerBackend) -> LogSource {
+        LogSource(
+            follow: { id, _ in backend.followLogs(container: id) },
+            fetch: { id, tail, boot in
+                try await backend.fetchLogs(container: id, tail: tail, boot: boot)
+            }
+        )
+    }
+
+    /// A source that reads machine logs via `followMachineLogs` / `fetchMachineLogs`.
+    public static func machine(_ backend: any ContainerBackend) -> LogSource {
+        LogSource(
+            follow: { id, boot in backend.followMachineLogs(id: id, boot: boot) },
+            fetch: { id, tail, boot in
+                try await backend.fetchMachineLogs(id: id, tail: tail, boot: boot)
+            }
+        )
+    }
+}
+
+// MARK: - LogsModel
+
 @MainActor
 @Observable
 public final class LogsModel {
@@ -23,12 +62,19 @@ public final class LogsModel {
     public var boot = false
     public var searchText = ""
 
-    private let backend: any ContainerBackend
+    private let source: LogSource
     private var nextLineID = 0
     private var task: Task<Void, Never>?
 
+    /// Primary initialiser: drives log capture through the given `LogSource`.
+    public init(source: LogSource) {
+        self.source = source
+    }
+
+    /// Back-compat convenience: uses a container log source backed by `backend`.
+    /// Existing call sites (container logs pane, detachable window) compile unchanged.
     public init(backend: any ContainerBackend) {
-        self.backend = backend
+        self.source = .container(backend)
     }
 
     /// The lines matching the current search (case-insensitive substring); all lines when the
@@ -52,10 +98,10 @@ public final class LogsModel {
         nextLineID = 0
         if follow {
             isStreaming = true
-            task = Task { [weak self, backend] in
+            task = Task { [weak self, source, boot] in
                 guard let self else { return }
                 do {
-                    for try await line in backend.followLogs(container: id) {
+                    for try await line in source.follow(id, boot) {
                         self.append(line)
                     }
                 } catch {
@@ -66,10 +112,10 @@ public final class LogsModel {
                 if !Task.isCancelled { self.isStreaming = false }
             }
         } else {
-            task = Task { [weak self, backend, tail, boot] in
+            task = Task { [weak self, source, tail, boot] in
                 guard let self else { return }
                 let fetched =
-                    (try? await backend.fetchLogs(container: id, tail: tail, boot: boot)) ?? []
+                    (try? await source.fetch(id, tail, boot)) ?? []
                 for line in fetched { self.append(line) }
             }
         }
