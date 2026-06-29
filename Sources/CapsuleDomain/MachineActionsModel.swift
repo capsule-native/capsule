@@ -136,6 +136,28 @@ public final class MachineActionsModel {
     public func restartRequired(_ name: String) -> Bool { pendingRestart.contains(name) }
     public func clearRestart(_ name: String) { pendingRestart.remove(name) }
 
+    // MARK: - Stop + Delete
+
+    public func stop(_ name: String) async {
+        busy.insert(name); defer { busy.remove(name) }
+        do {
+            try await backend.stopMachine(id: name)
+            pendingRestart.remove(name)
+            onActivity("Stopped machine \u{201c}\(name)\u{201d}.")
+            banner = MachineBanner(kind: .stopped(name: name))
+        } catch { notice = LifecycleNotice(detail: normalize(error).detail) }
+    }
+
+    public func delete(_ name: String) async {
+        busy.insert(name); defer { busy.remove(name) }
+        do {
+            try await backend.deleteMachine(id: name)
+            pendingRestart.remove(name)
+            await reloadList()
+            onActivity("Deleted machine \u{201c}\(name)\u{201d}.")
+        } catch { notice = LifecycleNotice(detail: normalize(error).detail) }
+    }
+
     // MARK: - Set-default + revert
 
     @discardableResult
