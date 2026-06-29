@@ -30,6 +30,7 @@ public struct CapsuleScene: Scene {
     @State private var volumeActionsModel: VolumeActionsModel
     @State private var taskCenter: TaskCenter
     @State private var registriesModel: RegistriesModel
+    @State private var dnsModel: DNSModel
     @State private var runModel: RunModel
     @State private var buildModel: BuildModel
     @State private var logsModel: LogsModel
@@ -57,6 +58,7 @@ public struct CapsuleScene: Scene {
         self._volumeActionsModel = State(initialValue: environment.volumeActionsModel)
         self._taskCenter = State(initialValue: environment.taskCenter)
         self._registriesModel = State(initialValue: environment.registriesModel)
+        self._dnsModel = State(initialValue: environment.dnsModel)
         self._runModel = State(initialValue: environment.runModel)
         self._buildModel = State(initialValue: environment.buildModel)
         self._logsModel = State(initialValue: environment.logsModel)
@@ -104,7 +106,7 @@ public struct CapsuleScene: Scene {
         }
 
         Settings {
-            PreferencesView(registriesModel: registriesModel)
+            PreferencesView(registriesModel: registriesModel, dnsModel: dnsModel)
         }
     }
 }
