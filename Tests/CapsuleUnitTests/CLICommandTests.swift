@@ -162,4 +162,29 @@ final class CLICommandTests: XCTestCase {
         XCTAssertEqual(CLICommand.startSystem(), ["system", "start"])
         XCTAssertEqual(CLICommand.stopSystem(), ["system", "stop"])
     }
+
+    func testVolumeCommands() {
+        XCTAssertEqual(
+            CLICommand.inspectVolume(names: ["a", "b"]), ["volume", "inspect", "a", "b"])
+        let createConfig = VolumeConfiguration(name: "data", size: "1G")
+        XCTAssertEqual(CLICommand.createVolume(createConfig), createConfig.arguments)
+        XCTAssertEqual(
+            CLICommand.createVolume(createConfig), ["volume", "create", "-s", "1G", "data"])
+        XCTAssertEqual(
+            CLICommand.deleteVolumes(names: ["a", "b"]), ["volume", "delete", "a", "b"])
+        XCTAssertEqual(CLICommand.pruneVolumes(), ["volume", "prune"])
+    }
+
+    func testNetworkCommands() {
+        XCTAssertEqual(CLICommand.inspectNetwork(names: ["n1"]), ["network", "inspect", "n1"])
+        let createConfig = NetworkConfiguration(name: "app-net", subnet: "10.0.0.0/24")
+        XCTAssertEqual(CLICommand.createNetwork(createConfig), createConfig.arguments)
+        XCTAssertEqual(
+            CLICommand.deleteNetworks(names: ["n1", "n2"]), ["network", "delete", "n1", "n2"])
+        XCTAssertEqual(CLICommand.pruneNetworks(), ["network", "prune"])
+    }
+
+    func testDNSListCommand() {
+        XCTAssertEqual(CLICommand.listDNSDomains(), ["system", "dns", "list", "--format", "json"])
+    }
 }

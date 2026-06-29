@@ -193,4 +193,48 @@ public enum CLICommand {
     public static func builderStatus() -> [String] {
         ArgumentBuilder("builder", "status").flag("--format", "json").arguments
     }
+
+    // MARK: - Volume mutation / inspection
+
+    public static func inspectVolume(names: [String]) -> [String] {
+        // `container volume inspect` does not accept `--format`; it emits JSON by default.
+        ArgumentBuilder("volume", "inspect").adding(contentsOf: names).arguments
+    }
+
+    public static func createVolume(_ config: VolumeConfiguration) -> [String] {
+        config.arguments
+    }
+
+    public static func deleteVolumes(names: [String]) -> [String] {
+        ArgumentBuilder("volume", "delete").adding(contentsOf: names).arguments
+    }
+
+    public static func pruneVolumes() -> [String] {
+        ArgumentBuilder("volume", "prune").arguments
+    }
+
+    // MARK: - Network mutation / inspection
+
+    public static func inspectNetwork(names: [String]) -> [String] {
+        // `container network inspect` does not accept `--format`; it emits JSON by default.
+        ArgumentBuilder("network", "inspect").adding(contentsOf: names).arguments
+    }
+
+    public static func createNetwork(_ config: NetworkConfiguration) -> [String] {
+        config.arguments
+    }
+
+    public static func deleteNetworks(names: [String]) -> [String] {
+        ArgumentBuilder("network", "delete").adding(contentsOf: names).arguments
+    }
+
+    public static func pruneNetworks() -> [String] {
+        ArgumentBuilder("network", "prune").arguments
+    }
+
+    // MARK: - DNS (list only; create/delete are privileged via DNSConfiguration)
+
+    public static func listDNSDomains() -> [String] {
+        ArgumentBuilder("system", "dns", "list").flag("--format", "json").arguments
+    }
 }
