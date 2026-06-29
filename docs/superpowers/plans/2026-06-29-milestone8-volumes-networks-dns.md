@@ -625,7 +625,7 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
 
 Extend `VolumeSummary`/`NetworkSummary`, add `DNSDomainSummary` (all new fields defaulted so call sites keep compiling); enrich the **volume/network** wire models to the real nested shapes pinned by the Task-1.1 fixtures and add `CLIDNSRecord`; and extend `OutputParser` with `parseVolumes`/`parseNetworks`/`parseDNS`. The failing tests are the decode assertions against the real fixtures.
 
-> **Ownership (binding):** this task does **NOT** touch `CLIContainerRecord`, `OutputParser.parseContainers`, or `ContainerSummary`. The container attachment data (`configuration.mounts[].source` / `configuration.networks[].network`, `ContainerSummary.volumeMounts`/`networkNames`) and its `containers-with-mounts` parse test are owned by Phase 2. Phase 1's wire/parser work is limited to volumes, networks, and DNS.
+> **Ownership (binding):** this task does **NOT** touch `CLIContainerRecord`, `OutputParser.parseContainers`, or `ContainerSummary`. The container attachment data (`configuration.mounts[].type.volume.name` / `configuration.networks[].network`, `ContainerSummary.volumeMounts`/`networkNames`) and its `containers-with-mounts` parse test are owned by Phase 2. Phase 1's wire/parser work is limited to volumes, networks, and DNS.
 
 > **Schema reconciliation (binding):** the live `container volume list --format json` nests fields under `configuration` (with `sizeInBytes`, `driver`, `format`, `creationDate`) and a top-level `id` — not the flat shape contract Appendix A §4.4 sketched. `CLIVolumeRecord` is internal to `CapsuleCLIBackend` (no cross-phase dependency), so it is pinned to the **real** nested shape while retaining flat `name`/`source` fallbacks, keeping the existing `OutputParserTests.testParsesPopulatedVolumeAndMachineAndRegistry` (flat input) green. The cross-phase contract — `VolumeSummary` and `OutputParser.parseVolumes` — is unchanged. The DNS primary key is `domainName` (pinned from the binary), with `domain`/`name` fallbacks per the contract's "accept either key."
 
@@ -1546,7 +1546,7 @@ This is a data-prep task (no Swift): create throwaway resources, capture a real 
 - Modify `Tests/CapsuleUnitTests/Fixtures/README.md` (add a provenance row)
 
 **Interfaces:**
-- Produces: the `containers-with-mounts.json` fixture, readable in tests via `Fixture.data("containers-with-mounts")`. It must contain at least one element whose `configuration.id == "capsule-fx"`, with `configuration.mounts[].source == "capsule-fx-vol"` and `configuration.networks[].network == "capsule-fx-net"`.
+- Produces: the `containers-with-mounts.json` fixture, readable in tests via `Fixture.data("containers-with-mounts")`. It must contain at least one element whose `configuration.id == "capsule-fx"`, with `configuration.mounts[].type.volume.name == "capsule-fx-vol"` and `configuration.networks[].network == "capsule-fx-net"`.
 
 > Prerequisite: the container system is running with a Linux kernel image available (the same prerequisite as the M5 live smoke). The capture runs the real CLI; it is not a unit test, so there is no RED/GREEN cycle.
 
@@ -1574,7 +1574,7 @@ This is a data-prep task (no Swift): create throwaway resources, capture a real 
 - [ ] **Step 3: Verify the pinned keys are actually present.** Run:
   ```bash
   jq -e '.[] | select(.configuration.id=="capsule-fx")
-              | (.configuration.mounts[0].source == "capsule-fx-vol")
+              | (.configuration.mounts[0].type.volume.name == "capsule-fx-vol")
                 and (any(.configuration.networks[]; .network == "capsule-fx-net"))' \
       Tests/CapsuleUnitTests/Fixtures/containers-with-mounts.json
   ```
@@ -1591,7 +1591,7 @@ This is a data-prep task (no Swift): create throwaway resources, capture a real 
 
 - [ ] **Step 5: Document provenance in the Fixtures README.** Append a row to the table in `Tests/CapsuleUnitTests/Fixtures/README.md`, after the `containers-ls.json` row:
   ```markdown
-  | `containers-with-mounts.json` | **Real capture** — `container list -a --format json` of a throwaway container (`capsule-fx`) mounting a named volume (`capsule-fx-vol`) and attached to a user network (`capsule-fx-net`), filtered with `jq` to that single container; the throwaway volume/network/container were deleted immediately after capture. Pins the `configuration.mounts[].source` / `configuration.networks[].network` keys behind the M8 attachment cross-reference (§5.5). |
+  | `containers-with-mounts.json` | **Real capture** — `container list -a --format json` of a throwaway container (`capsule-fx`) mounting a named volume (`capsule-fx-vol`) and attached to a user network (`capsule-fx-net`), filtered with `jq` to that single container; the throwaway volume/network/container were deleted immediately after capture. Pins the `configuration.mounts[].type.volume.name` / `configuration.networks[].network` keys behind the M8 attachment cross-reference (§5.5). |
   ```
 
 - [ ] **Step 6: Commit.**
@@ -1602,7 +1602,7 @@ This is a data-prep task (no Swift): create throwaway resources, capture a real 
 
 Real \`container list -a --format json\` capture of a throwaway container mounting a
 named volume and attached to a user network, filtered to that container, used to pin
-configuration.mounts[].source and configuration.networks[].network — the M8 attachment
+configuration.mounts[].type.volume.name and configuration.networks[].network — the M8 attachment
 cross-reference source. Throwaway volume/network/container deleted after capture.
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
@@ -1622,11 +1622,11 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
 - Produces:
   ```swift
   // ContainerSummary gains (appended LAST, both defaulted):
-  public var volumeMounts: [String]   // default []  (configuration.mounts[].source, non-nil)
+  public var volumeMounts: [String]   // default []  (configuration.mounts[].type.volume.name, non-nil)
   public var networkNames: [String]   // default []  (configuration.networks[].network)
   // init gains:  volumeMounts: [String] = [], networkNames: [String] = []
   // CLIContainerRecord.Configuration gains:
-  //   struct ConfiguredMount: Decodable { let source: String? };   let mounts: [ConfiguredMount]?
+  //   struct ConfiguredMount: Decodable { let type: MountType?; var volumeName: String? { type?.volume?.name } };   let mounts: [ConfiguredMount]?
   //   struct ConfiguredNetwork: Decodable { let network: String? }; let networks: [ConfiguredNetwork]?
   ```
 
@@ -1646,7 +1646,7 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
           "the throwaway capsule-fx container must be present in the fixture")
       XCTAssertTrue(
           fx.volumeMounts.contains("capsule-fx-vol"),
-          "configuration.mounts[].source must map to volumeMounts; got \(fx.volumeMounts)")
+          "configuration.mounts[].type.volume.name must map to volumeMounts; got \(fx.volumeMounts)")
       XCTAssertTrue(
           fx.networkNames.contains("capsule-fx-net"),
           "configuration.networks[].network must map to networkNames; got \(fx.networkNames)")
@@ -1681,7 +1681,7 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
       public var ip: String?
       /// The container's creation timestamp as the raw ISO-8601 string the CLI emits.
       public var createdAt: String?
-      /// The `source` of each `configuration.mounts[]` entry (named-volume mounts), used to
+      /// The volume name (`type.volume.name`) of each `configuration.mounts[]` entry that is a named-volume mount, used to
       /// cross-reference volumes against the containers using them. Empty when unmounted.
       public var volumeMounts: [String]
       /// The `network` of each `configuration.networks[]` entry, used to cross-reference
@@ -1712,8 +1712,9 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
           let image: ImageDescription
           let creationDate: String?
           // The CLI lists *configured* attachments here — the cross-reference source.
-          // `mounts[].source` is a named volume; the configured `networks[].network` is the
-          // network NAME (distinct from `Status.Attachment`, which carries addresses, not names).
+          // `mounts[].type.volume.name` is the attached volume name; the configured
+          // `networks[].network` is the network NAME (distinct from `Status.Attachment`,
+          // which carries addresses, not names).
           let mounts: [ConfiguredMount]?
           let networks: [ConfiguredNetwork]?
 
@@ -1722,7 +1723,16 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
           }
 
           struct ConfiguredMount: Decodable {
-              let source: String?
+              // A volume mount carries the volume NAME at `type.volume.name`.
+              // `source` is the host path (volume.img), NOT the name; bind mounts
+              // have no `type.volume`. Verified against the real CLI capture.
+              let type: MountType?
+              struct MountType: Decodable {
+                  let volume: VolumeRef?
+                  struct VolumeRef: Decodable { let name: String }
+              }
+              /// The attached volume's name, or nil for a non-volume (bind) mount.
+              var volumeName: String? { type?.volume?.name }
           }
 
           struct ConfiguredNetwork: Decodable {
@@ -1742,7 +1752,7 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
                   state: record.status.state,
                   ip: record.status.networks.lazy.compactMap(\.ipAddress).first,
                   createdAt: record.configuration.creationDate,
-                  volumeMounts: (record.configuration.mounts ?? []).compactMap(\.source),
+                  volumeMounts: (record.configuration.mounts ?? []).compactMap(\.volumeName),
                   networkNames: (record.configuration.networks ?? []).compactMap(\.network)
               )
           }
@@ -1751,7 +1761,7 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
 
 - [ ] **Step 6: Run it and confirm GREEN.**
   `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --filter OutputParserTests`
-  Expected PASS — both new tests pass (the real fixture proves `configuration.mounts[].source` → `volumeMounts` and `configuration.networks[].network` → `networkNames`); the pre-existing `testParsesContainerListIntoRows` / `testParsesEmptyContainerList` / `testSkipsMalformedContainerRowsInsteadOfFailingWholeList` still pass because `mounts`/`networks` are optional and default to `[]` when absent.
+  Expected PASS — both new tests pass (the real fixture proves `configuration.mounts[].type.volume.name` → `volumeMounts` and `configuration.networks[].network` → `networkNames`); the pre-existing `testParsesContainerListIntoRows` / `testParsesEmptyContainerList` / `testSkipsMalformedContainerRowsInsteadOfFailingWholeList` still pass because `mounts`/`networks` are optional and default to `[]` when absent.
 
 - [ ] **Step 7: Commit.**
   ```bash
@@ -1761,7 +1771,7 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
           Tests/CapsuleUnitTests/OutputParserTests.swift
   git commit -m "feat(m8): surface configured container mounts/networks on ContainerSummary
 
-Decode configuration.mounts[].source and configuration.networks[].network from
+Decode configuration.mounts[].type.volume.name and configuration.networks[].network from
 container list -a and carry them on ContainerSummary as defaulted volumeMounts/
 networkNames — the source data for the M8 attachment cross-reference. Keys are pinned
 against the real containers-with-mounts.json capture.
@@ -1820,7 +1830,7 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
       public var state: ContainerState
       public var ip: String?
       public var createdAt: Date?
-      /// Configured volume-mount sources (`configuration.mounts[].source`), mirrored from the
+      /// Configured volume-mount sources (`configuration.mounts[].type.volume.name`), mirrored from the
       /// backend summary so the attachment index can map volumes → containers.
       public var volumeMounts: [String]
       /// Configured network names (`configuration.networks[].network`), mirrored from the
@@ -1891,7 +1901,7 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
   ```swift
   public struct ContainerAttachmentInfo: Sendable, Equatable {
       public var containerName: String
-      public var volumeSources: [String]   // configuration.mounts[].source
+      public var volumeSources: [String]   // configuration.mounts[].type.volume.name
       public var networkNames: [String]    // configuration.networks[].network
       public init(containerName: String, volumeSources: [String], networkNames: [String])
       public init(container: Container)     // maps name/volumeMounts/networkNames
@@ -1954,7 +1964,7 @@ Claude-Session: https://claude.ai/code/session_01QRY8sjZCmM87FEsjo8A4he"
   import Foundation
 
   /// The attachment-relevant slice of a container, extracted from
-  /// `container list -a --format json` (`configuration.mounts[].source` and
+  /// `container list -a --format json` (`configuration.mounts[].type.volume.name` and
   /// `configuration.networks[].network`). This is the sole input to `AttachmentIndex`.
   public struct ContainerAttachmentInfo: Sendable, Equatable {
       public var containerName: String
@@ -8712,9 +8722,9 @@ func listDNSDomains() async throws -> [DNSDomainSummary]
 
 > **CONTRACT DECISION (prune return type):** Spec §4.1 wrote `pruneVolumes()/pruneNetworks()` as bare `async throws`, but §5.3 requires the model's `prune()` to surface "the CLI reclaimed message or 'Cleanup complete.'". To satisfy §5.3 and stay consistent with the existing `pruneContainers()`/`pruneImages(all:)` (both `-> PruneResult`), **the backend methods return `PruneResult`.** Implement them exactly like `pruneContainers()` (use `runner.run`, treat only a non-zero exit as failure, then `OutputParser.parsePruneResult(stdout:stderr:)`). The model maps `PruneResult` → `PruneSummary(message: result.reclaimedDescription ?? "Cleanup complete.")`.
 
-> **CONTRACT DECISION (attachment data on `ContainerSummary`):** §5.5 needs `configuration.mounts[].source` and `configuration.networks[].network` from `container list -a`. Extend `ContainerSummary` (backend) with two **defaulted** fields so existing call sites/tests keep compiling:
+> **CONTRACT DECISION (attachment data on `ContainerSummary`):** §5.5 needs `configuration.mounts[].type.volume.name` and `configuration.networks[].network` from `container list -a`. Extend `ContainerSummary` (backend) with two **defaulted** fields so existing call sites/tests keep compiling:
 > ```swift
-> public var volumeMounts: [String]   // default []  (configuration.mounts[].source, non-nil)
+> public var volumeMounts: [String]   // default []  (configuration.mounts[].type.volume.name, non-nil)
 > public var networkNames: [String]   // default []  (configuration.networks[].network)
 > // init gains:  volumeMounts: [String] = [], networkNames: [String] = []  (appended LAST)
 > ```
@@ -8862,7 +8872,7 @@ struct CLIDNSRecord: Decodable {          // lenient; pinned by Phase-1 dns-ls f
 }
 
 // CLIContainerRecord.Configuration GAINS (for the attachment cross-reference, §5.5):
-struct ConfiguredMount: Decodable { let source: String? }
+struct ConfiguredMount: Decodable { let type: MountType?; var volumeName: String? { type?.volume?.name } }  // volume name at type.volume.name; source is host path
 let mounts: [ConfiguredMount]?
 struct ConfiguredNetwork: Decodable { let network: String? }   // distinct from Status.Attachment
 let networks: [ConfiguredNetwork]?
@@ -9066,7 +9076,7 @@ public struct KeyValueRow: Sendable, Equatable, Identifiable {   // reusable adv
 ```swift
 public struct ContainerAttachmentInfo: Sendable, Equatable {
     public var containerName: String
-    public var volumeSources: [String]   // configuration.mounts[].source
+    public var volumeSources: [String]   // configuration.mounts[].type.volume.name
     public var networkNames: [String]    // configuration.networks[].network
     public init(containerName: String, volumeSources: [String], networkNames: [String])
     public init(container: Container)     // maps from the domain Container (name, volumeMounts, networkNames)

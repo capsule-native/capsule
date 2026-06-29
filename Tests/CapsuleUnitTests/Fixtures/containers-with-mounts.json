@@ -1,0 +1,114 @@
+[
+  {
+    "configuration": {
+      "capAdd": [],
+      "capDrop": [],
+      "creationDate": "2026-06-29T08:49:42Z",
+      "dns": {
+        "nameservers": [],
+        "options": [],
+        "searchDomains": []
+      },
+      "id": "capsule-fx",
+      "image": {
+        "descriptor": {
+          "digest": "sha256:ec4ed8b5299e5e90694af7750eb6dffd2627317d30544d056b0371f8082f7bce",
+          "mediaType": "application/vnd.oci.image.index.v1+json",
+          "size": 10229
+        },
+        "reference": "docker.io/library/nginx:latest"
+      },
+      "initProcess": {
+        "arguments": [
+          "nginx",
+          "-g",
+          "daemon off;"
+        ],
+        "environment": [
+          "NJS_VERSION=0.9.9",
+          "DYNPKG_RELEASE=1~trixie",
+          "PKG_RELEASE=1~trixie",
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "NJS_RELEASE=1~trixie",
+          "ACME_VERSION=0.4.1",
+          "NGINX_VERSION=1.31.2"
+        ],
+        "executable": "/docker-entrypoint.sh",
+        "rlimits": [],
+        "supplementalGroups": [],
+        "terminal": false,
+        "user": {
+          "id": {
+            "gid": 0,
+            "uid": 0
+          }
+        },
+        "workingDirectory": "/"
+      },
+      "labels": {},
+      "mounts": [
+        {
+          "destination": "/data",
+          "options": [],
+          "source": "/Users/baroman/Library/Application Support/com.apple.container/volumes/capsule-fx-vol/volume.img",
+          "type": {
+            "volume": {
+              "cache": {
+                "on": {}
+              },
+              "format": "ext4",
+              "name": "capsule-fx-vol",
+              "sync": {
+                "fsync": {}
+              }
+            }
+          }
+        }
+      ],
+      "networks": [
+        {
+          "network": "capsule-fx-net",
+          "options": {
+            "hostname": "capsule-fx",
+            "mtu": 1280
+          }
+        }
+      ],
+      "platform": {
+        "architecture": "arm64",
+        "os": "linux"
+      },
+      "publishedPorts": [],
+      "publishedSockets": [],
+      "readOnly": false,
+      "resources": {
+        "cpuOverhead": 1,
+        "cpus": 4,
+        "memoryInBytes": 1073741824
+      },
+      "rosetta": false,
+      "runtimeHandler": "container-runtime-linux",
+      "ssh": false,
+      "stopSignal": "SIGQUIT",
+      "sysctls": {},
+      "useInit": false,
+      "virtualization": false
+    },
+    "id": "capsule-fx",
+    "status": {
+      "networks": [
+        {
+          "hostname": "capsule-fx",
+          "ipv4Address": "10.89.0.2/24",
+          "ipv4Gateway": "10.89.0.1",
+          "ipv6Address": "fd28:8a15:c55d:6369:f080:39ff:fe65:1adc/64",
+          "macAddress": "f2:80:39:65:1a:dc",
+          "mtu": 1280,
+          "network": "capsule-fx-net"
+        }
+      ],
+      "startedDate": "2026-06-29T08:49:43Z",
+      "state": "running"
+    }
+  }
+]
