@@ -31,4 +31,20 @@ final class MachineConfigurationTests: XCTestCase {
                 "ubuntu:24.04",
             ])
     }
+
+    func test_settings_nameAndTokens() {
+        let s = MachineSettings(cpus: 4, memory: "8G", homeMount: "ro")
+        XCTAssertEqual(
+            s.arguments(name: "dev"),
+            ["machine", "set", "--name", "dev", "cpus=4", "memory=8G", "home-mount=ro"])
+    }
+
+    func test_settings_omitName_partial() {
+        let s = MachineSettings(memory: "2G")
+        XCTAssertEqual(
+            s.arguments(name: nil),
+            ["machine", "set", "memory=2G"])
+        XCTAssertFalse(s.isEmpty)
+        XCTAssertTrue(MachineSettings().isEmpty)
+    }
 }
