@@ -183,7 +183,10 @@ struct NetworkListView: View {
     private func performConfirmed(_ request: ConfirmationRequest) {
         switch request.kind {
         case .deleteNetwork:
-            let names = request.targetIDs
+            let names = request.targetIDs.filter { name in
+                !model.allNetworks.contains { $0.name == name && $0.isBuiltin }
+            }
+            guard !names.isEmpty else { return }
             Task {
                 if names.count == 1 {
                     await actions.delete(name: names[0])
