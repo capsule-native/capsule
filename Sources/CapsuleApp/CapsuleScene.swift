@@ -26,6 +26,8 @@ public struct CapsuleScene: Scene {
     @State private var imageActionsModel: ImageActionsModel
     @State private var networkBrowserModel: NetworkBrowserModel
     @State private var networkActionsModel: NetworkActionsModel
+    @State private var machineBrowserModel: MachineBrowserModel
+    @State private var machineActionsModel: MachineActionsModel
     @State private var volumeBrowserModel: VolumeBrowserModel
     @State private var volumeActionsModel: VolumeActionsModel
     @State private var taskCenter: TaskCenter
@@ -54,6 +56,8 @@ public struct CapsuleScene: Scene {
         self._imageActionsModel = State(initialValue: environment.imageActionsModel)
         self._networkBrowserModel = State(initialValue: environment.networkBrowserModel)
         self._networkActionsModel = State(initialValue: environment.networkActionsModel)
+        self._machineBrowserModel = State(initialValue: environment.machineBrowserModel)
+        self._machineActionsModel = State(initialValue: environment.machineActionsModel)
         self._volumeBrowserModel = State(initialValue: environment.volumeBrowserModel)
         self._volumeActionsModel = State(initialValue: environment.volumeActionsModel)
         self._taskCenter = State(initialValue: environment.taskCenter)
@@ -81,6 +85,8 @@ public struct CapsuleScene: Scene {
                 imageActionsModel: imageActionsModel,
                 networkBrowserModel: networkBrowserModel,
                 networkActionsModel: networkActionsModel,
+                machineBrowserModel: machineBrowserModel,
+                machineActionsModel: machineActionsModel,
                 volumeBrowserModel: volumeBrowserModel,
                 volumeActionsModel: volumeActionsModel,
                 taskCenter: taskCenter,

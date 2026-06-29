@@ -33,6 +33,8 @@ public struct AppEnvironment {
     public var imageActionsModel: ImageActionsModel
     public var networkBrowserModel: NetworkBrowserModel
     public var networkActionsModel: NetworkActionsModel
+    public var machineBrowserModel: MachineBrowserModel
+    public var machineActionsModel: MachineActionsModel
     public var volumeBrowserModel: VolumeBrowserModel
     public var volumeActionsModel: VolumeActionsModel
     public var taskCenter: TaskCenter
@@ -57,6 +59,8 @@ public struct AppEnvironment {
         imageActionsModel: ImageActionsModel,
         networkBrowserModel: NetworkBrowserModel,
         networkActionsModel: NetworkActionsModel,
+        machineBrowserModel: MachineBrowserModel,
+        machineActionsModel: MachineActionsModel,
         volumeBrowserModel: VolumeBrowserModel,
         volumeActionsModel: VolumeActionsModel,
         taskCenter: TaskCenter,
@@ -80,6 +84,8 @@ public struct AppEnvironment {
         self.imageActionsModel = imageActionsModel
         self.networkBrowserModel = networkBrowserModel
         self.networkActionsModel = networkActionsModel
+        self.machineBrowserModel = machineBrowserModel
+        self.machineActionsModel = machineActionsModel
         self.volumeBrowserModel = volumeBrowserModel
         self.volumeActionsModel = volumeActionsModel
         self.taskCenter = taskCenter
@@ -153,6 +159,11 @@ public struct AppEnvironment {
             onActivity: { line in shell.appendActivity(line) },
             reloadList: { await volumeBrowserModel.refresh() }
         )
+        let machineBrowserModel = MachineBrowserModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) }
+        )
         let copyCommandToClipboard: @MainActor ([String]) -> Void = { argv in
             let command = argv.joined(separator: " ")
             let pasteboard = NSPasteboard.general
@@ -192,6 +203,19 @@ public struct AppEnvironment {
             openExternalTerminal: openInTerminalApp,
             taskCenter: taskCenter
         )
+        let machineActionsModel = MachineActionsModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) },
+            reloadList: { await machineBrowserModel.refresh() },
+            currentState: { name in
+                machineBrowserModel.allMachines.first { $0.name == name }?.state ?? .unknown
+            },
+            terminalAvailable: { true },
+            copyCommand: copyCommandToClipboard,
+            launchTerminal: { request in shell.openTerminal(request) },
+            taskCenter: taskCenter
+        )
         let runModel = RunModel(
             backend: backend,
             taskCenter: taskCenter,
@@ -228,6 +252,8 @@ public struct AppEnvironment {
             imageActionsModel: imageActionsModel,
             networkBrowserModel: networkBrowserModel,
             networkActionsModel: networkActionsModel,
+            machineBrowserModel: machineBrowserModel,
+            machineActionsModel: machineActionsModel,
             volumeBrowserModel: volumeBrowserModel,
             volumeActionsModel: volumeActionsModel,
             taskCenter: taskCenter,

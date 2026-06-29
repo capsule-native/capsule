@@ -23,6 +23,8 @@ public struct AppShellView: View {
     @Bindable var imageActionsModel: ImageActionsModel
     @Bindable var networkBrowserModel: NetworkBrowserModel
     @Bindable var networkActionsModel: NetworkActionsModel
+    @Bindable var machineBrowserModel: MachineBrowserModel
+    @Bindable var machineActionsModel: MachineActionsModel
     @Bindable var volumeBrowserModel: VolumeBrowserModel
     let volumeActionsModel: VolumeActionsModel
     @Bindable var taskCenter: TaskCenter
@@ -44,6 +46,8 @@ public struct AppShellView: View {
         imageActionsModel: ImageActionsModel,
         networkBrowserModel: NetworkBrowserModel,
         networkActionsModel: NetworkActionsModel,
+        machineBrowserModel: MachineBrowserModel,
+        machineActionsModel: MachineActionsModel,
         volumeBrowserModel: VolumeBrowserModel,
         volumeActionsModel: VolumeActionsModel,
         taskCenter: TaskCenter,
@@ -64,6 +68,8 @@ public struct AppShellView: View {
         self.imageActionsModel = imageActionsModel
         self.networkBrowserModel = networkBrowserModel
         self.networkActionsModel = networkActionsModel
+        self.machineBrowserModel = machineBrowserModel
+        self.machineActionsModel = machineActionsModel
         self.volumeBrowserModel = volumeBrowserModel
         self.volumeActionsModel = volumeActionsModel
         self.taskCenter = taskCenter
@@ -154,6 +160,8 @@ public struct AppShellView: View {
                 imageActionsModel: imageActionsModel,
                 networkBrowserModel: networkBrowserModel,
                 networkActionsModel: networkActionsModel,
+                machineBrowserModel: machineBrowserModel,
+                machineActionsModel: machineActionsModel,
                 volumeBrowserModel: volumeBrowserModel,
                 volumeActionsModel: volumeActionsModel,
                 runModel: runModel,

@@ -22,6 +22,8 @@ struct ContentColumnView: View {
     let imageActionsModel: ImageActionsModel
     let networkBrowserModel: NetworkBrowserModel
     let networkActionsModel: NetworkActionsModel
+    let machineBrowserModel: MachineBrowserModel
+    let machineActionsModel: MachineActionsModel
     let volumeBrowserModel: VolumeBrowserModel
     let volumeActionsModel: VolumeActionsModel
     let runModel: RunModel
@@ -65,6 +67,8 @@ struct ContentColumnView: View {
             VolumeListView(model: volumeBrowserModel, actions: volumeActionsModel)
         case .networks:
             NetworkListView(model: networkBrowserModel, actions: networkActionsModel)
+        case .machines:
+            MachineListView(model: machineBrowserModel, actions: machineActionsModel)
         default:
             resourcePlaceholder
         }
