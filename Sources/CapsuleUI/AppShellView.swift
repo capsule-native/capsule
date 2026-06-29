@@ -21,6 +21,8 @@ public struct AppShellView: View {
     let statsModel: ContainerStatsModel
     @Bindable var imageBrowserModel: ImageBrowserModel
     @Bindable var imageActionsModel: ImageActionsModel
+    @Bindable var networkBrowserModel: NetworkBrowserModel
+    @Bindable var networkActionsModel: NetworkActionsModel
     @Bindable var volumeBrowserModel: VolumeBrowserModel
     let volumeActionsModel: VolumeActionsModel
     @Bindable var taskCenter: TaskCenter
@@ -40,6 +42,8 @@ public struct AppShellView: View {
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
+        networkBrowserModel: NetworkBrowserModel,
+        networkActionsModel: NetworkActionsModel,
         volumeBrowserModel: VolumeBrowserModel,
         volumeActionsModel: VolumeActionsModel,
         taskCenter: TaskCenter,
@@ -58,6 +62,8 @@ public struct AppShellView: View {
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
+        self.networkBrowserModel = networkBrowserModel
+        self.networkActionsModel = networkActionsModel
         self.volumeBrowserModel = volumeBrowserModel
         self.volumeActionsModel = volumeActionsModel
         self.taskCenter = taskCenter
@@ -117,6 +123,16 @@ public struct AppShellView: View {
                 .padding(.top, 6)
             }
 
+            if let notice = networkActionsModel.notice {
+                LifecycleNoticeView(
+                    notice: notice,
+                    onAction: { _ in networkActionsModel.notice = nil },
+                    onForceStop: { _ in networkActionsModel.notice = nil },
+                    onDismiss: { networkActionsModel.notice = nil }
+                )
+                .padding(.top, 6)
+            }
+
             if let notice = volumeActionsModel.notice {
                 LifecycleNoticeView(
                     notice: notice,
@@ -136,6 +152,8 @@ public struct AppShellView: View {
                 statsModel: statsModel,
                 imageBrowserModel: imageBrowserModel,
                 imageActionsModel: imageActionsModel,
+                networkBrowserModel: networkBrowserModel,
+                networkActionsModel: networkActionsModel,
                 volumeBrowserModel: volumeBrowserModel,
                 volumeActionsModel: volumeActionsModel,
                 runModel: runModel,
@@ -170,6 +188,8 @@ public struct AppShellView: View {
                     ContainerInspectorView(model: browserModel, stats: statsModel)
                 case .images:
                     ImageInspectorView(model: imageBrowserModel)
+                case .networks:
+                    NetworkInspectorView(model: networkBrowserModel)
                 case .volumes:
                     VolumeInspectorView(model: volumeBrowserModel)
                 default:

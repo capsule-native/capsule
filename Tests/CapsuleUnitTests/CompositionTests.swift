@@ -65,4 +65,14 @@ final class CompositionTests: XCTestCase {
         XCTAssertTrue(environment.volumeActionsModel.busy.isEmpty)
         XCTAssertNil(environment.volumeActionsModel.notice)
     }
+
+    @MainActor
+    func testLiveEnvironmentBuildsNetworkModels() {
+        let environment = AppEnvironment.live()
+
+        XCTAssertEqual(environment.networkBrowserModel.loadState, .idle)
+        XCTAssertTrue(environment.networkBrowserModel.allNetworks.isEmpty)
+        XCTAssertTrue(environment.networkActionsModel.busy.isEmpty)
+        XCTAssertNil(environment.networkActionsModel.notice)
+    }
 }

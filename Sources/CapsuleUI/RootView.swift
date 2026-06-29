@@ -23,6 +23,8 @@ public struct RootView: View {
     private let statsModel: ContainerStatsModel
     private let imageBrowserModel: ImageBrowserModel
     private let imageActionsModel: ImageActionsModel
+    private let networkBrowserModel: NetworkBrowserModel
+    private let networkActionsModel: NetworkActionsModel
     private let volumeBrowserModel: VolumeBrowserModel
     private let volumeActionsModel: VolumeActionsModel
     private let taskCenter: TaskCenter
@@ -44,6 +46,8 @@ public struct RootView: View {
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
+        networkBrowserModel: NetworkBrowserModel,
+        networkActionsModel: NetworkActionsModel,
         volumeBrowserModel: VolumeBrowserModel,
         volumeActionsModel: VolumeActionsModel,
         taskCenter: TaskCenter,
@@ -62,6 +66,8 @@ public struct RootView: View {
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
+        self.networkBrowserModel = networkBrowserModel
+        self.networkActionsModel = networkActionsModel
         self.volumeBrowserModel = volumeBrowserModel
         self.volumeActionsModel = volumeActionsModel
         self.taskCenter = taskCenter
@@ -83,6 +89,8 @@ public struct RootView: View {
             statsModel: statsModel,
             imageBrowserModel: imageBrowserModel,
             imageActionsModel: imageActionsModel,
+            networkBrowserModel: networkBrowserModel,
+            networkActionsModel: networkActionsModel,
             volumeBrowserModel: volumeBrowserModel,
             volumeActionsModel: volumeActionsModel,
             taskCenter: taskCenter,

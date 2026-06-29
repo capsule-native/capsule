@@ -31,6 +31,8 @@ public struct AppEnvironment {
     public var statsModel: ContainerStatsModel
     public var imageBrowserModel: ImageBrowserModel
     public var imageActionsModel: ImageActionsModel
+    public var networkBrowserModel: NetworkBrowserModel
+    public var networkActionsModel: NetworkActionsModel
     public var volumeBrowserModel: VolumeBrowserModel
     public var volumeActionsModel: VolumeActionsModel
     public var taskCenter: TaskCenter
@@ -52,6 +54,8 @@ public struct AppEnvironment {
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
+        networkBrowserModel: NetworkBrowserModel,
+        networkActionsModel: NetworkActionsModel,
         volumeBrowserModel: VolumeBrowserModel,
         volumeActionsModel: VolumeActionsModel,
         taskCenter: TaskCenter,
@@ -72,6 +76,8 @@ public struct AppEnvironment {
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
+        self.networkBrowserModel = networkBrowserModel
+        self.networkActionsModel = networkActionsModel
         self.volumeBrowserModel = volumeBrowserModel
         self.volumeActionsModel = volumeActionsModel
         self.taskCenter = taskCenter
@@ -121,6 +127,17 @@ public struct AppEnvironment {
             onActivity: { line in shell.appendActivity(line) },
             reloadList: { await imageBrowserModel.refresh() },
             taskCenter: taskCenter
+        )
+        let networkBrowserModel = NetworkBrowserModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) }
+        )
+        let networkActionsModel = NetworkActionsModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) },
+            reloadList: { await networkBrowserModel.refresh() }
         )
         let volumeBrowserModel = VolumeBrowserModel(
             backend: backend,
@@ -192,6 +209,8 @@ public struct AppEnvironment {
             statsModel: statsModel,
             imageBrowserModel: imageBrowserModel,
             imageActionsModel: imageActionsModel,
+            networkBrowserModel: networkBrowserModel,
+            networkActionsModel: networkActionsModel,
             volumeBrowserModel: volumeBrowserModel,
             volumeActionsModel: volumeActionsModel,
             taskCenter: taskCenter,

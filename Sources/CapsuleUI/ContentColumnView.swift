@@ -20,6 +20,8 @@ struct ContentColumnView: View {
     let statsModel: ContainerStatsModel
     let imageBrowserModel: ImageBrowserModel
     let imageActionsModel: ImageActionsModel
+    let networkBrowserModel: NetworkBrowserModel
+    let networkActionsModel: NetworkActionsModel
     let volumeBrowserModel: VolumeBrowserModel
     let volumeActionsModel: VolumeActionsModel
     let runModel: RunModel
@@ -57,6 +59,8 @@ struct ContentColumnView: View {
                 buildModel: buildModel)
         case .volumes:
             VolumeListView(model: volumeBrowserModel, actions: volumeActionsModel)
+        case .networks:
+            NetworkListView(model: networkBrowserModel, actions: networkActionsModel)
         default:
             resourcePlaceholder
         }
