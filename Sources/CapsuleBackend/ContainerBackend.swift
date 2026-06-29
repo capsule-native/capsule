@@ -47,6 +47,12 @@ public protocol ContainerBackend: Sendable {
     /// Full component list from `container system version` (client, apiserver, …).
     func systemComponentVersions() async throws -> [ComponentVersion]
 
+    /// Merged system properties as structured sections (`container system property list --format json`).
+    func systemProperties() async throws -> SystemProperties
+
+    /// Raw TOML text from `container system property list` (verbatim stdout, for editor/export).
+    func systemPropertiesTOML() async throws -> String
+
     // MARK: Containers
 
     /// Lists containers; when `all` is false only running containers are returned.

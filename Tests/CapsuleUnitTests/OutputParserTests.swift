@@ -325,4 +325,18 @@ final class OutputParserTests: XCTestCase {
             comps[1].version,
             "container-apiserver version 1.0.0 (build: release, commit: ee848e3)")
     }
+
+    // MARK: - System properties
+
+    func testParsePropertiesFlattensSectionsSorted() throws {
+        let props = try OutputParser.parseProperties(Fixture.data("property-list"))
+        XCTAssertEqual(
+            props.sections.map(\.name),
+            ["build", "container", "dns", "kernel", "machine", "network", "registry", "vminit"])
+        let kernel = props.sections.first { $0.name == "kernel" }!
+        XCTAssertEqual(kernel.entries.map(\.key), ["binaryPath", "url"])
+        let build = props.sections.first { $0.name == "build" }!
+        XCTAssertEqual(build.entries.first { $0.key == "rosetta" }?.value, "true")
+        XCTAssertEqual(build.entries.first { $0.key == "cpus" }?.value, "2")
+    }
 }

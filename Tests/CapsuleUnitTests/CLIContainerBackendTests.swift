@@ -570,4 +570,30 @@ final class CLIContainerBackendTests: XCTestCase {
         XCTAssertEqual(stub.lastCall, ["system", "version", "--format", "json"])
         XCTAssertEqual(comps.count, 2)
     }
+
+    // MARK: - M10: system property list
+
+    func testSystemPropertiesJSONArgvAndDecode() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(
+            exitCode: 0,
+            stdout: String(decoding: Fixture.data("property-list"), as: UTF8.self),
+            stderr: "")
+        let backend = CLIContainerBackend(
+            executableURL: URL(fileURLWithPath: "/usr/bin/container"), runner: stub)
+        let props = try await backend.systemProperties()
+        XCTAssertEqual(stub.lastCall, ["system", "property", "list", "--format", "json"])
+        XCTAssertFalse(props.sections.isEmpty)
+        XCTAssertNotNil(props.section("kernel"))
+    }
+
+    func testSystemPropertiesTOMLArgv() async throws {
+        let stub = StubProcessRunner()
+        stub.result = CommandResult(exitCode: 0, stdout: "[build]\ncpus = 2\n", stderr: "")
+        let backend = CLIContainerBackend(
+            executableURL: URL(fileURLWithPath: "/usr/bin/container"), runner: stub)
+        let toml = try await backend.systemPropertiesTOML()
+        XCTAssertEqual(stub.lastCall, ["system", "property", "list"])
+        XCTAssertTrue(toml.contains("[build]"))
+    }
 }

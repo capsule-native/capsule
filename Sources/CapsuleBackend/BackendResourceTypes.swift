@@ -221,3 +221,25 @@ public struct StorageUsage: Sendable, Equatable, Codable {
         self.volumes = volumes
     }
 }
+
+/// One key/value within a property section, rendered to a display string.
+public struct PropertyEntry: Sendable, Equatable, Codable {
+    public var key: String
+    public var value: String
+    public init(key: String, value: String) { self.key = key; self.value = value }
+}
+
+/// A `[section]` of merged system properties.
+public struct PropertySection: Sendable, Equatable, Identifiable, Codable {
+    public var id: String { name }
+    public var name: String
+    public var entries: [PropertyEntry]
+    public init(name: String, entries: [PropertyEntry]) { self.name = name; self.entries = entries }
+}
+
+/// Merged system properties (`container system property list`), read-only.
+public struct SystemProperties: Sendable, Equatable, Codable {
+    public var sections: [PropertySection]
+    public init(sections: [PropertySection]) { self.sections = sections }
+    public func section(_ name: String) -> PropertySection? { sections.first { $0.name == name } }
+}

@@ -72,6 +72,15 @@ public struct CLIContainerBackend: ContainerBackend {
         return try OutputParser.parseComponentVersions(Data(output.stdout.utf8))
     }
 
+    public func systemProperties() async throws -> SystemProperties {
+        let output = try await runChecked(CLICommand.systemPropertiesJSON())
+        return try OutputParser.parseProperties(Data(output.stdout.utf8))
+    }
+
+    public func systemPropertiesTOML() async throws -> String {
+        try await runChecked(CLICommand.systemPropertiesTOML()).stdout
+    }
+
     // MARK: - Containers
 
     public func listContainers(all: Bool = false) async throws -> [ContainerSummary] {

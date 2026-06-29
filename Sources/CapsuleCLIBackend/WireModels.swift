@@ -277,6 +277,28 @@ struct CLIBuilderRecord: Decodable {
     let state: String?
 }
 
+// MARK: - System properties
+
+/// A TOML/JSON scalar (Int, Double, Bool, or String) rendered to a display string.
+enum JSONScalar: Decodable {
+    case string(String), int(Int), double(Double), bool(Bool)
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let b = try? c.decode(Bool.self) { self = .bool(b); return }
+        if let i = try? c.decode(Int.self) { self = .int(i); return }
+        if let d = try? c.decode(Double.self) { self = .double(d); return }
+        self = .string(try c.decode(String.self))
+    }
+    var display: String {
+        switch self {
+        case .string(let s): return s
+        case .int(let i): return String(i)
+        case .double(let d): return String(d)
+        case .bool(let b): return b ? "true" : "false"
+        }
+    }
+}
+
 // MARK: - System df
 
 /// `container system df --format json` shape. Each category mixes item counts

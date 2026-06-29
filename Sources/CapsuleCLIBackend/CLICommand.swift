@@ -39,6 +39,14 @@ public enum CLICommand {
         ArgumentBuilder("system", "df").flag("--format", "json").arguments
     }
 
+    public static func systemPropertiesJSON() -> [String] {
+        ArgumentBuilder("system", "property", "list").flag("--format", "json").arguments
+    }
+
+    public static func systemPropertiesTOML() -> [String] {
+        ArgumentBuilder("system", "property", "list").arguments  // default format is toml
+    }
+
     // MARK: - Containers
 
     public static func listContainers(all: Bool) -> [String] {

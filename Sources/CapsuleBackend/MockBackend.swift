@@ -40,6 +40,39 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         containers: CategoryUsage(
             total: 1, active: 0, sizeInBytes: 454_991_872, reclaimable: 454_991_872),
         volumes: CategoryUsage(total: 0, active: 0, sizeInBytes: 0, reclaimable: 0))
+    public var propertiesTOML = """
+        [build]
+        cpus = 2
+        memory = "2048mb"
+        rosetta = true
+
+        [kernel]
+        binaryPath = "opt/kata/share/kata-containers/vmlinux-6.18.15-186"
+        url = "https://github.com/kata-containers/kata-containers/releases/download/3.28.0/kata-static-3.28.0-arm64.tar.zst"
+
+        [machine]
+        cpus = 5
+        homeMount = "rw"
+        memory = "16gb"
+        """
+    public var properties = SystemProperties(sections: [
+        PropertySection(
+            name: "build",
+            entries: [
+                .init(key: "cpus", value: "2"),
+                .init(key: "memory", value: "2048mb"),
+                .init(key: "rosetta", value: "true"),
+            ]),
+        PropertySection(
+            name: "kernel",
+            entries: [
+                .init(
+                    key: "binaryPath", value: "opt/kata/share/kata-containers/vmlinux-6.18.15-186"),
+                .init(
+                    key: "url",
+                    value: "https://github.com/kata-containers/…/kata-static-3.28.0-arm64.tar.zst"),
+            ]),
+    ])
 
     /// When set, every `throws` command throws this instead of returning.
     public var failure: BackendError?
@@ -162,6 +195,12 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
     public func systemDiskUsage() async throws -> StorageUsage { try withState { $0.diskUsage } }
     public func systemComponentVersions() async throws -> [ComponentVersion] {
         try withState { $0.componentVersions }
+    }
+    public func systemProperties() async throws -> SystemProperties {
+        try withState { $0.properties }
+    }
+    public func systemPropertiesTOML() async throws -> String {
+        try withState { $0.propertiesTOML }
     }
 
     public func capabilities() async throws -> BackendCapabilities {

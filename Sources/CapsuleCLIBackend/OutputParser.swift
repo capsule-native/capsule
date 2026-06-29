@@ -238,6 +238,24 @@ public enum OutputParser {
         return BuilderStatus(isRunning: running)
     }
 
+    // MARK: - System properties
+
+    public static func parseProperties(_ data: Data) throws -> SystemProperties {
+        let raw: [String: [String: JSONScalar]]
+        do {
+            raw = try decoder.decode([String: [String: JSONScalar]].self, from: data)
+        } catch {
+            throw BackendError.decodingFailed(String(describing: error))
+        }
+        let sections = raw.keys.sorted().map { name in
+            let entries = (raw[name] ?? [:]).keys.sorted().map { key in
+                PropertyEntry(key: key, value: raw[name]![key]!.display)
+            }
+            return PropertySection(name: name, entries: entries)
+        }
+        return SystemProperties(sections: sections)
+    }
+
     // MARK: - System df
 
     public static func parseDiskUsage(_ data: Data) throws -> StorageUsage {
