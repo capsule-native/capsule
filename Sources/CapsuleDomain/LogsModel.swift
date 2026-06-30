@@ -47,6 +47,18 @@ public struct LogSource: Sendable {
             }
         )
     }
+
+    /// A source that reads the system service logs. `id`/`boot` are ignored; `tail` (Int?) is
+    /// interpreted as a minutes window for `--last` (nil → "5m").
+    public static func system(_ backend: any ContainerBackend) -> LogSource {
+        LogSource(
+            follow: { _, _ in backend.followSystemLogs() },
+            fetch: { _, tail, _ in
+                let last = tail.map { "\($0)m" } ?? "5m"
+                return try await backend.fetchSystemLogs(last: last)
+            }
+        )
+    }
 }
 
 // MARK: - LogsModel

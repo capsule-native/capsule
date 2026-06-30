@@ -31,4 +31,16 @@ final class LogsModelSourceTests: XCTestCase {
         await model.waitForLoad()
         XCTAssertFalse(model.lines.isEmpty)
     }
+
+    @MainActor
+    func testSystemSourceFetchesViaLastWindow() async {
+        // systemLogLines = ["apiserver: started", "apiserver: listening"]
+        let backend = MockBackend()
+        let model = LogsModel(source: .system(backend))
+        model.follow = false
+        model.tail = 60
+        model.start(id: "")
+        await model.waitForLoad()
+        XCTAssertEqual(model.lines.map(\.text), ["apiserver: started", "apiserver: listening"])
+    }
 }
