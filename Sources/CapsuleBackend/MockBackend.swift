@@ -211,7 +211,13 @@ public final class MockBackend: ContainerBackend, @unchecked Sendable {
         OutputLine(source: .stdout, text: "apiserver: listening"),
     ]
 
-    public func fetchSystemLogs(last: String) async throws -> [OutputLine] { systemLogLines }
+    /// Set by `fetchSystemLogs` — lets tests assert the window string produced by the caller.
+    public var capturedLast: String?
+
+    public func fetchSystemLogs(last: String) async throws -> [OutputLine] {
+        capturedLast = last
+        return systemLogLines
+    }
 
     public func followSystemLogs() -> AsyncThrowingStream<OutputLine, Error> {
         AsyncThrowingStream { continuation in

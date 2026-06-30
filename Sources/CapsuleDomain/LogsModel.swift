@@ -16,13 +16,18 @@ import Observation
 
 /// A source-agnostic seam for log streaming and fetching. Lets `LogsModel` drive both
 /// container logs and machine logs through identical code paths.
+///
+/// `fetch` parameters: `(id, tail, lastMinutes, boot)`
+/// - `tail` — line-count limit used by container and machine sources (maps to `--tail`)
+/// - `lastMinutes` — time window in minutes used by the system source (maps to `--last <n>m`);
+///   system sources ignore `tail`, all other sources ignore `lastMinutes`.
 public struct LogSource: Sendable {
     public var follow: @Sendable (String, Bool) -> AsyncThrowingStream<OutputLine, Error>
-    public var fetch: @Sendable (String, Int?, Bool) async throws -> [OutputLine]
+    public var fetch: @Sendable (String, Int?, Int?, Bool) async throws -> [OutputLine]
 
     public init(
         follow: @escaping @Sendable (String, Bool) -> AsyncThrowingStream<OutputLine, Error>,
-        fetch: @escaping @Sendable (String, Int?, Bool) async throws -> [OutputLine]
+        fetch: @escaping @Sendable (String, Int?, Int?, Bool) async throws -> [OutputLine]
     ) {
         self.follow = follow
         self.fetch = fetch
@@ -32,7 +37,7 @@ public struct LogSource: Sendable {
     public static func container(_ backend: any ContainerBackend) -> LogSource {
         LogSource(
             follow: { id, _ in backend.followLogs(container: id) },
-            fetch: { id, tail, boot in
+            fetch: { id, tail, _, boot in
                 try await backend.fetchLogs(container: id, tail: tail, boot: boot)
             }
         )
@@ -42,19 +47,19 @@ public struct LogSource: Sendable {
     public static func machine(_ backend: any ContainerBackend) -> LogSource {
         LogSource(
             follow: { id, boot in backend.followMachineLogs(id: id, boot: boot) },
-            fetch: { id, tail, boot in
+            fetch: { id, tail, _, boot in
                 try await backend.fetchMachineLogs(id: id, tail: tail, boot: boot)
             }
         )
     }
 
-    /// A source that reads the system service logs. `id`/`boot` are ignored; `tail` (Int?) is
-    /// interpreted as a minutes window for `--last` (nil → "5m").
+    /// A source that reads the system service logs.
+    /// `id`/`tail`/`boot` are ignored; `lastMinutes` (Int?) maps to `--last <n>m` (nil → "5m").
     public static func system(_ backend: any ContainerBackend) -> LogSource {
         LogSource(
             follow: { _, _ in backend.followSystemLogs() },
-            fetch: { _, tail, _ in
-                let last = tail.map { "\($0)m" } ?? "5m"
+            fetch: { _, _, lastMinutes, _ in
+                let last = lastMinutes.map { "\($0)m" } ?? "5m"
                 return try await backend.fetchSystemLogs(last: last)
             }
         )
@@ -71,6 +76,9 @@ public final class LogsModel {
     public private(set) var isStreaming = false
     public var follow = true
     public var tail: Int?
+    /// Minutes window used exclusively by the system log source (`LogSource.system`).
+    /// Bind UI controls to this—not to `tail`—when building a system-logs view.
+    public var lastMinutes: Int?
     public var boot = false
     public var searchText = ""
 
@@ -124,10 +132,10 @@ public final class LogsModel {
                 if !Task.isCancelled { self.isStreaming = false }
             }
         } else {
-            task = Task { [weak self, source, tail, boot] in
+            task = Task { [weak self, source, tail, lastMinutes, boot] in
                 guard let self else { return }
                 let fetched =
-                    (try? await source.fetch(id, tail, boot)) ?? []
+                    (try? await source.fetch(id, tail, lastMinutes, boot)) ?? []
                 for line in fetched { self.append(line) }
             }
         }

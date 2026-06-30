@@ -38,9 +38,22 @@ final class LogsModelSourceTests: XCTestCase {
         let backend = MockBackend()
         let model = LogsModel(source: .system(backend))
         model.follow = false
-        model.tail = 60
+        model.lastMinutes = 60
         model.start(id: "")
         await model.waitForLoad()
         XCTAssertEqual(model.lines.map(\.text), ["apiserver: started", "apiserver: listening"])
+        // Verify the window-to-minutes mapping: 60 → "60m", not "60s" or any other unit.
+        XCTAssertEqual(backend.capturedLast, "60m")
+    }
+
+    @MainActor
+    func testSystemSourceUsesDefaultWindow_whenLastMinutesIsNil() async {
+        let backend = MockBackend()
+        let model = LogsModel(source: .system(backend))
+        model.follow = false
+        // lastMinutes is nil — system source must fall back to the 5-minute default.
+        model.start(id: "")
+        await model.waitForLoad()
+        XCTAssertEqual(backend.capturedLast, "5m")
     }
 }
