@@ -44,11 +44,11 @@ struct ServiceLogsView: View {
                 ForEach(ranges, id: \.1) { Text($0.0).tag($0.1) }
             }
             .pickerStyle(.segmented).fixedSize()
-            Toggle("Follow", isOn: $model.follow)
             Spacer()
             Button("Refresh") { reload() }
         }
         .padding(8)
+        .disabled(!isRunning)
         .onChange(of: rangeMinutes) { _, _ in reload() }
         .onChange(of: model.follow) { _, _ in reload() }
     }
