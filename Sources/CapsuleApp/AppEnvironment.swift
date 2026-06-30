@@ -242,6 +242,7 @@ public struct AppEnvironment {
             onActivity: { line in shell.appendActivity(line) },
             reloadList: { await imageBrowserModel.refresh() }
         )
+        var storageDashboardModelRef: StorageDashboardModel? = nil
         let storageDashboardModel = StorageDashboardModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
@@ -251,7 +252,9 @@ public struct AppEnvironment {
                 case .containers: Task { _ = await lifecycleModel.prune() }
                 case .volumes: Task { _ = await volumeActionsModel.prune() }
                 }
+                Task { await storageDashboardModelRef?.refresh() }
             })
+        storageDashboardModelRef = storageDashboardModel
         let serviceLogsModel = LogsModel(source: .system(backend))
         let aboutModel = AboutModel(
             backend: backend,
