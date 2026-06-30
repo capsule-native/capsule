@@ -4,8 +4,8 @@
 //
 //  Copyright © 2026 Capsule. All rights reserved.
 //
-//  The "System" section's content: version readout, the live run state, and the explicit
-//  Start / Stop Services controls. Always reachable, even when nothing else is.
+//  The "System" section's content: a TabView with four tabs —
+//  Overview (status + start/stop), Storage, Service Logs, and About/Diagnostics.
 
 import CapsuleDomain
 import SwiftUI
@@ -13,8 +13,27 @@ import SwiftUI
 struct SystemDetailView: View {
     let health: SystemHealth
     let actions: ShellActions
+    let storageModel: StorageDashboardModel
+    let serviceLogsModel: LogsModel
+    let aboutModel: AboutModel
 
     var body: some View {
+        TabView {
+            overview
+                .tabItem { Label("Overview", systemImage: "heart.text.square") }
+            StorageDashboardView(model: storageModel)
+                .tabItem { Label("Storage", systemImage: "internaldrive") }
+            ServiceLogsView(model: serviceLogsModel, isRunning: health.isRunning)
+                .tabItem { Label("Service Logs", systemImage: "doc.text.magnifyingglass") }
+            AboutDiagnosticsView(
+                model: aboutModel,
+                onExportDiagnostics: { actions.recover(.exportDiagnostics) }
+            )
+            .tabItem { Label("About", systemImage: "info.circle") }
+        }
+    }
+
+    private var overview: some View {
         Form {
             Section("Status") {
                 LabeledContent("Service") {

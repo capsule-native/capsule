@@ -30,6 +30,9 @@ public struct RootView: View {
     private let volumeBrowserModel: VolumeBrowserModel
     private let volumeActionsModel: VolumeActionsModel
     private let taskCenter: TaskCenter
+    private let storageModel: StorageDashboardModel
+    private let serviceLogsModel: LogsModel
+    private let aboutModel: AboutModel
     private let runModel: RunModel
     private let buildModel: BuildModel
     private let logsModel: LogsModel
@@ -55,6 +58,9 @@ public struct RootView: View {
         volumeBrowserModel: VolumeBrowserModel,
         volumeActionsModel: VolumeActionsModel,
         taskCenter: TaskCenter,
+        storageModel: StorageDashboardModel,
+        serviceLogsModel: LogsModel,
+        aboutModel: AboutModel,
         runModel: RunModel,
         buildModel: BuildModel,
         logsModel: LogsModel,
@@ -77,6 +83,9 @@ public struct RootView: View {
         self.volumeBrowserModel = volumeBrowserModel
         self.volumeActionsModel = volumeActionsModel
         self.taskCenter = taskCenter
+        self.storageModel = storageModel
+        self.serviceLogsModel = serviceLogsModel
+        self.aboutModel = aboutModel
         self.runModel = runModel
         self.buildModel = buildModel
         self.logsModel = logsModel
@@ -102,6 +111,9 @@ public struct RootView: View {
             volumeBrowserModel: volumeBrowserModel,
             volumeActionsModel: volumeActionsModel,
             taskCenter: taskCenter,
+            storageModel: storageModel,
+            serviceLogsModel: serviceLogsModel,
+            aboutModel: aboutModel,
             runModel: runModel,
             buildModel: buildModel,
             logsModel: logsModel,

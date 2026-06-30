@@ -40,6 +40,9 @@ public struct AppEnvironment {
     public var taskCenter: TaskCenter
     public var registriesModel: RegistriesModel
     public var dnsModel: DNSModel
+    public var storageDashboardModel: StorageDashboardModel
+    public var serviceLogsModel: LogsModel
+    public var aboutModel: AboutModel
     public var runModel: RunModel
     public var buildModel: BuildModel
     public var logsModel: LogsModel
@@ -66,6 +69,9 @@ public struct AppEnvironment {
         taskCenter: TaskCenter,
         registriesModel: RegistriesModel,
         dnsModel: DNSModel,
+        storageDashboardModel: StorageDashboardModel,
+        serviceLogsModel: LogsModel,
+        aboutModel: AboutModel,
         runModel: RunModel,
         buildModel: BuildModel,
         logsModel: LogsModel,
@@ -91,6 +97,9 @@ public struct AppEnvironment {
         self.taskCenter = taskCenter
         self.registriesModel = registriesModel
         self.dnsModel = dnsModel
+        self.storageDashboardModel = storageDashboardModel
+        self.serviceLogsModel = serviceLogsModel
+        self.aboutModel = aboutModel
         self.runModel = runModel
         self.buildModel = buildModel
         self.logsModel = logsModel
@@ -233,6 +242,22 @@ public struct AppEnvironment {
             onActivity: { line in shell.appendActivity(line) },
             reloadList: { await imageBrowserModel.refresh() }
         )
+        let storageDashboardModel = StorageDashboardModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onReclaim: { category in
+                switch category {
+                case .images: Task { _ = await imageActionsModel.prune(all: true) }
+                case .containers: Task { _ = await lifecycleModel.prune() }
+                case .volumes: Task { _ = await volumeActionsModel.prune() }
+                }
+            })
+        let serviceLogsModel = LogsModel(source: .system(backend))
+        let aboutModel = AboutModel(
+            backend: backend,
+            normalize: { ErrorNormalizer.normalize($0) },
+            appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—",
+            osVersion: ProcessInfo.processInfo.operatingSystemVersionString)
         let logsModel = LogsModel(backend: backend)
         let copyModel = CopyModel(
             backend: backend, taskCenter: taskCenter,
@@ -259,6 +284,9 @@ public struct AppEnvironment {
             taskCenter: taskCenter,
             registriesModel: registriesModel,
             dnsModel: dnsModel,
+            storageDashboardModel: storageDashboardModel,
+            serviceLogsModel: serviceLogsModel,
+            aboutModel: aboutModel,
             runModel: runModel,
             buildModel: buildModel,
             logsModel: logsModel,

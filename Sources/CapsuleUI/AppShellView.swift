@@ -28,6 +28,9 @@ public struct AppShellView: View {
     @Bindable var volumeBrowserModel: VolumeBrowserModel
     let volumeActionsModel: VolumeActionsModel
     @Bindable var taskCenter: TaskCenter
+    @Bindable var storageModel: StorageDashboardModel
+    @Bindable var serviceLogsModel: LogsModel
+    @Bindable var aboutModel: AboutModel
     @Bindable var runModel: RunModel
     @Bindable var buildModel: BuildModel
     @Bindable var logsModel: LogsModel
@@ -51,6 +54,9 @@ public struct AppShellView: View {
         volumeBrowserModel: VolumeBrowserModel,
         volumeActionsModel: VolumeActionsModel,
         taskCenter: TaskCenter,
+        storageModel: StorageDashboardModel,
+        serviceLogsModel: LogsModel,
+        aboutModel: AboutModel,
         runModel: RunModel,
         buildModel: BuildModel,
         logsModel: LogsModel,
@@ -73,6 +79,9 @@ public struct AppShellView: View {
         self.volumeBrowserModel = volumeBrowserModel
         self.volumeActionsModel = volumeActionsModel
         self.taskCenter = taskCenter
+        self.storageModel = storageModel
+        self.serviceLogsModel = serviceLogsModel
+        self.aboutModel = aboutModel
         self.runModel = runModel
         self.buildModel = buildModel
         self.logsModel = logsModel
@@ -174,6 +183,9 @@ public struct AppShellView: View {
                 machineActionsModel: machineActionsModel,
                 volumeBrowserModel: volumeBrowserModel,
                 volumeActionsModel: volumeActionsModel,
+                storageModel: storageModel,
+                serviceLogsModel: serviceLogsModel,
+                aboutModel: aboutModel,
                 runModel: runModel,
                 buildModel: buildModel,
                 logsModel: logsModel,

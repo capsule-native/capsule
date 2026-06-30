@@ -26,6 +26,9 @@ struct ContentColumnView: View {
     let machineActionsModel: MachineActionsModel
     let volumeBrowserModel: VolumeBrowserModel
     let volumeActionsModel: VolumeActionsModel
+    let storageModel: StorageDashboardModel
+    let serviceLogsModel: LogsModel
+    let aboutModel: AboutModel
     let runModel: RunModel
     let buildModel: BuildModel
     let logsModel: LogsModel
@@ -36,7 +39,11 @@ struct ContentColumnView: View {
     var body: some View {
         Group {
             if section == .system {
-                SystemDetailView(health: health, actions: actions)
+                SystemDetailView(
+                    health: health, actions: actions,
+                    storageModel: storageModel,
+                    serviceLogsModel: serviceLogsModel,
+                    aboutModel: aboutModel)
             } else if health.isRunning {
                 if isGatedSurfaceUnavailable {
                     unsupportedSurface
