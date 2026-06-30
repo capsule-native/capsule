@@ -137,10 +137,16 @@ public final class KernelManagerModel {
     }
 
     /// Fires the kernel install as a streaming `TaskCenter` operation.
+    /// On success, refreshes ``currentKernelSummary`` so the Preferences window
+    /// reflects the newly installed kernel without requiring a close/reopen.
     public func install() {
         let config = configuration
         let backend = self.backend
-        taskCenter.runStreaming(kind: .systemKernelInstall, title: "Install Kernel") { [backend] in
+        taskCenter.runStreaming(
+            kind: .systemKernelInstall,
+            title: "Install Kernel",
+            onSuccess: { [weak self] in await self?.loadCurrent() }
+        ) { [backend] in
             backend.setKernel(config)
         }
     }
