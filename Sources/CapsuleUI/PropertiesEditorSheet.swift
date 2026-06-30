@@ -7,6 +7,7 @@
 //  A modal TOML editor for system properties: monospaced TextEditor, live lint issues,
 //  change-review disclosure, Export via NSSavePanel, and a restart-required banner.
 
+import AppKit  // NSSavePanel
 import CapsuleDomain
 import SwiftUI
 import UniformTypeIdentifiers
@@ -18,6 +19,12 @@ struct PropertiesEditorSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Edit Configuration (TOML)").font(.title3.bold())
+            if let err = model.loadError {
+                Label(err, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8).background(.red.opacity(0.08))
+            }
             if model.restartRequired { restartBanner }
             TextEditor(text: $model.editBuffer)
                 .font(.body.monospaced()).frame(minWidth: 560, minHeight: 320)
@@ -56,7 +63,13 @@ struct PropertiesEditorSheet: View {
         panel.nameFieldStringValue = "container-config.toml"
         if let toml = UTType(filenameExtension: "toml") { panel.allowedContentTypes = [toml] }
         if panel.runModal() == .OK, let url = panel.url {
-            try? model.exportText.write(to: url, atomically: true, encoding: .utf8)
+            do {
+                try model.exportText.write(to: url, atomically: true, encoding: .utf8)
+                model.markExported()
+            } catch {
+                // OS presents its own error dialog on write failure; nothing to do here.
+                _ = error
+            }
         }
     }
 }

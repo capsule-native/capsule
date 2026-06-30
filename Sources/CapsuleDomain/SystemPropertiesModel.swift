@@ -52,8 +52,13 @@ public final class SystemPropertiesModel {
     public var isDirty: Bool { editBuffer != originalTOML }
     public var exportText: String { editBuffer }
 
-    /// Called when the user edits; tracks whether a restart is required based on dirty state.
-    public func markEdited() { restartRequired = isDirty }
+    /// Called on every buffer keystroke; does not set restartRequired (see markExported).
+    public func markEdited() {}
+
+    /// Called after a successful export write; signals that services need a restart to pick
+    /// up the exported file. This is intentionally separate from markEdited() — the banner
+    /// must not appear for in-flight edits that were never written to disk.
+    public func markExported() { restartRequired = true }
 
     public func resetEdits() {
         editBuffer = originalTOML

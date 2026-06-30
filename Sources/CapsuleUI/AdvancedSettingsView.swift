@@ -23,6 +23,10 @@ struct AdvancedSettingsView: View {
                 Button("Change Kernel…") { showingKernelSheet = true }
             }
             Section("Configuration") {
+                if let err = propertiesModel.loadError {
+                    Label(err, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.red)
+                }
                 if propertiesModel.restartRequired {
                     Label(
                         "Restart services to apply configuration changes.",

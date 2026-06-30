@@ -27,8 +27,20 @@ final class SystemPropertiesModelTests: XCTestCase {
         await m.load()
         m.editBuffer = m.editBuffer.replacingOccurrences(of: "cpus = 2", with: "cpus = 8")
         m.markEdited()
-        XCTAssertTrue(m.restartRequired)
+        // Editing alone must NOT flag restart — only markExported() does that.
+        XCTAssertFalse(m.restartRequired)
         XCTAssertTrue(m.changeReview.contains { $0.contains("cpus") })
+    }
+
+    func testExportFlagsRestartAndResetClears() async {
+        let m = SystemPropertiesModel(
+            backend: MockBackend(), normalize: { _ in .unknown(message: "test") })
+        await m.load()
+        XCTAssertFalse(m.restartRequired)
+        m.markExported()
+        XCTAssertTrue(m.restartRequired)
+        m.resetEdits()
+        XCTAssertFalse(m.restartRequired)
     }
 
     func testValidateSurfacesIssues() async {
