@@ -26,7 +26,7 @@ struct PropertiesEditorSheet: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(8).background(.red.opacity(0.08))
             }
-            if model.restartRequired { restartBanner }
+            if model.requiresRestart { restartBanner }
             TextEditor(text: $model.editBuffer)
                 .font(.body.monospaced()).frame(minWidth: 560, minHeight: 320)
                 .border(.quaternary)
@@ -63,7 +63,7 @@ struct PropertiesEditorSheet: View {
     }
 
     private var restartBanner: some View {
-        Label("Restart services to apply these changes.", systemImage: "arrow.clockwise.circle")
+        Label(model.restartBannerMessage, systemImage: "arrow.clockwise.circle")
             .foregroundStyle(.orange).font(.callout)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(8).background(.orange.opacity(0.12))

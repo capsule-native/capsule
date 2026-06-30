@@ -27,9 +27,9 @@ struct AdvancedSettingsView: View {
                     Label(err, systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.red)
                 }
-                if propertiesModel.restartRequired {
+                if propertiesModel.requiresRestart {
                     Label(
-                        "Restart services to apply configuration changes.",
+                        propertiesModel.restartBannerMessage,
                         systemImage: "arrow.clockwise.circle"
                     ).foregroundStyle(.orange)
                 }

@@ -53,6 +53,20 @@ public final class SystemPropertiesModel {
     public var isDirty: Bool { editBuffer != originalTOML }
     public var exportText: String { editBuffer }
 
+    /// Explicit "requires restart" UI state that drives the banner. True when there are
+    /// pending edits in the buffer (not yet exported) OR a prior export wrote a new config
+    /// to disk — both are states the running daemon does not yet reflect. The spec requires
+    /// the banner to appear on edits, so a dirty buffer alone is sufficient.
+    public var requiresRestart: Bool { restartRequired || isDirty }
+
+    /// Banner copy matched to the requires-restart state: distinguishes "you have unsaved
+    /// edits — export first" from "you exported — now restart".
+    public var restartBannerMessage: String {
+        restartRequired
+            ? "Configuration exported. Restart services to apply the changes."
+            : "Unsaved configuration changes. Export, then restart services to apply."
+    }
+
     /// Called after a successful export write; signals that services need a restart to pick
     /// up the exported file. The banner must not appear for in-flight edits that were never
     /// written to disk. restartRequired is cleared only by load() (new disk baseline) or
