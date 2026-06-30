@@ -25,6 +25,7 @@ struct ServiceLogsView: View {
             LogsPaneView(model: model)
         }
         .task { reload() }
+        .onDisappear { model.stop() }
     }
 
     private var banner: some View {

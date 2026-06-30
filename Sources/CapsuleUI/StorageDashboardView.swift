@@ -13,6 +13,7 @@ import SwiftUI
 
 struct StorageDashboardView: View {
     @Bindable var model: StorageDashboardModel
+    @State private var pendingReclaim: StorageCategory?
 
     var body: some View {
         Group {
@@ -30,6 +31,37 @@ struct StorageDashboardView: View {
             }
         }
         .task { await model.refresh() }
+        .confirmationDialog(
+            pendingReclaim.map { "Reclaim \($0.title.lowercased()) space?" } ?? "",
+            isPresented: Binding(
+                get: { pendingReclaim != nil },
+                set: { if !$0 { pendingReclaim = nil } }
+            ),
+            presenting: pendingReclaim
+        ) { category in
+            Button("Reclaim \(category.title)", role: .destructive) {
+                model.reclaim(category)
+                pendingReclaim = nil
+            }
+            Button("Cancel", role: .cancel) { pendingReclaim = nil }
+        } message: { category in
+            Text(reclaimMessage(for: category))
+        }
+    }
+
+    /// Spells out what a reclaim removes — these prune operations run immediately and are
+    /// irreversible, so the volumes case in particular warns about data loss.
+    private func reclaimMessage(for category: StorageCategory) -> String {
+        switch category {
+        case .images:
+            return "This removes all images not used by any container. They can be pulled again."
+        case .containers:
+            return "This removes all stopped containers."
+        case .volumes:
+            return
+                "This permanently removes all volumes not referenced by any container, including "
+                + "their data. This cannot be undone."
+        }
     }
 
     private var content: some View {
@@ -56,7 +88,7 @@ struct StorageDashboardView: View {
                     sizeInBytes: u.sizeInBytes,
                     inUseBytes: u.inUseBytes,
                     reclaimable: u.reclaimable
-                ) { model.reclaim(category) }
+                ) { pendingReclaim = category }
             }
         case .containers:
             if let u = model.usage?.containers {
@@ -65,7 +97,7 @@ struct StorageDashboardView: View {
                     sizeInBytes: u.sizeInBytes,
                     inUseBytes: u.inUseBytes,
                     reclaimable: u.reclaimable
-                ) { model.reclaim(category) }
+                ) { pendingReclaim = category }
             }
         case .volumes:
             if let u = model.usage?.volumes {
@@ -74,7 +106,7 @@ struct StorageDashboardView: View {
                     sizeInBytes: u.sizeInBytes,
                     inUseBytes: u.inUseBytes,
                     reclaimable: u.reclaimable
-                ) { model.reclaim(category) }
+                ) { pendingReclaim = category }
             }
         }
     }
