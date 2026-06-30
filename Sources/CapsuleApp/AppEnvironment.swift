@@ -247,12 +247,17 @@ public struct AppEnvironment {
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
             onReclaim: { category in
-                switch category {
-                case .images: Task { _ = await imageActionsModel.prune(all: true) }
-                case .containers: Task { _ = await lifecycleModel.prune() }
-                case .volumes: Task { _ = await volumeActionsModel.prune() }
+                // Chain prune → refresh in a single Task so the dashboard re-reads disk
+                // usage only AFTER the prune has reclaimed the space (two separate Tasks
+                // would race and re-read stale pre-prune numbers).
+                Task {
+                    switch category {
+                    case .images: _ = await imageActionsModel.prune(all: true)
+                    case .containers: _ = await lifecycleModel.prune()
+                    case .volumes: _ = await volumeActionsModel.prune()
+                    }
+                    await storageDashboardModelRef?.refresh()
                 }
-                Task { await storageDashboardModelRef?.refresh() }
             })
         storageDashboardModelRef = storageDashboardModel
         let serviceLogsModel = LogsModel(source: .system(backend))
