@@ -30,4 +30,12 @@ final class StorageDashboardModelTests: XCTestCase {
         model.reclaim(.images)
         XCTAssertEqual(reclaimed, [.images])
     }
+    func testRefresh_failure_unavailable() async {
+        let backend = MockBackend()
+        backend.failure = .nonZeroExit(command: "system df", code: 1, stderr: "daemon down")
+        let model = StorageDashboardModel(
+            backend: backend, normalize: { _ in .unknown(message: "stub") })
+        await model.refresh()
+        if case .unavailable = model.loadState {} else { XCTFail("expected .unavailable") }
+    }
 }
