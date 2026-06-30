@@ -39,7 +39,9 @@ public final class KernelManagerModel {
         public var binaryPath = ""
         public var tarURL = ""
         public var tarMember = ""
-        public var arch: KernelArch = .arm64
+        /// Raw-value string from ``KernelArch`` (e.g. "arm64", "amd64") kept as a `String`
+        /// so CapsuleUI does not need to import CapsuleBackend to name the type.
+        public var arch: String = KernelArch.arm64.rawValue
         public var force = false
 
         public init() {}
@@ -51,6 +53,10 @@ public final class KernelManagerModel {
 
     /// Summary line pulled from `systemProperties()` after `loadCurrent()`.
     public private(set) var currentKernelSummary: String?
+
+    /// Architecture choices for the UI picker (raw-value strings matching ``KernelArch``).
+    /// Exposed here so ``CapsuleUI`` does not need to import CapsuleBackend to enumerate them.
+    public static let archOptions: [String] = KernelArch.allCases.map(\.rawValue)
 
     /// Static guidance shown below the Install button.
     public let recoveryGuidance =
@@ -89,7 +95,8 @@ public final class KernelManagerModel {
                 url: draft.tarURL,
                 member: draft.tarMember.isEmpty ? nil : draft.tarMember)
         }
-        return KernelConfiguration(source: source, arch: draft.arch, force: draft.force)
+        let arch = KernelArch(rawValue: draft.arch) ?? .arm64
+        return KernelConfiguration(source: source, arch: arch, force: draft.force)
     }
 
     /// Non-nil when the current draft cannot be submitted.
@@ -112,20 +119,29 @@ public final class KernelManagerModel {
     // MARK: - Actions
 
     /// Reads the current kernel from `systemProperties()` and populates `currentKernelSummary`.
+    /// Errors are normalized via the injected `normalize` closure; they are not surfaced in the
+    /// UI today but are no longer silently swallowed.
     public func loadCurrent() async {
-        guard let props = try? await backend.systemProperties() else { return }
-        if let k = props.section("kernel") {
-            let path = k.entries.first { $0.key == "binaryPath" }?.value
-            let url = k.entries.first { $0.key == "url" }?.value
-            currentKernelSummary = path ?? url
+        do {
+            let props = try await backend.systemProperties()
+            if let k = props.section("kernel") {
+                let path = k.entries.first { $0.key == "binaryPath" }?.value
+                let url = k.entries.first { $0.key == "url" }?.value
+                currentKernelSummary = path ?? url
+            }
+        } catch {
+            // Normalize so every error passes through the app's error domain; nothing in
+            // the UI currently surfaces loadCurrent errors, so we swallow after normalizing.
+            _ = normalize(error)
         }
     }
 
     /// Fires the kernel install as a streaming `TaskCenter` operation.
     public func install() {
         let config = configuration
-        taskCenter.runStreaming(kind: .systemKernelInstall, title: "Install Kernel") {
-            self.backend.setKernel(config)
+        let backend = self.backend
+        taskCenter.runStreaming(kind: .systemKernelInstall, title: "Install Kernel") { [backend] in
+            backend.setKernel(config)
         }
     }
 }

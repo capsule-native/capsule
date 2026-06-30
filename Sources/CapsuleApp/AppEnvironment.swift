@@ -40,6 +40,7 @@ public struct AppEnvironment {
     public var taskCenter: TaskCenter
     public var registriesModel: RegistriesModel
     public var dnsModel: DNSModel
+    public var kernelManagerModel: KernelManagerModel
     public var storageDashboardModel: StorageDashboardModel
     public var serviceLogsModel: LogsModel
     public var aboutModel: AboutModel
@@ -69,6 +70,7 @@ public struct AppEnvironment {
         taskCenter: TaskCenter,
         registriesModel: RegistriesModel,
         dnsModel: DNSModel,
+        kernelManagerModel: KernelManagerModel,
         storageDashboardModel: StorageDashboardModel,
         serviceLogsModel: LogsModel,
         aboutModel: AboutModel,
@@ -97,6 +99,7 @@ public struct AppEnvironment {
         self.taskCenter = taskCenter
         self.registriesModel = registriesModel
         self.dnsModel = dnsModel
+        self.kernelManagerModel = kernelManagerModel
         self.storageDashboardModel = storageDashboardModel
         self.serviceLogsModel = serviceLogsModel
         self.aboutModel = aboutModel
@@ -260,6 +263,10 @@ public struct AppEnvironment {
                 }
             })
         storageDashboardModelRef = storageDashboardModel
+        let kernelManagerModel = KernelManagerModel(
+            backend: backend,
+            taskCenter: taskCenter,
+            normalize: { ErrorNormalizer.normalize($0) })
         let serviceLogsModel = LogsModel(source: .system(backend))
         let aboutModel = AboutModel(
             backend: backend,
@@ -292,6 +299,7 @@ public struct AppEnvironment {
             taskCenter: taskCenter,
             registriesModel: registriesModel,
             dnsModel: dnsModel,
+            kernelManagerModel: kernelManagerModel,
             storageDashboardModel: storageDashboardModel,
             serviceLogsModel: serviceLogsModel,
             aboutModel: aboutModel,
