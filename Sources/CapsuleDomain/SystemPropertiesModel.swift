@@ -52,8 +52,8 @@ public final class SystemPropertiesModel {
     public var isDirty: Bool { editBuffer != originalTOML }
     public var exportText: String { editBuffer }
 
-    /// Called when the user edits; flips the explicit requires-restart state once changes exist.
-    public func markEdited() { if isDirty { restartRequired = true } }
+    /// Called when the user edits; tracks whether a restart is required based on dirty state.
+    public func markEdited() { restartRequired = isDirty }
 
     public func resetEdits() {
         editBuffer = originalTOML
