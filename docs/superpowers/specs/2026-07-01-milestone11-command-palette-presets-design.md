@@ -61,9 +61,12 @@ dedicated terminal route (we chose discovery-only).
   `Foundation.Process` user (enforced by `ArchitectureGuardTests`). `commandDescription`
   exists only as ad-hoc `joined(" ")` for error messages — there is **no** executable-aware
   command value type.
-- `SecretRedactor` (`CapsuleDiagnostics`, Domain-importable) masks values after
-  `--password/-p/--token/--secret/--registry-*`. **Its `-p` rule collides with `container run
-  -p` publish-ports** — a run preview must not blindly run `redact(arguments:)`.
+- `SecretRedactor` lives in `CapsuleDiagnostics`, which **depends on** `CapsuleDomain`
+  (`CapsuleDiagnostics → CapsuleDomain`), so **Domain/UI cannot import it** (would be a cycle).
+  It also masks values after `--password/-p/--token/--secret/--registry-*` — and **its `-p`
+  rule collides with `container run -p` publish-ports**. So the preview uses a **new
+  Domain-local `CommandRedactor`** (operation-aware, never touches `-p`), not `SecretRedactor`;
+  `SecretRedactor` stays in Diagnostics for the diagnostic bundle.
 - Secrets are kept **off argv by design**: `registryLogin` takes no password; it is streamed
   via stdin. So argv is already secret-free for login; redaction in preview is belt-and-
   suspenders for `-e KEY=secret` env and `--build-arg`.
@@ -148,23 +151,27 @@ in `CLIContainerBackend` and any callers. `CapsuleBackend` gains no `Process` de
 the arch guard stays valid; **add** an arch-guard assertion that the moved files are
 `Process`-free and that `CapsuleCLIBackend` still owns the runner.
 
-**New value type** (`Sources/CapsuleBackend/CommandInvocation.swift`):
+**New value type** (`Sources/CapsuleDomain/CommandInvocation.swift` — **Domain, not Backend**,
+because UI imports only `CapsuleDomain`; Domain imports `CapsuleBackend`, so it can build the
+invocation from `config.arguments` and the now-relocated `CLICommand.*`):
 ```swift
 public struct CommandInvocation: Sendable, Equatable {
     public let executable: String        // "container" — display only; runner owns the URL
     public let arguments: [String]        // faithful argv after the executable
-    public init(arguments: [String], executable: String = "container")
-    public var argv: [String] { [executable] + arguments }        // for TerminalRequest
+    public init(_ arguments: [String], executable: String = "container")
+    public var argv: [String] { [executable] + arguments }        // raw — for TerminalRequest
     public var displayString: String { ... }                       // redacted, space-joined
-    public func redacted() -> CommandInvocation { ... }
 }
 ```
+`arguments`/`argv` are the **raw** real argv (execution + terminal); `displayString` is the
+**redacted** form used for all on-screen display and the copy button.
 
-**Operation-aware redaction** (`CapsuleDiagnostics` or a small Domain helper wrapping
-`SecretRedactor`): mask the value after `--password/--token/--secret`, and the value portion of
-`-e`/`--env`/`--build-arg` entries whose **key** matches `(?i)(pass|secret|token|key|cred)`;
-**never** redact `-p`/`--publish`. Used only for display; the real argv passed to the runner
-is unchanged.
+**Operation-aware redaction** — a new Domain-local `CommandRedactor`
+(`Sources/CapsuleDomain/CommandRedactor.swift`): mask the value after
+`--password/--passphrase/--token/--secret`, and the value portion of `-e`/`--env`/`--build-arg`
+entries whose **key** matches `(?i)(pass|secret|token|key|cred)`; **never** redact
+`-p`/`--publish`. It does **not** reuse `SecretRedactor` (different module — unreachable from
+Domain — and a different, `-p`-safe policy).
 
 ### Phase 2 — A `CommandInvocation` per operation + reusable UI
 
@@ -227,11 +234,15 @@ through `TaskCenter.runStreaming/runAsync` (callers pass the invocation they alr
 
 ### Phase 5 — Command catalog → palette + menus
 
-- **`CommandCatalog`** (`CapsuleDomain`): a single list of `CommandAction { id, title,
-  subtitle, symbol, shortcut: KeyboardShortcutSpec?, isEnabled: (Context) -> Bool, run:
-  (Context) -> Void }`. `Context` bundles the app state actions need (shell, system model,
-  browser/action models, selection). **Both** the ⌘K palette and the menu bar render from this
-  catalog so they cannot drift. Dynamic entries (presets, plugins) are appended.
+- **`CommandCatalog`** (`CapsuleUI` — it references `ShellState`/sheet presentation, which are
+  UI; `CapsuleApp` imports `CapsuleUI` so the menu can render it too): a single
+  `CommandCatalog.actions(_ ctx: CommandContext) -> [CommandAction]` where `CommandAction {
+  id, title, subtitle, symbol, shortcut: CommandShortcut?, isEnabled: Bool, run: () -> Void }`
+  and `CommandContext` bundles the live app state/closures actions need (shell, system model,
+  browser/action models, selection, sheet-presentation + window closures). **Both** the ⌘K
+  palette and the menu bar render from this one function so they cannot drift. Dynamic entries
+  (presets, plugins) are appended. The pure fuzzy-filter ranking is a separate Domain helper
+  (`FuzzyMatch`) so it is unit-testable without UI.
 - **Palette UI** (`CapsuleUI`, `CommandPaletteView`): a ⌘K overlay (sheet) with a search field
   + fuzzy-filtered list; Enter runs the focused action; ↑/↓ navigate; Esc dismisses. Actions
   needing an absent selection render disabled with a hint subtitle; navigation actions stay
