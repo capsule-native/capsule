@@ -38,4 +38,40 @@ final class PropertyTOMLTests: XCTestCase {
         XCTAssertTrue(changes.contains { $0.contains("build.memory") })  // removed
         XCTAssertTrue(changes.contains { $0.contains("machine.cpus") })  // added
     }
+
+    // MARK: - Regression: unique IDs even when two issues land on the same line
+
+    func testLintIssueIdsAreUniqueWhenMultipleIssuesOnSameLine() {
+        // key outside section + missing value both apply to line 1: "key ="
+        let issues = PropertyTOML.lint("key =\n")
+        XCTAssertEqual(issues.count, 2)
+        // Both issues are on the same line but must carry distinct ids.
+        let ids = issues.map(\.id)
+        XCTAssertEqual(Set(ids).count, ids.count, "TOMLIssue ids must be unique")
+    }
+
+    // MARK: - Regression: inline comments must not trigger false-positive "Unterminated string"
+
+    func testLintStringWithInlineCommentIsNotFlaggedAsUnterminated() {
+        // "foo" is a complete string; the trailing # comment must not confuse the linter.
+        let issues = PropertyTOML.lint("[build]\nname = \"foo\" # a comment\n")
+        XCTAssertTrue(issues.isEmpty, "Valid string with inline comment should produce no issues")
+    }
+
+    func testParseStripsInlineCommentFromUnquotedValue() {
+        let parsed = PropertyTOML.parse("[build]\ncpus = 2 # number of cores\n")
+        XCTAssertEqual(parsed["build"]?["cpus"], "2")
+    }
+
+    func testParseStripsInlineCommentFromQuotedValue() {
+        let parsed = PropertyTOML.parse("[build]\nname = \"foo\" # label\n")
+        XCTAssertEqual(parsed["build"]?["name"], "foo")
+    }
+
+    func testLintInlineCommentCleanConfigHasNoIssues() {
+        // Validate that the clean-config test still passes with inline comments present.
+        let toml =
+            "[build]\ncpus = 2 # cores\nrosetta = true # emulation\n\n[machine]\nmemory = \"16gb\" # RAM\n"
+        XCTAssertTrue(PropertyTOML.lint(toml).isEmpty)
+    }
 }

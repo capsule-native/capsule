@@ -9,15 +9,35 @@
 import Foundation
 
 public struct TOMLIssue: Sendable, Equatable, Identifiable {
+    /// Monotonically-increasing index assigned at creation; unique within a single `lint` call.
+    public var id: Int
     public var line: Int
     public var message: String
-    public var id: Int { line }
 }
 
 /// A deliberately small, lenient linter/parser for the flat `key = value` TOML the
 /// `container` config uses (sections, scalar values, `#` comments). Advisory only —
 /// Capsule exports config; it never applies it.
 public enum PropertyTOML {
+
+    /// Strips a trailing inline `# comment` from a raw value string, respecting
+    /// double-quoted strings (a `#` inside quotes is not a comment delimiter).
+    /// Returns the stripped, trimmed result.
+    private static func stripInlineComment(_ s: String) -> String {
+        var inString = false
+        var idx = s.startIndex
+        while idx < s.endIndex {
+            let ch = s[idx]
+            if ch == "\"" {
+                inString.toggle()
+            } else if ch == "#" && !inString {
+                return s[..<idx].trimmingCharacters(in: .whitespaces)
+            }
+            idx = s.index(after: idx)
+        }
+        return s
+    }
+
     public static func lint(_ text: String) -> [TOMLIssue] {
         var issues: [TOMLIssue] = []
         var inSection = false
@@ -28,23 +48,28 @@ public enum PropertyTOML {
             if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
             if trimmed.hasPrefix("[") {
                 if !trimmed.hasSuffix("]") {
-                    issues.append(TOMLIssue(line: line, message: "Malformed section header."))
+                    let msg = "Malformed section header."
+                    issues.append(TOMLIssue(id: issues.count, line: line, message: msg))
                 }
                 inSection = true
                 continue
             }
             guard let eq = trimmed.firstIndex(of: "=") else {
-                issues.append(TOMLIssue(line: line, message: "Expected `key = value`."))
+                let msg = "Expected `key = value`."
+                issues.append(TOMLIssue(id: issues.count, line: line, message: msg))
                 continue
             }
             if !inSection {
-                issues.append(TOMLIssue(line: line, message: "Key is outside any [section]."))
+                let msg = "Key is outside any [section]."
+                issues.append(TOMLIssue(id: issues.count, line: line, message: msg))
             }
-            let value = trimmed[trimmed.index(after: eq)...].trimmingCharacters(in: .whitespaces)
+            let rawValue = trimmed[trimmed.index(after: eq)...].trimmingCharacters(in: .whitespaces)
+            let value = stripInlineComment(rawValue)
             if value.isEmpty {
-                issues.append(TOMLIssue(line: line, message: "Missing value."))
+                issues.append(TOMLIssue(id: issues.count, line: line, message: "Missing value."))
             } else if value.hasPrefix("\"") && !(value.count >= 2 && value.hasSuffix("\"")) {
-                issues.append(TOMLIssue(line: line, message: "Unterminated string."))
+                issues.append(
+                    TOMLIssue(id: issues.count, line: line, message: "Unterminated string."))
             }
         }
         return issues
@@ -64,7 +89,8 @@ public enum PropertyTOML {
             }
             guard let eq = trimmed.firstIndex(of: "=") else { continue }
             let key = trimmed[..<eq].trimmingCharacters(in: .whitespaces)
-            var value = trimmed[trimmed.index(after: eq)...].trimmingCharacters(in: .whitespaces)
+            let rawValue = trimmed[trimmed.index(after: eq)...].trimmingCharacters(in: .whitespaces)
+            var value = stripInlineComment(rawValue)
             if value.hasPrefix("\"") && value.hasSuffix("\"") && value.count >= 2 {
                 value = String(value.dropFirst().dropLast())
             }
