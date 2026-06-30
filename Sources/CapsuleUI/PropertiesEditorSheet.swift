@@ -15,6 +15,7 @@ import UniformTypeIdentifiers
 struct PropertiesEditorSheet: View {
     @Bindable var model: SystemPropertiesModel
     @Environment(\.dismiss) private var dismiss
+    @State private var exportError: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -29,7 +30,6 @@ struct PropertiesEditorSheet: View {
             TextEditor(text: $model.editBuffer)
                 .font(.body.monospaced()).frame(minWidth: 560, minHeight: 320)
                 .border(.quaternary)
-                .onChange(of: model.editBuffer) { _, _ in model.markEdited() }
             if !model.issues.isEmpty {
                 ForEach(model.issues) { issue in
                     Label("Line \(issue.line): \(issue.message)", systemImage: "xmark.octagon")
@@ -49,6 +49,17 @@ struct PropertiesEditorSheet: View {
             }
         }
         .padding(20).frame(width: 640, height: 560)
+        .alert(
+            "Export Failed",
+            isPresented: Binding(
+                get: { exportError != nil },
+                set: { if !$0 { exportError = nil } }
+            )
+        ) {
+            Button("OK") { exportError = nil }
+        } message: {
+            Text(exportError ?? "")
+        }
     }
 
     private var restartBanner: some View {
@@ -67,8 +78,7 @@ struct PropertiesEditorSheet: View {
                 try model.exportText.write(to: url, atomically: true, encoding: .utf8)
                 model.markExported()
             } catch {
-                // OS presents its own error dialog on write failure; nothing to do here.
-                _ = error
+                exportError = error.localizedDescription
             }
         }
     }

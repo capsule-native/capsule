@@ -42,6 +42,7 @@ public final class SystemPropertiesModel {
             editBuffer = toml
             sections = props.sections
             loadError = nil
+            restartRequired = false  // new baseline from disk; daemon is in sync
         } catch {
             loadError = normalize(error).detail.explanation
         }
@@ -52,16 +53,16 @@ public final class SystemPropertiesModel {
     public var isDirty: Bool { editBuffer != originalTOML }
     public var exportText: String { editBuffer }
 
-    /// Called on every buffer keystroke; does not set restartRequired (see markExported).
-    public func markEdited() {}
-
     /// Called after a successful export write; signals that services need a restart to pick
-    /// up the exported file. This is intentionally separate from markEdited() — the banner
-    /// must not appear for in-flight edits that were never written to disk.
+    /// up the exported file. The banner must not appear for in-flight edits that were never
+    /// written to disk. restartRequired is cleared only by load() (new disk baseline) or
+    /// when the daemon is confirmed restarted.
     public func markExported() { restartRequired = true }
 
+    /// Reverts the edit buffer to the last loaded TOML. Does NOT clear restartRequired —
+    /// if the file on disk was already written by a prior export, a restart is still needed
+    /// regardless of what is in the buffer.
     public func resetEdits() {
         editBuffer = originalTOML
-        restartRequired = false
     }
 }

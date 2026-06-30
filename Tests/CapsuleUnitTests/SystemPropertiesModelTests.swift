@@ -26,13 +26,14 @@ final class SystemPropertiesModelTests: XCTestCase {
             backend: MockBackend(), normalize: { _ in .unknown(message: "test") })
         await m.load()
         m.editBuffer = m.editBuffer.replacingOccurrences(of: "cpus = 2", with: "cpus = 8")
-        m.markEdited()
         // Editing alone must NOT flag restart — only markExported() does that.
         XCTAssertFalse(m.restartRequired)
         XCTAssertTrue(m.changeReview.contains { $0.contains("cpus") })
     }
 
-    func testExportFlagsRestartAndResetClears() async {
+    func testExportFlagsRestartAndResetDoesNotClear() async {
+        // resetEdits() reverts the buffer but does NOT clear restartRequired —
+        // the file on disk still contains the exported config; a restart is still needed.
         let m = SystemPropertiesModel(
             backend: MockBackend(), normalize: { _ in .unknown(message: "test") })
         await m.load()
@@ -40,6 +41,20 @@ final class SystemPropertiesModelTests: XCTestCase {
         m.markExported()
         XCTAssertTrue(m.restartRequired)
         m.resetEdits()
+        XCTAssertTrue(
+            m.restartRequired,
+            "resetEdits must not clear restartRequired — file on disk still differs from daemon state"
+        )
+    }
+
+    func testLoadClearsRestartRequired() async {
+        // load() establishes a new disk baseline; restartRequired is cleared.
+        let m = SystemPropertiesModel(
+            backend: MockBackend(), normalize: { _ in .unknown(message: "test") })
+        await m.load()
+        m.markExported()
+        XCTAssertTrue(m.restartRequired)
+        await m.load()
         XCTAssertFalse(m.restartRequired)
     }
 
@@ -48,7 +63,6 @@ final class SystemPropertiesModelTests: XCTestCase {
             backend: MockBackend(), normalize: { _ in .unknown(message: "test") })
         await m.load()
         m.editBuffer = "cpus = 2\n"  // key outside section
-        m.markEdited()
         XCTAssertFalse(m.issues.isEmpty)
     }
 }
