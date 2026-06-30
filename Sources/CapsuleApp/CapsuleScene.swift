@@ -34,6 +34,7 @@ public struct CapsuleScene: Scene {
     @State private var registriesModel: RegistriesModel
     @State private var dnsModel: DNSModel
     @State private var kernelManagerModel: KernelManagerModel
+    @State private var propertiesModel: SystemPropertiesModel
     @State private var storageDashboardModel: StorageDashboardModel
     @State private var serviceLogsModel: LogsModel
     @State private var aboutModel: AboutModel
@@ -68,6 +69,7 @@ public struct CapsuleScene: Scene {
         self._registriesModel = State(initialValue: environment.registriesModel)
         self._dnsModel = State(initialValue: environment.dnsModel)
         self._kernelManagerModel = State(initialValue: environment.kernelManagerModel)
+        self._propertiesModel = State(initialValue: environment.propertiesModel)
         self._storageDashboardModel = State(initialValue: environment.storageDashboardModel)
         self._serviceLogsModel = State(initialValue: environment.serviceLogsModel)
         self._aboutModel = State(initialValue: environment.aboutModel)
@@ -128,6 +130,7 @@ public struct CapsuleScene: Scene {
                 registriesModel: registriesModel,
                 dnsModel: dnsModel,
                 kernelModel: kernelManagerModel,
+                propertiesModel: propertiesModel,
                 systemHealth: systemModel.health)
         }
     }
