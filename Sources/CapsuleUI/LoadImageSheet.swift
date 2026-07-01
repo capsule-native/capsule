@@ -16,6 +16,7 @@ struct LoadImageSheet: View {
     let onLoad: (URL) -> OperationTask
     let onRetry: (OperationTask) -> Void
     let onClose: () -> Void
+    let invocationFor: (URL) -> CommandInvocation
 
     @State private var selectedURL: URL?
     @State private var validationError: String?
@@ -25,6 +26,18 @@ struct LoadImageSheet: View {
 
     /// Archive shapes the backend accepts: a tar (optionally gzipped) or an OCI directory.
     private static let allowedExtensions: Set<String> = ["tar", "gz", "tgz"]
+
+    init(
+        onLoad: @escaping (URL) -> OperationTask,
+        onRetry: @escaping (OperationTask) -> Void,
+        onClose: @escaping () -> Void,
+        invocationFor: @escaping (URL) -> CommandInvocation
+    ) {
+        self.onLoad = onLoad
+        self.onRetry = onRetry
+        self.onClose = onClose
+        self.invocationFor = invocationFor
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -42,6 +55,9 @@ struct LoadImageSheet: View {
 
                 if let selectedURL {
                     LabeledContent("Selected", value: selectedURL.lastPathComponent)
+                }
+                if let selectedURL {
+                    CommandPreviewView(invocationFor(selectedURL))
                 }
                 if let validationError {
                     Label(validationError, systemImage: "exclamationmark.triangle")

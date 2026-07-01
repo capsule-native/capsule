@@ -7,6 +7,7 @@
 //  Creates a new reference for an existing image. The source — including its digest — stays
 //  visible so the user always knows exactly which image they are retagging.
 
+import CapsuleDomain
 import SwiftUI
 
 struct TagImageSheet: View {
@@ -14,6 +15,7 @@ struct TagImageSheet: View {
     let sourceDigest: String
     let onTag: (String) -> Void
     let onCancel: () -> Void
+    let invocationFor: (String) -> CommandInvocation
 
     @State private var target = ""
 
@@ -37,6 +39,8 @@ struct TagImageSheet: View {
                     .textFieldStyle(.roundedBorder)
             }
             .formStyle(.grouped)
+
+            CommandPreviewView(invocationFor(trimmedTarget))
 
             HStack {
                 Button("Cancel", role: .cancel, action: onCancel)

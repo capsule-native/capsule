@@ -17,6 +17,7 @@ struct PushImageSheet: View {
     let onPush: (String, String?) -> OperationTask
     let onRetry: (OperationTask) -> Void
     let onClose: () -> Void
+    let invocationFor: (String, String?) -> CommandInvocation
 
     @State private var reference: String
     @State private var platform = ""
@@ -28,13 +29,15 @@ struct PushImageSheet: View {
         initialDigest: String,
         onPush: @escaping (String, String?) -> OperationTask,
         onRetry: @escaping (OperationTask) -> Void,
-        onClose: @escaping () -> Void
+        onClose: @escaping () -> Void,
+        invocationFor: @escaping (String, String?) -> CommandInvocation
     ) {
         self.initialReference = initialReference
         self.initialDigest = initialDigest
         self.onPush = onPush
         self.onRetry = onRetry
         self.onClose = onClose
+        self.invocationFor = invocationFor
         _reference = State(initialValue: initialReference)
     }
 
@@ -76,6 +79,9 @@ struct PushImageSheet: View {
                     LabeledContent("Destination", value: destination)
                 }
                 .formStyle(.grouped)
+
+                CommandPreviewView(
+                    invocationFor(trimmedReference, platform.isEmpty ? nil : platform))
 
                 HStack {
                     Button("Cancel", role: .cancel, action: onClose)

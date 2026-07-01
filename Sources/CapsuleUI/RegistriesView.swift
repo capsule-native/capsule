@@ -59,7 +59,10 @@ struct RegistriesView: View {
                 onTest: { server, user, pass in
                     await model.test(server: server, username: user, password: pass)
                 },
-                onClose: { showingLogin = false })
+                onClose: { showingLogin = false },
+                invocationFor: { server, user in
+                    model.loginInvocation(server: server, username: user)
+                })
         }
         .confirmationDialog(
             "Remove the login for \(pendingLogout?.server ?? "")?",
