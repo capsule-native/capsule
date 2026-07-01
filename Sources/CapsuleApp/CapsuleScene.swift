@@ -120,7 +120,8 @@ public struct CapsuleScene: Scene {
                 shell: shell,
                 systemModel: systemModel,
                 actions: actions,
-                machineActionsModel: machineActionsModel
+                machineActionsModel: machineActionsModel,
+                commandContext: commandContext
             )
         }
 
