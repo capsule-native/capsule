@@ -68,6 +68,12 @@ public enum CommandRedactor {
         return result
     }
 
+    /// Redacted, space-joined display: `executable` + `redactedArguments(arguments)`.
+    public static func redactedDisplay(_ invocation: CommandInvocation) -> String {
+        ([invocation.executable] + redactedArguments(invocation.arguments))
+            .joined(separator: " ")
+    }
+
     /// Masks the value of a `KEY=VALUE` entry when KEY matches a sensitive fragment; otherwise
     /// returns the entry unchanged (including entries that have no `=`).
     private static func redactedKeyValueEntry(_ entry: String) -> String {
