@@ -60,6 +60,7 @@ struct BuildSheet: View {
             footer
         }
         .frame(width: 560, height: 640)
+        .accessibilityIdentifier("build-sheet")
         .task { model.loadPresets() }
         .alert("Save Build Preset", isPresented: $showingSavePreset) {
             TextField("Preset name", text: $newPresetName)

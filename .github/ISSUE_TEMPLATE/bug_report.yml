@@ -1,0 +1,96 @@
+name: Bug report
+description: Report a reproducible problem in Capsule. Version + diagnostic info are required.
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please fill in **every required field** — we can’t triage a
+        crash or misbehaviour without your versions and a diagnostic bundle.
+
+        Generate the diagnostic bundle in-app: **About / Diagnostics → Export Diagnostics…**.
+        It is local-only and scrubbed of secrets by default. The same panel’s **Copy Bug
+        Report** button copies your Capsule + component versions for the fields below.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, plus what you expected instead.
+      placeholder: |
+        When I click Run on an image, the sheet closes but no container appears.
+        I expected a new running container in the Containers list.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps that reliably reproduce the problem.
+      placeholder: |
+        1. Open Images
+        2. Select alpine:latest
+        3. Click Run, accept defaults, click Run
+    validations:
+      required: true
+
+  - type: input
+    id: capsule-version
+    attributes:
+      label: Capsule version
+      description: "Capsule ▸ About (CFBundleShortVersionString), e.g. 0.1.0. Copy Bug Report includes it."
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: container-system-version
+    attributes:
+      label: "`container system version` output"
+      description: "Run `container system version` in Terminal and paste the full output."
+      render: text
+      placeholder: |
+        container CLI version 1.0.0 (build: release, commit: ee848e3)
+        container-apiserver version 1.0.0 (build: release, commit: ee848e3)
+    validations:
+      required: true
+
+  - type: input
+    id: macos-version
+    attributes:
+      label: Host macOS version
+      description: " ▸ About This Mac, e.g. macOS 26.0 (25A5295e). Apple silicon only."
+      placeholder: "macOS 26.0 (25A5295e)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostic bundle
+      description: |
+        Attach the exported `capsule-diagnostics.json` (drag it into this field) **or** paste
+        its contents. Generated via About / Diagnostics → Export Diagnostics… — local-only and
+        secret-scrubbed.
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Additional logs or screenshots (optional)
+      description: Anything else that helps — screenshots, Console output, activity-pane text.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I’m on Apple silicon running macOS 26 or later.
+          required: true
+        - label: I confirmed the diagnostic bundle contains no secrets I’m unwilling to share.
+          required: true

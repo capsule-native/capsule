@@ -48,6 +48,8 @@ struct SidebarView: View {
         .tag(section)
         .disabled(!enabled)
         .foregroundStyle(enabled ? .primary : .secondary)
+        // Stable identifier for golden UI tests (e.g. "sidebar-containers").
+        .accessibilityIdentifier("sidebar-\(String(describing: section))")
     }
 
     private var statusFooter: some View {

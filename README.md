@@ -38,13 +38,13 @@ CapsuleBackend     ──▶ (no Capsule dependencies)           (port; bottom o
 
 | Module | Responsibility |
 | --- | --- |
-| `CapsuleApp` | App lifecycle, top-level `Scene`, menu commands, window management, updater (Sparkle) slot, composition root. |
+| `CapsuleApp` | App lifecycle, top-level `Scene`, menu commands, window management, the Sparkle-backed updater, composition root. |
 | `CapsuleDomain` | Resource models, actions, task state, outcome/diagnostics types. No UI, no `Process`. |
 | `CapsuleBackend` | `ContainerBackend` protocol plus shared request/response value types (the port). |
 | `CapsuleCLIBackend` | `Process` plumbing, argument building, output parsing. Conforms to `ContainerBackend`. |
 | `CapsuleAutomation` | App Intents, AppleScript terminology, shortcut-facing models (stubs). |
 | `CapsuleDiagnostics` | `OSLog` wrappers, diagnostic-bundle export, error normalization. |
-| `CapsuleUI` | SwiftUI views, inspectors, sheets, terminal wrappers. |
+| `CapsuleUI` | SwiftUI views, inspectors, sheets, terminal wrappers, the updater/privacy settings surfaces. |
 
 ### Enforced boundaries
 
@@ -89,21 +89,42 @@ make run         # build and launch the app
 ## Tests
 
 - **Unit tests** (`Tests/CapsuleUnitTests`) run under `swift test` and in CI. They cover
-  domain models, CLI argument building, the composition root, and the architecture
-  boundaries.
+  domain models, CLI argument building, output parsing (against `MockBackend`, no real
+  process), the composition root, and the architecture boundaries.
+- **Golden UI tests** (`App/CapsuleUITests`) are an XCUITest target run through
+  Xcode/xcodebuild. The app launches in a deterministic `MockBackend` mode
+  (`CAPSULE_UITEST=1`) so critical flows — containers list, Run/Build sheets, settings,
+  error states — are asserted without the real CLI. CI runs them in the `app-ui-tests` job.
 - **Integration tests** (`Tests/CapsuleIntegrationTests`) exercise the real `container`
   CLI. They require an Apple-silicon macOS host with the CLI installed and **self-skip
-  unless `CAPSULE_INTEGRATION=1`**. They are not run in CI yet.
-- **UI tests** (`App/CapsuleUITests`) are an XCUITest target run through Xcode/xcodebuild
-  against the built app — not through SwiftPM.
+  unless `CAPSULE_INTEGRATION=1`** — intentionally not run in CI.
+- **Coverage** — `make coverage` runs the unit suite instrumented and writes
+  `dist/coverage/{coverage.lcov,coverage.txt}`; CI uploads it as an artifact.
 
-## Distribution
+## Distribution & updates
 
-`make app` produces an ad-hoc-signed app for local use. A notarized release requires a
-Developer ID Application identity: build → archive → sign with `--options runtime` and
-[`App/Capsule.entitlements`](App/Capsule.entitlements) → `notarytool submit` →
-`stapler staple`. See `make package` for the outline. The Sparkle updater is stubbed
-behind `UpdaterController` and slotted in during the distribution milestone.
+`make app` produces an ad-hoc-signed app for local use. Releases are **Developer ID–signed,
+notarized, and stapled** with the Hardened Runtime, driven by
+[`Scripts/release/`](Scripts/release/):
+
+```sh
+make release       # full pipeline: archive → sign → notarize → staple → package → appcast
+make release-dry   # print the whole plan without signing (no credentials needed)
+```
+
+Auto-updates ship through **[Sparkle](https://sparkle-project.org)** (integrated via SwiftPM,
+unsandboxed, EdDSA-signed appcast). The updater lives behind `UpdaterController` in the UI and
+is backed by `SparkleUpdaterController` in the composition root; users control it in
+**Settings ▸ Updates**. Tagging `vX.Y.Z` runs
+[`.github/workflows/release.yml`](.github/workflows/release.yml). See
+[`Scripts/release/README.md`](Scripts/release/README.md) for the one-time key/credential setup.
+
+## Privacy
+
+Capsule keeps your data on your Mac: local-only diagnostic logging, opt-in (off by default)
+crash submission, and **no** analytics. Secrets and command content are never collected unless
+you explicitly opt in, and credentials are scrubbed even then. The full statement is in the app
+under **Settings ▸ Privacy**.
 
 ## Formatting & hooks
 

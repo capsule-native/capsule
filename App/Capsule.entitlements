@@ -9,6 +9,12 @@
 	  deliberately omitted). Hardened Runtime is enabled at sign time
 	  (ENABLE_HARDENED_RUNTIME); add any Hardened-Runtime exceptions
 	  (e.g. com.apple.security.cs.*) here if a future dependency requires them.
+
+	  Sparkle: the UNSANDBOXED updater needs NO extra entitlements. Sparkle's XPC services
+	  (Installer/Downloader) and the com.apple.security.temporary-exception.* keys exist only
+	  for the SANDBOXED case. Because Capsule is unsandboxed, the in-process updater is used and
+	  this file stays empty. The Sparkle framework is built from source via SwiftPM and signed
+	  with the app under the same Developer ID, so no library-validation exception is required.
 	-->
 </dict>
 </plist>

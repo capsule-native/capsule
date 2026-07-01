@@ -118,10 +118,53 @@ public struct AppEnvironment {
         self.commandContext = commandContext
     }
 
-    /// The production environment: CLI backend, normalized errors, and a wired shell.
+    /// The production environment with a no-op updater. Unit tests build this directly, so it
+    /// must never instantiate Sparkle (which would try to schedule checks against `SUFeedURL`).
+    /// The real app calls `live(updater:)` with `SparkleUpdaterController()` from
+    /// `CapsuleScene.init()`.
+    ///
+    /// (A no-op default argument can't be used here: `NoopUpdaterController.init()` is
+    /// `@MainActor`-isolated and default arguments are evaluated in a nonisolated context.)
     public static func live() -> AppEnvironment {
+        live(updater: NoopUpdaterController())
+    }
+
+    /// The production environment: CLI backend, normalized errors, a wired shell, and the
+    /// injected `updater`.
+    public static func live(updater: any UpdaterController) -> AppEnvironment {
         let cliBackend = CLIContainerBackend()
-        let backend: any ContainerBackend = cliBackend
+        return make(
+            backend: cliBackend,
+            containerExecutablePath: cliBackend.executableURL.path,
+            updater: updater)
+    }
+
+    /// A deterministic environment for golden UI tests: an in-memory `MockBackend` with seeded
+    /// data, a no-op updater, and no real `container` CLI. Selected at launch when the
+    /// `CAPSULE_UITEST` environment variable is set (see `CapsuleScene.init`).
+    ///
+    /// `CAPSULE_UITEST_SCENARIO` picks the seeded state: `healthy` (default) or `serviceDown`
+    /// (the service reads back stopped, so the health banner shows the error/recovery state).
+    public static func uiTest() -> AppEnvironment {
+        let scenario = ProcessInfo.processInfo.environment["CAPSULE_UITEST_SCENARIO"] ?? "healthy"
+        let backend: any ContainerBackend =
+            scenario == "serviceDown"
+            ? MockBackend(systemRunState: .stopped)
+            : MockBackend()
+        return make(
+            backend: backend,
+            containerExecutablePath: "container",
+            updater: NoopUpdaterController())
+    }
+
+    /// Shared assembly: wires `backend` (the live CLI adapter or a `MockBackend`) into the
+    /// domain + UI. `containerExecutablePath` is the absolute path used for external-terminal
+    /// handoffs — unused in mock mode.
+    static func make(
+        backend: any ContainerBackend,
+        containerExecutablePath: String,
+        updater: any UpdaterController
+    ) -> AppEnvironment {
         let shell = ShellState()
         let taskCenter = TaskCenter(normalize: { ErrorNormalizer.normalize($0) })
         let systemModel = SystemStatusModel(
@@ -192,13 +235,13 @@ public struct AppEnvironment {
         let openInTerminalApp: @MainActor ([String]) -> Void = { argv in
             let app = currentTerminalApp()
             openCommandInTerminalApp(
-                argv, executablePath: cliBackend.executableURL.path, terminalApp: app)
+                argv, executablePath: containerExecutablePath, terminalApp: app)
             shell.appendActivity("Opened in Terminal: \(argv.joined(separator: " "))")
         }
         let runPrivilegedInTerminal: @MainActor ([String]) -> Void = { argv in
             let app = currentTerminalApp()
             openPrivilegedCommandInTerminalApp(
-                argv, executablePath: cliBackend.executableURL.path, terminalApp: app)
+                argv, executablePath: containerExecutablePath, terminalApp: app)
             shell.appendActivity("Opened in Terminal (sudo): \(argv.joined(separator: " "))")
         }
         let dnsModel = DNSModel(
@@ -290,7 +333,7 @@ public struct AppEnvironment {
             backend: backend, taskCenter: taskCenter,
             onActivity: { line in shell.appendActivity(line) })
         let terminalSurfaceProvider = SwiftTermSurfaceProvider(executablePath: { name in
-            name == "container" ? cliBackend.executableURL.path : name
+            name == "container" ? containerExecutablePath : name
         })
         let actions = makeActions(systemModel: systemModel, shell: shell)
         let pluginCatalog = PluginCatalogModel(
@@ -338,7 +381,7 @@ public struct AppEnvironment {
             logsModel: logsModel,
             copyModel: copyModel,
             actions: actions,
-            updater: NoopUpdaterController(),
+            updater: updater,
             terminalSurfaceProvider: terminalSurfaceProvider,
             commandContext: commandContext
         )

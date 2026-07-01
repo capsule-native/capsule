@@ -56,6 +56,22 @@ final class DiagnosticBundleTests: XCTestCase {
         XCTAssertEqual(bundle.logEntries, ["backend: started", "tasks: refresh"])
     }
 
+    func testLogEntriesAreSecretScrubbed() {
+        // A credential that leaks into a log line must not survive into an exported bundle —
+        // logs are always scrubbed, independent of the command-content opt-in.
+        let builder = DiagnosticBundleBuilder(
+            capsuleVersion: "1.2.3",
+            containerSystemVersion: nil,
+            hostOSVersion: "macOS 26.0",
+            logEntries: ["registry login --password hunter2", "header: Bearer sk-live-abcdef"],
+            transcript: []
+        )
+        let joined = builder.build().logEntries.joined(separator: "\n")
+        XCTAssertFalse(joined.contains("hunter2"), "a password in a log line must be scrubbed")
+        XCTAssertFalse(
+            joined.contains("sk-live-abcdef"), "a bearer token in a log line must be scrubbed")
+    }
+
     func testCommandContentIsRedactedByDefault() {
         let bundle = makeBuilder().build()  // default options: content off
         XCTAssertFalse(bundle.includesCommandContent)

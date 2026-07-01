@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build, checks & coverage (SwiftPM)
+    # Apple-silicon macOS 26 runner — required because the package targets the macOS 26
+    # SDK. If macos-26 is unavailable in your org, pin a runner/Xcode that ships the
+    # macOS 26 SDK; an older SDK will fail the build (deployment target > SDK).
+    runs-on: macos-26
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest available Xcode
+        run: |
+          latest="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest"; fi
+          echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+
+      - name: Toolchain versions & SDK check
+        run: |
+          swift --version
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i macos
+
+      - name: Lint (swift-format)
+        run: make lint
+
+      - name: Architecture boundaries
+        run: make arch
+
+      - name: License headers
+        run: make headers
+
+      - name: Build
+        run: make build
+
+      - name: Unit tests + coverage
+        # `make coverage` runs the full unit suite with instrumentation and writes
+        # dist/coverage/{coverage.lcov,coverage.txt}. Integration tests require an
+        # Apple-silicon host with the `container` CLI and self-skip unless
+        # CAPSULE_INTEGRATION=1 — intentionally not run here.
+        run: make coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: dist/coverage/
+          if-no-files-found: warn
+
+  app-ui-tests:
+    name: App build & golden UI tests (Xcode)
+    runs-on: macos-26
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest available Xcode
+        run: |
+          latest="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest"; fi
+          echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: make xcodeproj
+
+      # Build + run the golden XCUITests against an ad-hoc-signed app (no Developer ID needed
+      # for a local run / test). Distribution signing happens only in release.yml. The app is
+      # launched in a deterministic MockBackend mode via the CAPSULE_UITEST launch environment
+      # set by the test bundle, so no real `container` CLI is required.
+      - name: Golden UI tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Capsule.xcodeproj \
+            -scheme Capsule \
+            -configuration Debug \
+            -destination 'platform=macOS,arch=arm64' \
+            -only-testing:CapsuleUITests \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual
+
+      - name: Upload UI test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: TestResults.xcresult
+          if-no-files-found: ignore

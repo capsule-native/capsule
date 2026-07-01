@@ -19,6 +19,7 @@ xcuserdata/
 
 # Distribution artifacts
 /build/
+/dist/
 *.xcarchive
 *.dmg
 *.zip
