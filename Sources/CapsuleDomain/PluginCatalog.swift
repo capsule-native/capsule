@@ -8,6 +8,8 @@
 //  modeled behind a pure `PluginDiscovering` seam so the domain stays decoupled from the
 //  filesystem; the concrete `LibexecPluginScanner` lives in the composition root (CapsuleApp).
 
+import Observation
+
 /// A `container` plugin resolved from a libexec directory: an external `container-<name>`
 /// binary invoked as the subcommand `container <name>`.
 public struct PluginInfo: Identifiable, Equatable, Sendable {
@@ -34,4 +36,39 @@ public protocol PluginDiscovering: Sendable {
 public struct NoPluginDiscovery: PluginDiscovering {
     public init() {}
     public func installedPlugins() -> [PluginInfo] { [] }
+}
+
+/// Exposes the installed plugins for the palette/menu, gated on the system service running
+/// (plugins require it). Each plugin is surfaced as a terminal route since Capsule has no
+/// first-class UI for plugins.
+@MainActor
+@Observable
+public final class PluginCatalogModel {
+    public private(set) var plugins: [PluginInfo] = []
+
+    private let discovering: any PluginDiscovering
+    private let isServiceRunning: @MainActor () -> Bool
+
+    public init(
+        discovering: any PluginDiscovering,
+        isServiceRunning: @escaping @MainActor () -> Bool
+    ) {
+        self.discovering = discovering
+        self.isServiceRunning = isServiceRunning
+    }
+
+    /// Re-reads installed plugins while the service is running; otherwise clears the list so
+    /// stale entries never linger after a shutdown.
+    public func refresh() {
+        plugins = isServiceRunning() ? discovering.installedPlugins() : []
+    }
+
+    /// A terminal route for a plugin subcommand: `container <name>` opened interactively.
+    public func terminalRequest(for plugin: PluginInfo) -> TerminalRequest {
+        TerminalRequest(
+            containerID: nil,
+            title: "container \(plugin.name)",
+            argv: ["container", plugin.name],
+            kind: .runInteractive)
+    }
 }
