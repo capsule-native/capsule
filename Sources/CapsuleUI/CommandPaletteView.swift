@@ -64,6 +64,7 @@ public struct CommandPaletteView: View {
             .listStyle(.plain)
         }
         .frame(width: 560, height: 420)
+        .accessibilityIdentifier("command-palette")
         .onAppear { searchFocused = true }
         .onExitCommand { shell.commandPalettePresented = false }
     }

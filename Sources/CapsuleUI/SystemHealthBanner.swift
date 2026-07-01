@@ -77,6 +77,7 @@ public struct SystemHealthBanner: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text("\(text.title). \(text.message)", bundle: .module))
+        .accessibilityIdentifier("system-health-banner")
     }
 
     // MARK: - Pure presentation (unit-tested)

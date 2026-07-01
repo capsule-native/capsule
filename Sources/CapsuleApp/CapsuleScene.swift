@@ -7,6 +7,7 @@
 
 import CapsuleDomain
 import CapsuleUI
+import Foundation
 import SwiftUI
 
 /// The application's root `Scene`.
@@ -48,10 +49,16 @@ public struct CapsuleScene: Scene {
     private let commandContext: CommandContext
 
     public init() {
-        // The real app entry point (CapsuleMain) is the ONLY caller of this initializer, so
-        // this is where the live Sparkle updater is instantiated. Unit tests build
-        // `AppEnvironment.live()` directly (default no-op updater) and never reach here.
-        self.init(environment: .live(updater: SparkleUpdaterController()))
+        // The real app entry point (CapsuleMain) is the ONLY caller of this initializer.
+        // Golden UI tests launch with CAPSULE_UITEST=1 to get a deterministic MockBackend
+        // (no real `container` CLI, no Sparkle). Otherwise this is where the live Sparkle
+        // updater is instantiated. Unit tests build `AppEnvironment.live()` directly (default
+        // no-op updater) and never reach here.
+        if ProcessInfo.processInfo.environment["CAPSULE_UITEST"] == "1" {
+            self.init(environment: .uiTest())
+        } else {
+            self.init(environment: .live(updater: SparkleUpdaterController()))
+        }
     }
 
     public init(environment: AppEnvironment) {

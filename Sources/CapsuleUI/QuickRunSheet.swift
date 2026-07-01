@@ -39,6 +39,7 @@ struct QuickRunSheet: View {
             footer
         }
         .frame(width: 540, height: 620)
+        .accessibilityIdentifier("run-sheet")
         .task { model.loadPresets() }
         .alert("Save Run Preset", isPresented: $showingSavePreset) {
             TextField("Preset name", text: $newPresetName)
