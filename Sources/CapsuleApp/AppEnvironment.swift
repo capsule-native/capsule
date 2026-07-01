@@ -231,6 +231,7 @@ public struct AppEnvironment {
             launchTerminal: { request in shell.openTerminal(request) },
             taskCenter: taskCenter
         )
+        let presetStore = UserDefaultsPresetStore()
         let runModel = RunModel(
             backend: backend,
             taskCenter: taskCenter,
@@ -239,14 +240,16 @@ public struct AppEnvironment {
             reloadList: { await browserModel.refresh() },
             terminalAvailable: { true },
             launchTerminal: { request in shell.openTerminal(request) },
-            copyCommand: copyCommandToClipboard
+            copyCommand: copyCommandToClipboard,
+            presetStore: presetStore
         )
         let buildModel = BuildModel(
             backend: backend,
             taskCenter: taskCenter,
             normalize: { ErrorNormalizer.normalize($0) },
             onActivity: { line in shell.appendActivity(line) },
-            reloadList: { await imageBrowserModel.refresh() }
+            reloadList: { await imageBrowserModel.refresh() },
+            presetStore: presetStore
         )
         var storageDashboardModelRef: StorageDashboardModel? = nil
         let storageDashboardModel = StorageDashboardModel(
