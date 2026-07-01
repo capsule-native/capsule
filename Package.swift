@@ -31,6 +31,9 @@ import PackageDescription
 // backend value types into its own models so backend types never reach the UI.
 let package = Package(
     name: "Capsule",
+    // Required the moment any target ships a localized resource (String Catalog). Every
+    // user-facing string resolves against its module's catalog with this as the base.
+    defaultLocalization: "en",
     platforms: [
         .macOS("26.0")
     ],
@@ -55,11 +58,25 @@ let package = Package(
         .target(name: "CapsuleBackend"),
 
         // MARK: - Domain (depends on the backend port only; no UI, no Process)
-        .target(name: "CapsuleDomain", dependencies: ["CapsuleBackend"]),
+        // Owns the app's user-facing *display* strings (state labels, sort/filter titles,
+        // error explanations) as localized resources — hence its own String Catalog.
+        .target(
+            name: "CapsuleDomain",
+            dependencies: ["CapsuleBackend"],
+            resources: [.process("Resources")]
+        ),
 
         // MARK: - Leaf / side modules
         .target(name: "CapsuleDiagnostics", dependencies: ["CapsuleDomain", "CapsuleBackend"]),
-        .target(name: "CapsuleAutomation", dependencies: ["CapsuleDomain"]),
+        // Automation (App Intents + AppleScript vocabulary) drives the backend *port* directly
+        // for headless invocation — hence the CapsuleBackend dependency (the port + value
+        // types, no Process). It is a side/leaf the app composes; the architecture guard only
+        // restricts UI and Domain, so importing the port here is allowed.
+        .target(
+            name: "CapsuleAutomation",
+            dependencies: ["CapsuleDomain", "CapsuleBackend"],
+            resources: [.process("Resources")]
+        ),
 
         // MARK: - CLI adapter (conforms to the backend port; the only Process user)
         .target(
@@ -68,7 +85,13 @@ let package = Package(
         ),
 
         // MARK: - Presentation (Domain only — must NOT import any Backend module)
-        .target(name: "CapsuleUI", dependencies: ["CapsuleDomain"]),
+        // Ships the UI String Catalog; library-authored user-facing strings resolve against
+        // this target's `Bundle.module`.
+        .target(
+            name: "CapsuleUI",
+            dependencies: ["CapsuleDomain"],
+            resources: [.process("Resources")]
+        ),
 
         // MARK: - Terminal engine adapter (SwiftTerm/PTY; conforms to the UI port).
         // May import CapsuleUI + CapsuleDomain only; wired by the composition root.
