@@ -13,6 +13,7 @@ options:
     macOS: "26.0"
   createIntermediateGroups: true
   groupSortPosition: top
+  developmentLanguage: en
 
 settings:
   base:
@@ -21,6 +22,9 @@ settings:
     ARCHS: arm64
     ONLY_ACTIVE_ARCH: YES
     DEAD_CODE_STRIPPING: YES
+    # Localization: let the compiler extract Swift/SwiftUI user-facing strings into the
+    # app target's String Catalog on build ("Use Compiler to Extract Swift Strings").
+    SWIFT_EMIT_LOC_STRINGS: YES
     # Unsandboxed + Hardened Runtime (notarizable distribution).
     ENABLE_APP_SANDBOX: NO
     ENABLE_HARDENED_RUNTIME: YES
@@ -39,6 +43,10 @@ targets:
     sources:
       - path: App/Sources
       - path: App/Assets.xcassets
+      - path: App/Resources/Localizable.xcstrings
+      # AppleScript terminology — copied into Contents/Resources so OSAScriptingDefinition
+      # (Capsule.sdef) resolves it.
+      - path: App/Capsule.sdef
     settings:
       base:
         PRODUCT_NAME: Capsule
@@ -50,9 +58,16 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: NO
         COMBINE_HIDPI_IMAGES: YES
+        # App Intents metadata extraction must scan the library module that owns the intents
+        # (Xcode 26 supports intents in static SwiftPM libraries via this + AppIntentsPackage).
+        APP_INTENTS_MODULE_NAMES: CapsuleAutomation
     dependencies:
       - package: Capsule
         product: CapsuleApp
+      # The app target hosts the AppShortcutsProvider + AppIntentsPackage, which reference the
+      # intent types in CapsuleAutomation.
+      - package: Capsule
+        product: CapsuleAutomation
 
   CapsuleUITests:
     type: bundle.ui-testing

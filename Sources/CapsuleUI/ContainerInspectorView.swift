@@ -127,7 +127,10 @@ struct ContainerInspectorView: View {
                         .padding(8)
                 }
                 .overlay {
-                    if isLoadingRaw { ProgressView() }
+                    if isLoadingRaw {
+                        ProgressView()
+                            .accessibilityLabel(Text("Loading", bundle: .module))
+                    }
                 }
             }
         }

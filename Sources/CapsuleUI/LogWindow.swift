@@ -26,6 +26,8 @@ public struct LogWindowView: View {
     public var body: some View {
         LogsPaneView(model: model)
             .frame(minWidth: 480, minHeight: 320)
-            .navigationTitle(model.containerID.map { "Logs · \($0)" } ?? "Logs")
+            .navigationTitle(
+                model.containerID.map { Text("Logs · \($0)", bundle: .module) }
+                    ?? Text("Logs", bundle: .module))
     }
 }

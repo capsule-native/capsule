@@ -35,6 +35,15 @@ public enum CapsuleColors {
         accent(for: kind).opacity(contrast == .increased ? 0.9 : 0.35)
     }
 
+    /// A soft tinted fill for inline notice / highlight surfaces (warning cards, restart
+    /// banners, the default-machine row). Deepens under "Increase contrast" so the surface
+    /// stays legible instead of washing out — the same treatment ``bannerBackground(_:contrast:)``
+    /// gives banners, so every tinted surface in the app responds to increased contrast the
+    /// same way.
+    public static func softFill(_ tint: Color, contrast: ColorSchemeContrast) -> Color {
+        tint.opacity(contrast == .increased ? 0.28 : 0.14)
+    }
+
     /// Primary text on a banner — always the system label color for maximum legibility.
     public static var bannerForeground: Color { .primary }
 

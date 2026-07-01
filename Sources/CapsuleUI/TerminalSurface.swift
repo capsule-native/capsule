@@ -68,9 +68,11 @@ public struct StubTerminalSurfaceProvider: TerminalSurfaceProviding {
                     .foregroundStyle(.secondary)
                 Text(request.argv.joined(separator: " "))
                     .font(.system(.caption, design: .monospaced))
-                Text("Terminal preview").foregroundStyle(.tertiary).font(.caption)
+                Text("Terminal preview", bundle: .module).foregroundStyle(.tertiary).font(.caption)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text("Terminal", bundle: .module))
         )
     }
 }

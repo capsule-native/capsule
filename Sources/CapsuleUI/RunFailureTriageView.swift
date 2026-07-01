@@ -17,6 +17,15 @@ struct RunFailureTriageView: View {
     var onResolveImage: () -> Void
     var onRetryInTerminal: () -> Void
 
+    /// The Resolve Image tooltip, localized. Names the missing image reference when known,
+    /// otherwise falls back to a fully localized "the image" phrasing (no interpolation).
+    private var resolveImageHelp: Text {
+        if let imageReference {
+            return Text("Pull \(imageReference) from a registry", bundle: .module)
+        }
+        return Text("Pull the image from a registry", bundle: .module)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label("The container didn’t start", systemImage: "exclamationmark.triangle.fill")
@@ -36,7 +45,7 @@ struct RunFailureTriageView: View {
                 } label: {
                     Label("Resolve Image", systemImage: "arrow.down.circle")
                 }
-                .help("Pull \(imageReference ?? "the image") from a registry")
+                .help(resolveImageHelp)
 
                 Button {
                     onRetryInTerminal()

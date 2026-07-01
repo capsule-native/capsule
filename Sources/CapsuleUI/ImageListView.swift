@@ -126,12 +126,14 @@ struct ImageListView: View {
 
     private var table: some View {
         Table(model.rows, selection: $model.selection) {
-            TableColumn("") { image in
+            TableColumn(Text("Status", bundle: .module)) { image in
                 if image.isDangling {
                     Circle().fill(.orange).frame(width: 8, height: 8)
-                        .help("Dangling (untagged) image")
+                        .help(Text("Dangling (untagged) image", bundle: .module))
+                        .accessibilityLabel(Text("Dangling image", bundle: .module))
                 } else {
                     Circle().fill(.secondary).frame(width: 8, height: 8).opacity(0.4)
+                        .accessibilityHidden(true)
                 }
             }
             .width(18)
@@ -228,7 +230,7 @@ struct ImageListView: View {
         ToolbarItem(placement: .principal) {
             Picker("Sort", selection: $model.sort) {
                 ForEach(ImageSort.allCases) { sort in
-                    Text(sort.title).tag(sort)
+                    Text(sort.localizedTitle).tag(sort)
                 }
             }
             .pickerStyle(.segmented)

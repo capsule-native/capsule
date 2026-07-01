@@ -15,7 +15,7 @@ struct SidebarView: View {
     @Bindable var shell: ShellState
     let availableFeatures: Set<SystemFeature>
     let bannerKind: BannerKind
-    let statusLabel: String
+    let statusLabel: LocalizedStringResource
 
     private var resourceSections: [SidebarSection] {
         SidebarSection.allCases.filter { $0 != .system }
@@ -40,10 +40,14 @@ struct SidebarView: View {
 
     private func row(_ section: SidebarSection) -> some View {
         let enabled = section.isEnabled(features: availableFeatures)
-        return Label(section.title, systemImage: section.symbolName)
-            .tag(section)
-            .disabled(!enabled)
-            .foregroundStyle(enabled ? .primary : .secondary)
+        return Label {
+            Text(section.localizedTitle)
+        } icon: {
+            Image(systemName: section.symbolName)
+        }
+        .tag(section)
+        .disabled(!enabled)
+        .foregroundStyle(enabled ? .primary : .secondary)
     }
 
     private var statusFooter: some View {
@@ -60,6 +64,7 @@ struct SidebarView: View {
         .padding(.vertical, 8)
         .background(.bar)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Service status: \(statusLabel)")
+        .accessibilityLabel(
+            Text("Service status: \(String(localized: statusLabel))", bundle: .module))
     }
 }

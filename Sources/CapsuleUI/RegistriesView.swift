@@ -87,6 +87,7 @@ struct RegistriesView: View {
         switch model.loadState {
         case .idle, .loading:
             ProgressView().frame(maxWidth: .infinity)
+                .accessibilityLabel(Text("Loading", bundle: .module))
         case .unavailable(let detail):
             ContentUnavailableView {
                 Label(detail.title, systemImage: "exclamationmark.triangle")
@@ -110,7 +111,8 @@ struct RegistriesView: View {
                                 Image(systemName: "minus.circle")
                             }
                             .buttonStyle(.borderless)
-                            .help("Log out of \(registry.server)")
+                            .accessibilityLabel(Text("Log out", bundle: .module))
+                            .help(Text("Log out of \(registry.server)", bundle: .module))
                         }
                     }
                 }

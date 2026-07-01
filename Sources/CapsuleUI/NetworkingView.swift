@@ -101,6 +101,7 @@ struct NetworkingView: View {
         switch model.loadState {
         case .idle, .loading:
             ProgressView().frame(maxWidth: .infinity)
+                .accessibilityLabel(Text("Loading", bundle: .module))
         case let .unavailable(detail):
             ContentUnavailableView {
                 Label(detail.title, systemImage: "exclamationmark.triangle")
@@ -119,7 +120,7 @@ struct NetworkingView: View {
                             VStack(alignment: .leading) {
                                 Label(domain.domain, systemImage: "network")
                                 if let ip = domain.localhostIP {
-                                    Text("localhost → \(ip)")
+                                    Text("localhost → \(ip)", bundle: .module)
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
                             }
@@ -130,7 +131,11 @@ struct NetworkingView: View {
                                 Image(systemName: "minus.circle")
                             }
                             .buttonStyle(.borderless)
-                            .help("Delete \(domain.domain) (requires administrator)")
+                            .accessibilityLabel(Text("Delete DNS domain", bundle: .module))
+                            .help(
+                                Text(
+                                    "Delete \(domain.domain) (requires administrator)",
+                                    bundle: .module))
                         }
                     }
                 }

@@ -20,7 +20,7 @@ struct StopOptionsSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Stop “\(containerName)”")
+            Text("Stop “\(containerName)”", bundle: .module)
                 .font(.headline)
 
             Form {

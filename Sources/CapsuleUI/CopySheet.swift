@@ -101,7 +101,7 @@ struct CopySheet: View {
                 TextField("/app/file", text: $model.containerPath)
                     .textFieldStyle(.roundedBorder)
             }
-            Text("Example: \(model.exampleID):/app/file")
+            Text("Example: \(model.exampleID):/app/file", bundle: .module)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
@@ -135,6 +135,10 @@ struct CopySheet: View {
                     } label: {
                         HStack {
                             Image(systemName: entry.isDirectory ? "folder" : "doc")
+                                .accessibilityLabel(
+                                    entry.isDirectory
+                                        ? Text("Folder", bundle: .module)
+                                        : Text("File", bundle: .module))
                             Text(entry.name)
                             Spacer()
                         }

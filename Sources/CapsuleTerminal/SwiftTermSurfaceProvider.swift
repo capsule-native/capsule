@@ -35,6 +35,27 @@ public struct SwiftTermSurfaceProvider: TerminalSurfaceProviding {
     }
 }
 
+/// A `LocalProcessTerminalView` that keeps its colors in step with the system appearance.
+///
+/// SwiftTerm seeds a fixed black background / gray foreground and snapshots them, so a bare
+/// view ignores light/dark and "Increase contrast". This subclass re-derives its colors from
+/// the dynamic `NSColor` text tokens whenever the effective appearance changes.
+private final class AppearanceFollowingTerminalView: LocalProcessTerminalView {
+    /// Re-seeds the terminal's native colors from the current appearance's dynamic tokens.
+    func applySystemColors() {
+        // Resolve the dynamic NSColors in THIS view's effective appearance so a dark-mode /
+        // increased-contrast window gets the matching text + background tokens.
+        effectiveAppearance.performAsCurrentDrawingAppearance { [self] in
+            configureNativeColors()
+        }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applySystemColors()
+    }
+}
+
 /// Hosts a `LocalProcessTerminalView` (an NSView) in SwiftUI and starts the request's
 /// command in a pseudo-terminal.
 private struct SwiftTermSurface: NSViewRepresentable {
@@ -45,8 +66,15 @@ private struct SwiftTermSurface: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onExit: onExit) }
 
     func makeNSView(context: Context) -> LocalProcessTerminalView {
-        let view = LocalProcessTerminalView(frame: .zero)
+        let view = AppearanceFollowingTerminalView(frame: .zero)
         view.processDelegate = context.coordinator
+        // Follow the system appearance: seed foreground/background from the dynamic
+        // NSColor.text*/textBackground* so the terminal is legible in BOTH light and dark
+        // (a bare LocalProcessTerminalView is hard black-on-gray forever). The subclass
+        // re-applies this on every light/dark or increased-contrast change.
+        view.applySystemColors()
+        // VoiceOver: identify the pane (SwiftTerm's view is otherwise announced generically).
+        view.setAccessibilityLabel(String(localized: "Terminal", bundle: .module))
         let argv = request.argv
         let executable = executablePath(argv.first ?? "/bin/sh")
         let args = Array(argv.dropFirst())

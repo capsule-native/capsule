@@ -75,11 +75,12 @@ struct NetworkListView: View {
 
     private var table: some View {
         Table(model.rows, selection: $model.selection) {
-            TableColumn("") { network in
+            TableColumn(Text("Protected", bundle: .module)) { network in
                 if network.isBuiltin {
                     Image(systemName: "lock.fill")
                         .foregroundStyle(.secondary)
                         .help("Builtin network (protected)")
+                        .accessibilityLabel(Text("Built-in network", bundle: .module))
                 }
             }
             .width(18)

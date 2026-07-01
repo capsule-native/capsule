@@ -19,7 +19,9 @@ struct StorageDashboardView: View {
         Group {
             switch model.loadState {
             case .idle, .loading:
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView()
+                    .accessibilityLabel(Text("Loading", bundle: .module))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .unavailable(let detail):
                 ContentUnavailableView(
                     detail.title,
@@ -120,7 +122,7 @@ private struct StorageCategoryCard: View {
     let onReclaim: () -> Void
 
     var body: some View {
-        GroupBox(category.title) {
+        GroupBox {
             VStack(alignment: .leading, spacing: 8) {
                 LabeledContent("Total") {
                     Text(Int64(sizeInBytes), format: .byteCount(style: .file))
@@ -138,6 +140,8 @@ private struct StorageCategoryCard: View {
                 }
             }
             .padding(6)
+        } label: {
+            Text(category.localizedTitle)
         }
     }
 }

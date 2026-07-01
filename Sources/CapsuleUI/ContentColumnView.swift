@@ -56,7 +56,7 @@ struct ContentColumnView: View {
                 healthState
             }
         }
-        .navigationTitle(section.title)
+        .navigationTitle(Text(section.localizedTitle))
     }
 
     /// The content shown for a running service. Containers get the live browser; other
@@ -87,9 +87,13 @@ struct ContentColumnView: View {
     /// "nothing here yet" rather than a blank pane.
     private var resourcePlaceholder: some View {
         ContentUnavailableView {
-            Label(section.title, systemImage: section.symbolName)
+            Label {
+                Text(section.localizedTitle)
+            } icon: {
+                Image(systemName: section.symbolName)
+            }
         } description: {
-            Text("\(section.title) will appear here.")
+            Text("\(String(localized: section.localizedTitle)) will appear here.", bundle: .module)
         }
     }
 
@@ -113,9 +117,15 @@ struct ContentColumnView: View {
     /// the acceptance rule that unsupported families are hidden, not errored.
     private var unsupportedSurface: some View {
         ContentUnavailableView {
-            Label("\(section.title) unavailable", systemImage: "exclamationmark.octagon")
+            Label {
+                Text("\(String(localized: section.localizedTitle)) unavailable", bundle: .module)
+            } icon: {
+                Image(systemName: "exclamationmark.octagon")
+            }
         } description: {
-            Text("\(section.title) are not supported by the current container build.")
+            Text(
+                "\(String(localized: section.localizedTitle)) are not supported by the current container build.",
+                bundle: .module)
         }
     }
 

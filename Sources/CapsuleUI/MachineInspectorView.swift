@@ -20,6 +20,7 @@ struct MachineInspectorView: View {
 
     @State private var rawJSON = ""
     @State private var isLoadingRaw = false
+    @Environment(\.colorSchemeContrast) private var contrast
 
     init(model: MachineBrowserModel, actions: MachineActionsModel) {
         self.model = model
@@ -139,7 +140,7 @@ struct MachineInspectorView: View {
             }
             .padding(.vertical, 6)
         }
-        .listRowBackground(Color.yellow.opacity(0.15))
+        .listRowBackground(CapsuleColors.softFill(.yellow, contrast: contrast))
     }
 
     /// A labeled value with a copy button when present; an em dash when absent.
@@ -155,7 +156,8 @@ struct MachineInspectorView: View {
                         Image(systemName: "doc.on.doc")
                     }
                     .buttonStyle(.borderless)
-                    .help("Copy \(label) (\(value))")
+                    .accessibilityLabel(Text("Copy \(label)", bundle: .module))
+                    .help(Text("Copy \(label) (\(value))", bundle: .module))
                 }
             }
         } else {
@@ -194,7 +196,10 @@ struct MachineInspectorView: View {
                         .padding(8)
                 }
                 .overlay {
-                    if isLoadingRaw { ProgressView() }
+                    if isLoadingRaw {
+                        ProgressView()
+                            .accessibilityLabel(Text("Loading", bundle: .module))
+                    }
                 }
             }
         }

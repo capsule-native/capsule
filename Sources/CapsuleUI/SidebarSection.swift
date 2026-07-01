@@ -7,6 +7,7 @@
 
 import CapsuleDomain
 import Foundation
+import SwiftUI
 
 /// The navigable sections in the resource sidebar.
 ///
@@ -32,6 +33,25 @@ public enum SidebarSection: String, CaseIterable, Identifiable, Sendable {
         case .networks: return "Networks"
         case .machines: return "Machines"
         case .system: return "System"
+        }
+    }
+
+    /// The user-facing label, localized. Mirrors ``title`` byte-for-byte so the extractor keys
+    /// on the same English strings, and resolves against `CapsuleUI`'s `Bundle.module`.
+    public var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .containers:
+            return LocalizedStringResource("Containers", bundle: .atURL(Bundle.module.bundleURL))
+        case .images:
+            return LocalizedStringResource("Images", bundle: .atURL(Bundle.module.bundleURL))
+        case .volumes:
+            return LocalizedStringResource("Volumes", bundle: .atURL(Bundle.module.bundleURL))
+        case .networks:
+            return LocalizedStringResource("Networks", bundle: .atURL(Bundle.module.bundleURL))
+        case .machines:
+            return LocalizedStringResource("Machines", bundle: .atURL(Bundle.module.bundleURL))
+        case .system:
+            return LocalizedStringResource("System", bundle: .atURL(Bundle.module.bundleURL))
         }
     }
 

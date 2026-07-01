@@ -101,7 +101,8 @@ struct CreateVolumeSheet: View {
                     Image(systemName: "plus.circle")
                 }
                 .buttonStyle(.borderless)
-                .help("Add a row")
+                .accessibilityLabel(Text("Add row", bundle: .module))
+                .help(Text("Add a row", bundle: .module))
             }
             ForEach(rows.wrappedValue.indices, id: \.self) { index in
                 HStack {
@@ -116,6 +117,7 @@ struct CreateVolumeSheet: View {
                         Image(systemName: "minus.circle")
                     }
                     .buttonStyle(.borderless)
+                    .accessibilityLabel(Text("Remove row", bundle: .module))
                 }
             }
         }

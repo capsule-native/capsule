@@ -17,11 +17,11 @@ struct InspectorView: View {
         Form {
             Section("Inspector") {
                 LabeledContent("Section", value: section.title)
-                Text("Select an item to see its details here.")
+                Text("Select an item to see its details here.", bundle: .module)
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
-        .navigationTitle("Inspector")
+        .navigationTitle(Text("Inspector", bundle: .module))
     }
 }

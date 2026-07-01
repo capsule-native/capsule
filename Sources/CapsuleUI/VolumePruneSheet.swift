@@ -33,7 +33,7 @@ struct VolumePruneSheet: View {
                 Text("No unused volumes to remove.")
                     .foregroundStyle(.secondary)
             } else {
-                Text("\(targets.count) volume(s) will be removed:")
+                Text("^[\(targets.count) volume](inflect: true) will be removed:", bundle: .module)
                     .font(.callout)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 2) {

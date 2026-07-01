@@ -32,7 +32,7 @@ struct TerminalPreferenceView: View {
                     Text("Ghostty").tag(TerminalPreference.ghostty)
                     Text("Warp").tag(TerminalPreference.warp)
                     if case let .custom(path) = preference.wrappedValue {
-                        Text("Custom — \(appName(path))").tag(
+                        Text("Custom — \(appName(path))", bundle: .module).tag(
                             TerminalPreference.custom(appPath: path))
                     }
                 }
