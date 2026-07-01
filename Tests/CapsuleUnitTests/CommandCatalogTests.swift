@@ -95,6 +95,43 @@ final class CommandCatalogTests: XCTestCase {
         XCTAssertTrue(CommandCatalog.actions(ctx).contains { $0.id == "plugin-compose" })
     }
 
+    func testRawCommandPreviewSeedPrefersContainerThenImageThenNil() async {
+        let (ctx, containers, images, run, _) = makeContext()
+        let action = CommandCatalog.actions(ctx).first { $0.id == "raw-command-preview" }!
+
+        func console() -> CommandInvocation? {
+            guard case let .console(seed: seed)? = ctx.shell.pendingSheet else {
+                XCTFail("Expected shell.pendingSheet to be .console")
+                return nil
+            }
+            return seed
+        }
+
+        // Neither a container nor an image selected: no seed.
+        action.run()
+        XCTAssertNil(console())
+
+        // A container selected: seed is that container's exec invocation.
+        containers.selection = ["c1"]
+        ctx.shell.pendingSheet = nil
+        action.run()
+        XCTAssertEqual(console(), ctx.lifecycleModel.execInvocation(id: "c1"))
+
+        // Both a container and an image selected: the container still wins.
+        await images.refresh()
+        let image = images.allImages.first!
+        images.selection = [image.id]
+        ctx.shell.pendingSheet = nil
+        action.run()
+        XCTAssertEqual(console(), ctx.lifecycleModel.execInvocation(id: "c1"))
+
+        // No container, only an image selected: seed is the image's run invocation.
+        containers.selection = []
+        ctx.shell.pendingSheet = nil
+        action.run()
+        XCTAssertEqual(console(), run.runInvocation(forImage: image.reference))
+    }
+
     func testShortcutDisplay() {
         XCTAssertEqual(CommandShortcut("r", modifiers: [.shift, .command]).display, "⇧⌘R")
         XCTAssertEqual(

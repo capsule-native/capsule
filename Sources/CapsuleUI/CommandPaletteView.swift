@@ -65,15 +65,21 @@ public struct CommandPaletteView: View {
         }
         .frame(width: 560, height: 420)
         .onAppear { searchFocused = true }
+        .onExitCommand { shell.commandPalettePresented = false }
     }
 
     private func runFirst() {
         if let first = matches.first(where: { $0.isEnabled }) { run(first) }
     }
 
+    /// Dismisses the palette FIRST, then runs the action on the next runloop tick. Running
+    /// the action synchronously with the dismissal can race a second sheet the action
+    /// presents (e.g. `shell.pendingSheet`): macOS can drop that sheet's presentation if it's
+    /// requested while the palette's own sheet is still tearing down. Deferring is harmless
+    /// for actions that don't present anything.
     private func run(_ action: CommandAction) {
         shell.commandPalettePresented = false
-        action.run()
+        DispatchQueue.main.async { action.run() }
     }
 }
 
