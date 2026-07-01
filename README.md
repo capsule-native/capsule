@@ -1,7 +1,8 @@
-# Capsule
-
-A native macOS app for managing containers, backed by a command-line container
-runtime.
+<div align="center">
+  <img src="docs/assets/capsule-logo.png" alt="Capsule app icon" width="128" height="128" />
+  <h1>Capsule</h1>
+  <p><strong>A native macOS app for managing containers, backed by a command-line container runtime.</strong></p>
+</div>
 
 ## Supported runtime envelope
 
