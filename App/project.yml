@@ -61,6 +61,10 @@ targets:
     dependencies:
       - package: Capsule
         product: CapsuleApp
+      # The app target hosts the AppShortcutsProvider + AppIntentsPackage, which reference the
+      # intent types in CapsuleAutomation.
+      - package: Capsule
+        product: CapsuleAutomation
 
   CapsuleUITests:
     type: bundle.ui-testing

@@ -12,6 +12,12 @@ import SwiftUI
 
 @main
 struct CapsuleMain: App {
+    init() {
+        // Install the automation service before any scene renders, so an App Intent or
+        // AppleScript command invoked during a headless Shortcuts/Siri launch resolves it.
+        AutomationBootstrap.install()
+    }
+
     var body: some Scene {
         CapsuleScene()
     }

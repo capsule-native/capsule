@@ -17,14 +17,10 @@ public struct StartServicesIntent: AppIntent {
         "Starts Capsule's container system service.",
         categoryName: "System")
 
-    /// The shared automation facade, registered by the app at launch via
-    /// `AppDependencyManager`. Resolving a protocol existential keeps intents testable.
-    @Dependency public var service: any AutomationService
-
     public init() {}
 
     public func perform() async throws -> some IntentResult & ProvidesDialog {
-        try await service.startServices()
+        try await AutomationRuntime.requireService().startServices()
         return .result(dialog: "Started the container services.")
     }
 }
