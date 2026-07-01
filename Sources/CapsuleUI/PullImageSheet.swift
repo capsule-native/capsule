@@ -71,8 +71,14 @@ struct PullImageSheet: View {
                 }
             } else if source == .browse, let searchModel {
                 RegistryBrowseView(model: searchModel) { picked in
+                    searchModel.clearSelection()
                     reference = picked
                     source = .reference
+                }
+                HStack {
+                    Button("Cancel", role: .cancel, action: onClose)
+                        .keyboardShortcut(.cancelAction)
+                    Spacer()
                 }
             } else {
                 Form {
@@ -105,7 +111,11 @@ struct PullImageSheet: View {
         .padding(20)
         .frame(
             width: isBrowsing ? 560 : 480,
-            height: isBrowsing ? 620 : nil)
+            height: isBrowsing ? 620 : nil
+        )
+        // Each presentation starts at the search stage; the shared model keeps its query
+        // and caches, but never a previous session's tag drill-in.
+        .onAppear { searchModel?.clearSelection() }
     }
 
     /// True while the Browse pane is showing; the sheet grows to list-friendly dimensions

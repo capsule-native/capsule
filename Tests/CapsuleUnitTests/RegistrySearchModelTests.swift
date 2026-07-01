@@ -244,6 +244,83 @@ final class RegistrySearchModelTests: XCTestCase {
             "a network failure maps to the reachability headline")
     }
 
+    // MARK: - Load More coherence (review regressions)
+
+    func testLoadMoreDuringPendingEditNeitherMixesQueriesNorKillsTheSearch() async {
+        let mock = MockImageRegistry(searchPages: [
+            "nginx": [1: Self.page(["nginx"], hasNext: true), 2: Self.page(["nginx-two"])],
+            "redis": [1: Self.page(["redis"])],
+        ])
+        let model = makeModel(mock: mock, debounceInterval: .milliseconds(60))
+        model.searchText = "nginx"
+        await waitUntil { model.loadState == .loaded }
+
+        // Edit the query, then click Load More inside the debounce window.
+        model.searchText = "redis"
+        model.loadMoreRepositories()
+
+        await waitUntil { mock.lastSearchQuery == "redis" && model.loadState == .loaded }
+        XCTAssertEqual(
+            model.repositories.map(\.name), ["redis"],
+            "load-more during a pending edit must neither append a foreign page nor cancel the edit's search"
+        )
+        XCTAssertEqual(
+            mock.searchQueries, ["nginx", "redis"],
+            "the stale-query page 2 must never be requested")
+    }
+
+    func testFailedLoadMoreKeepsTheLoadedRowsAndRetries() async {
+        let mock = MockImageRegistry(searchPages: [
+            "nginx": [1: Self.page(["nginx"], hasNext: true), 2: Self.page(["nginx-two"])]
+        ])
+        let model = makeModel(mock: mock)
+        model.searchText = "nginx"
+        await waitUntil { model.loadState == .loaded }
+
+        mock.failure = .httpStatus(code: 500, message: nil)
+        model.loadMoreRepositories()
+        await waitUntil { model.loadMoreFailure != nil }
+        XCTAssertEqual(model.loadState, .loaded, "a failed page append must not blank the pane")
+        XCTAssertEqual(
+            model.repositories.map(\.name), ["nginx"], "the loaded rows must stay visible")
+
+        mock.failure = nil
+        model.loadMoreRepositories()
+        await waitUntil { model.repositories.count == 2 }
+        XCTAssertEqual(
+            model.repositories.map(\.name), ["nginx", "nginx-two"],
+            "the same affordance retries the append once the failure clears")
+        XCTAssertNil(model.loadMoreFailure, "a successful append clears the inline failure")
+    }
+
+    func testThrottledLoadMoreStaysLoadedAndNeverTightLoops() async {
+        let mock = MockImageRegistry(searchPages: [
+            "nginx": [1: Self.page(["nginx"], hasNext: true), 2: Self.page(["nginx-two"])]
+        ])
+        let model = makeModel(mock: mock, throttleCooldown: .seconds(60))
+        model.searchText = "nginx"
+        await waitUntil { model.loadState == .loaded }
+
+        mock.failure = .rateLimited(retryAfterSeconds: nil)
+        model.loadMoreRepositories()
+        await waitUntil { model.loadMoreFailure != nil }
+        XCTAssertEqual(
+            model.loadState, .loaded, "a 429 during load-more must not hide the loaded rows")
+        XCTAssertEqual(
+            model.loadMoreFailure?.title, "Docker Hub is busy",
+            "the inline notice carries the throttle copy")
+
+        // Retrying during the cooldown must not touch the network.
+        mock.failure = nil
+        let callsBefore = mock.searchCallCount
+        model.loadMoreRepositories()
+        try? await Task.sleep(for: .milliseconds(80))
+        XCTAssertEqual(
+            mock.searchCallCount, callsBefore,
+            "the cooldown suppresses further network calls — no tight retry loop")
+        XCTAssertEqual(model.loadState, .loaded, "the rows remain visible throughout")
+    }
+
     // MARK: - searchNow()
 
     func testSearchNowBypassesTheDebounce() async {

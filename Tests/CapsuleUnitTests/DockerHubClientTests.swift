@@ -55,6 +55,17 @@ final class DockerHubClientTests: XCTestCase {
             "a space in the query must be percent-encoded, not sent raw")
     }
 
+    func testSearchPercentEncodesPlusSigns() async throws {
+        fetcher.seed(Fixture.data("hub-search-repositories-empty"))
+
+        _ = try await client.searchRepositories(query: "c++", page: 1)
+
+        XCTAssertEqual(
+            fetcher.lastRequest?.url?.absoluteString,
+            "https://hub.docker.com/v2/search/repositories/?query=c%2B%2B&page=1&page_size=25",
+            "a raw '+' would be form-decoded as a space by the hub, silently changing the query")
+    }
+
     func testTagsBuildsExactURLWithPageSizeBeforePage() async throws {
         fetcher.seed(Fixture.data("hub-repository-tags"))
 

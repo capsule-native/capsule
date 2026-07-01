@@ -58,7 +58,7 @@ struct RegistryBrowseView: View {
             ProgressView { Text("Searching Docker Hub…", bundle: .module) }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .throttled:
-            throttledState
+            throttledState { model.searchNow() }
         case .unavailable(let detail):
             unavailableState(detail) { model.searchNow() }
         case .loaded:
@@ -85,7 +85,9 @@ struct RegistryBrowseView: View {
                 .buttonStyle(.plain)
             }
             if model.hasMoreRepositories {
-                loadMoreRow(isLoading: model.isLoadingMore) { model.loadMoreRepositories() }
+                loadMoreRow(isLoading: model.isLoadingMore, failure: model.loadMoreFailure) {
+                    model.loadMoreRepositories()
+                }
             }
         }
         .listStyle(.plain)
@@ -122,7 +124,7 @@ struct RegistryBrowseView: View {
             ProgressView { Text("Loading tags…", bundle: .module) }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .throttled:
-            throttledState
+            throttledState { model.retryTags() }
         case .unavailable(let detail):
             unavailableState(detail) { model.retryTags() }
         case .loaded:
@@ -149,7 +151,9 @@ struct RegistryBrowseView: View {
                 .buttonStyle(.plain)
             }
             if model.hasMoreTags {
-                loadMoreRow(isLoading: model.isLoadingMoreTags) { model.loadMoreTags() }
+                loadMoreRow(isLoading: model.isLoadingMoreTags, failure: model.tagLoadMoreFailure) {
+                    model.loadMoreTags()
+                }
             }
         }
         .listStyle(.plain)
@@ -158,11 +162,20 @@ struct RegistryBrowseView: View {
 
     // MARK: - Shared states
 
-    private var throttledState: some View {
+    /// The full-pane throttle notice. Retrying is safe at any time: the model's cooldown
+    /// gate answers from cache or stays throttled without touching the network until the
+    /// cooldown lapses.
+    private func throttledState(retry: @escaping () -> Void) -> some View {
         ContentUnavailableView {
             Label("Docker Hub is busy", systemImage: "clock.badge.exclamationmark")
         } description: {
             Text("Docker Hub is throttling requests. Try again shortly.", bundle: .module)
+        } actions: {
+            Button {
+                retry()
+            } label: {
+                Text("Try Again", bundle: .module)
+            }
         }
     }
 
@@ -183,17 +196,29 @@ struct RegistryBrowseView: View {
     }
 
     /// The trailing "Load More" row shared by both lists; a small spinner replaces the
-    /// label while the next page is in flight.
-    private func loadMoreRow(isLoading: Bool, action: @escaping () -> Void) -> some View {
+    /// label while the next page is in flight, and a failed page surfaces inline here —
+    /// never by blanking the rows above it.
+    private func loadMoreRow(
+        isLoading: Bool, failure: ErrorDetail?, action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
-            HStack {
-                Spacer()
-                if isLoading {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Text("Load More", bundle: .module)
+            VStack(spacing: 4) {
+                if let failure {
+                    Label(failure.title, systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
-                Spacer()
+                HStack {
+                    Spacer()
+                    if isLoading {
+                        ProgressView().controlSize(.small)
+                    } else if failure != nil {
+                        Text("Try Again", bundle: .module)
+                    } else {
+                        Text("Load More", bundle: .module)
+                    }
+                    Spacer()
+                }
             }
             .contentShape(Rectangle())
             .padding(.vertical, 2)
@@ -233,16 +258,31 @@ private struct RegistryRepositoryRow: View {
                     Image(systemName: "star.fill")
                     compactCount(repository.starCount)
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(starsAccessibilityLabel)
                 HStack(spacing: 3) {
                     Image(systemName: "arrow.down.circle")
                     compactCount(repository.pullCount.map(Int.init))
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(pullsAccessibilityLabel)
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
         }
         .contentShape(Rectangle())
         .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var starsAccessibilityLabel: Text {
+        guard let stars = repository.starCount else { return Text(verbatim: "") }
+        return Text("\(stars) stars", bundle: .module)
+    }
+
+    private var pullsAccessibilityLabel: Text {
+        guard let pulls = repository.pullCount else { return Text(verbatim: "") }
+        return Text("\(pulls) pulls", bundle: .module)
     }
 
     @ViewBuilder
@@ -267,13 +307,21 @@ private struct RegistryTagRow: View {
             HStack(spacing: 8) {
                 if let updated = tag.lastUpdated {
                     Text(updated, format: .relative(presentation: .named))
+                        .accessibilityLabel(
+                            Text(
+                                "Updated \(updated.formatted(.relative(presentation: .named)))",
+                                bundle: .module))
                 } else {
-                    Text(verbatim: "—")
+                    Text(verbatim: "—").accessibilityHidden(true)
                 }
                 if let size = tag.sizeBytes {
                     Text(size, format: .byteCount(style: .file))
+                        .accessibilityLabel(
+                            Text(
+                                "Size \(size.formatted(.byteCount(style: .file)))",
+                                bundle: .module))
                 } else {
-                    Text(verbatim: "—")
+                    Text(verbatim: "—").accessibilityHidden(true)
                 }
             }
             .font(.caption)
@@ -281,5 +329,6 @@ private struct RegistryTagRow: View {
         }
         .contentShape(Rectangle())
         .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
     }
 }

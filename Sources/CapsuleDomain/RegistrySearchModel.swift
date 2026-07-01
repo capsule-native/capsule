@@ -33,6 +33,8 @@ public final class RegistrySearchModel {
     public private(set) var repositories: [RegistryRepository] = []
     public private(set) var hasMoreRepositories = false
     public private(set) var isLoadingMore = false
+    /// A "Load More" failure to show inline; the loaded page-1 rows stay visible.
+    public private(set) var loadMoreFailure: ErrorDetail?
 
     /// The live search text; edits are debounced into at most one in-flight search.
     public var searchText: String = "" {
@@ -46,6 +48,8 @@ public final class RegistrySearchModel {
     public private(set) var tags: [RegistryTag] = []
     public private(set) var hasMoreTags = false
     public private(set) var isLoadingMoreTags = false
+    /// A tag "Load More" failure to show inline; the loaded tag rows stay visible.
+    public private(set) var tagLoadMoreFailure: ErrorDetail?
 
     private let client: any ImageRegistrySearching
     private let debounceInterval: Duration
@@ -55,6 +59,9 @@ public final class RegistrySearchModel {
 
     private var searchTask: Task<Void, Never>?
     private var tagsTask: Task<Void, Never>?
+    /// The query the visible `repositories` belong to — "Load More" pages only that
+    /// query, so it can never mix result sets while an edit's debounce is pending.
+    private var committedQuery: String?
     private var searchCache: [CacheKey: CacheEntry<RegistryRepositoryPage>] = [:]
     private var tagCache: [CacheKey: CacheEntry<RegistryTagPage>] = [:]
     private var throttledUntil: ContinuousClock.Instant?
@@ -89,11 +96,14 @@ public final class RegistrySearchModel {
         startSearch(afterDebounce: false)
     }
 
-    /// Fetches the next results page and appends it (the "Load More" affordance).
+    /// Fetches the next results page and appends it (the "Load More" affordance). A
+    /// no-op while the search text no longer matches the loaded rows (an edit's debounce
+    /// is pending) — the pending replacement search must win, not a mixed page append.
     public func loadMoreRepositories() {
         guard loadState == .loaded, hasMoreRepositories, !isLoadingMore,
-            let query = effectiveQuery
+            let query = committedQuery, query == effectiveQuery
         else { return }
+        loadMoreFailure = nil
         isLoadingMore = true
         searchTask?.cancel()
         searchTask = Task { [weak self, repositoryPage] in
@@ -110,6 +120,8 @@ public final class RegistrySearchModel {
             searchTask = nil
             repositories = []
             hasMoreRepositories = false
+            loadMoreFailure = nil
+            committedQuery = nil
             loadState = .idle
             return
         }
@@ -127,12 +139,16 @@ public final class RegistrySearchModel {
         // no network call, which is the point of the cooldown.
         let key = CacheKey(scope: query, page: page)
         if let cached = searchCache[key], cached.expires > ContinuousClock.now {
-            applySearchResult(cached.value, page: page, replacing: replacing)
+            applySearchResult(cached.value, query: query, page: page, replacing: replacing)
             return
         }
         if let until = throttledUntil, ContinuousClock.now < until {
-            isLoadingMore = false
-            loadState = .throttled
+            if replacing {
+                loadState = .throttled
+            } else {
+                isLoadingMore = false
+                loadMoreFailure = Self.throttledDetail
+            }
             return
         }
         if replacing { loadState = .loading }
@@ -146,18 +162,25 @@ public final class RegistrySearchModel {
             searchCache[key] = CacheEntry(
                 value: result, expires: ContinuousClock.now + cacheLifetime)
             pruneExpired(&searchCache)
-            applySearchResult(result, page: page, replacing: replacing)
+            applySearchResult(result, query: query, page: page, replacing: replacing)
         } catch is CancellationError {
             isLoadingMore = false
         } catch {
             isLoadingMore = false
             guard !Task.isCancelled else { return }
-            loadState = failureState(for: error)
+            // A "Load More" failure must not blank the loaded rows: keep .loaded and
+            // surface the failure inline. Full-pane states are for page-1 fetches.
+            let state = failureState(for: error)
+            if replacing {
+                loadState = state
+            } else {
+                loadMoreFailure = Self.inlineDetail(for: state)
+            }
         }
     }
 
     private func applySearchResult(
-        _ result: RegistryRepositoryPage, page: Int, replacing: Bool
+        _ result: RegistryRepositoryPage, query: String, page: Int, replacing: Bool
     ) {
         let mapped = result.items.map(RegistryRepository.init(summary:))
         if replacing {
@@ -168,8 +191,10 @@ public final class RegistrySearchModel {
             repositories += mapped.filter { !known.contains($0.id) }
             repositoryPage = page
         }
+        committedQuery = query
         hasMoreRepositories = result.hasNextPage
         isLoadingMore = false
+        loadMoreFailure = nil
         loadState = .loaded
     }
 
@@ -190,6 +215,7 @@ public final class RegistrySearchModel {
         tags = []
         hasMoreTags = false
         isLoadingMoreTags = false
+        tagLoadMoreFailure = nil
         tagState = .idle
     }
 
@@ -204,6 +230,7 @@ public final class RegistrySearchModel {
         guard tagState == .loaded, hasMoreTags, !isLoadingMoreTags,
             let repository = selectedRepository
         else { return }
+        tagLoadMoreFailure = nil
         isLoadingMoreTags = true
         tagsTask?.cancel()
         tagsTask = Task { [weak self, tagPage] in
@@ -216,6 +243,7 @@ public final class RegistrySearchModel {
         tags = []
         hasMoreTags = false
         isLoadingMoreTags = false
+        tagLoadMoreFailure = nil
         tagState = .loading
         tagsTask = Task { [weak self] in
             await self?.runTagLoad(for: repository, page: 1, replacing: true)
@@ -232,8 +260,12 @@ public final class RegistrySearchModel {
             return
         }
         if let until = throttledUntil, ContinuousClock.now < until {
-            isLoadingMoreTags = false
-            tagState = .throttled
+            if replacing {
+                tagState = .throttled
+            } else {
+                isLoadingMoreTags = false
+                tagLoadMoreFailure = Self.throttledDetail
+            }
             return
         }
         if replacing { tagState = .loading }
@@ -254,7 +286,12 @@ public final class RegistrySearchModel {
         } catch {
             isLoadingMoreTags = false
             guard !Task.isCancelled, selectedRepository == repository else { return }
-            tagState = failureState(for: error)
+            let state = failureState(for: error)
+            if replacing {
+                tagState = state
+            } else {
+                tagLoadMoreFailure = Self.inlineDetail(for: state)
+            }
         }
     }
 
@@ -270,6 +307,7 @@ public final class RegistrySearchModel {
         }
         hasMoreTags = result.hasNextPage
         isLoadingMoreTags = false
+        tagLoadMoreFailure = nil
         tagState = .loaded
     }
 
@@ -284,6 +322,17 @@ public final class RegistrySearchModel {
             return .throttled
         }
         return .unavailable(Self.detail(for: error))
+    }
+
+    /// The inline copy for a throttled "Load More" (the full pane keeps its rows).
+    private static let throttledDetail = ErrorDetail(
+        title: "Docker Hub is busy",
+        explanation: "Docker Hub is throttling requests. Try again shortly.")
+
+    /// Flattens a failure state into inline-notice copy for the "Load More" row.
+    private static func inlineDetail(for state: RegistrySearchLoadState) -> ErrorDetail {
+        if case .unavailable(let detail) = state { return detail }
+        return throttledDetail
     }
 
     private static func detail(for error: any Error) -> ErrorDetail {

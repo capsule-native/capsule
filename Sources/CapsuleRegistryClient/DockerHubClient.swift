@@ -15,20 +15,21 @@ import CapsuleBackend
 import Foundation
 
 /// The transport seam: how the client performs one HTTP request. `URLSession` in
-/// production; a recording stub in tests (mirroring `ProcessRunning` in the CLI adapter).
-public protocol HTTPDataFetching: Sendable {
+/// production; a recording stub in tests (mirroring `ProcessRunning` in the CLI adapter,
+/// and like it deliberately internal — tests reach it via `@testable`).
+protocol HTTPDataFetching: Sendable {
     func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse)
 }
 
 /// The live `URLSession`-backed transport.
-public struct URLSessionDataFetcher: HTTPDataFetching {
+struct URLSessionDataFetcher: HTTPDataFetching {
     private let session: URLSession
 
-    public init(session: URLSession = .shared) {
+    init(session: URLSession = .shared) {
         self.session = session
     }
 
-    public func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw RegistrySearchError.network(message: "The response was not HTTP.")
@@ -126,6 +127,11 @@ public struct DockerHubClient: ImageRegistrySearching {
     /// letting cancellation (including `URLError.cancelled`) surface as
     /// `CancellationError` so a superseded search never looks like an outage.
     private func fetch(_ components: URLComponents) async throws -> Data {
+        var components = components
+        // '+' is legal in a URL query, but Hub form-decodes it as a space — a search for
+        // "c++" would silently become "c  ". Force-encode it so the query round-trips.
+        components.percentEncodedQuery = components.percentEncodedQuery?
+            .replacingOccurrences(of: "+", with: "%2B")
         guard let url = components.url else {
             throw RegistrySearchError.network(message: "Could not compose the request URL.")
         }
