@@ -96,6 +96,12 @@ public final class ContainerLifecycleModel {
         CommandInvocation(CLICommand.execShell(id: id, command: command))
     }
 
+    /// The `exec -it <id> sh` invocation for the current container — the Command Console's
+    /// best-fit seed when a container is selected. A convenience over `execInvocation(id:command:)`.
+    public func execInvocation(id: String) -> CommandInvocation {
+        CommandInvocation(CLICommand.execShell(id: id, command: []))
+    }
+
     /// The `container prune` invocation, for the Clean Up sheet's preview.
     public var pruneInvocation: CommandInvocation {
         CommandInvocation(CLICommand.pruneContainers())

@@ -126,6 +126,13 @@ public final class RunModel {
     /// compatibility; now derives from `commandInvocation` so the preview cannot drift.
     public var commandPreview: String { commandInvocation.displayString }
 
+    /// The `run <image>` invocation for a given image — the Command Console's best-fit seed
+    /// when an image (but no container) is selected. Builds the argv via `RunConfiguration`
+    /// so `RunConfiguration` never leaks into the UI.
+    public func runInvocation(forImage image: String) -> CommandInvocation {
+        CommandInvocation(RunConfiguration(image: image).arguments)
+    }
+
     /// Runs the container attached with a TTY in the embedded terminal (or copies the command
     /// when the terminal is unavailable). Forces `-i -t` and clears `--detach`.
     public func runInTerminal() {
