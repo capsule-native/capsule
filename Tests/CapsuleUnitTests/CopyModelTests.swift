@@ -67,4 +67,17 @@ final class CopyModelTests: XCTestCase {
         let seededResult = await m.browse(path: "/")
         XCTAssertFalse(seededResult.isEmpty)  // seeded entries
     }
+
+    func testCopyCommandInvocationComposesEndpoints() {
+        let m = CopyModel(backend: MockBackend(), taskCenter: TaskCenter())
+        m.direction = .toContainer
+        m.hostURL = URL(fileURLWithPath: "/host/file.txt")
+        m.containerID = "abc"
+        m.containerPath = "/app/file.txt"
+        XCTAssertEqual(
+            m.commandInvocation.rawDisplay, "container copy /host/file.txt abc:/app/file.txt")
+        m.direction = .fromContainer
+        XCTAssertEqual(
+            m.commandInvocation.rawDisplay, "container copy abc:/app/file.txt /host/file.txt")
+    }
 }

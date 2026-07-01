@@ -97,6 +97,17 @@ public final class BuildModel {
         return .success(config)
     }
 
+    /// The faithful `container build …` invocation for the live preview; falls back to
+    /// `container build` while the draft is incomplete so the field never shows a stub.
+    public var commandInvocation: CommandInvocation {
+        switch validatedConfiguration() {
+        case let .success(config):
+            return CommandInvocation(config.arguments)
+        case .failure:
+            return CommandInvocation(["build"])
+        }
+    }
+
     /// Starts the build as a streaming Activity task; reloads the image list on success.
     @discardableResult
     public func build() -> OperationTask? {
