@@ -196,4 +196,21 @@ final class TaskCenterTests: XCTestCase {
         XCTAssertEqual(OperationKind.machineCreate.title, "Create Machine")
         XCTAssertFalse(OperationKind.machineCreate.symbolName.isEmpty)
     }
+
+    func testRunStreamingThreadsInvocationOntoTask() async {
+        let center = TaskCenter()
+        let invocation = CommandInvocation(["image", "pull", "alpine"])
+        let task = center.runStreaming(kind: .pull, title: "Pull alpine", invocation: invocation) {
+            AsyncThrowingStream { $0.finish() }
+        }
+        XCTAssertEqual(task.invocation, invocation)
+        await task.wait()
+    }
+
+    func testRunAsyncDefaultsInvocationToNil() async {
+        let center = TaskCenter()
+        let task = center.runAsync(kind: .save, title: "Save") {}
+        XCTAssertNil(task.invocation)
+        await task.wait()
+    }
 }

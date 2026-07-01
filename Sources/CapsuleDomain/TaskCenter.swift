@@ -68,6 +68,9 @@ public final class OperationTask: Identifiable {
     public let id: String
     public let title: String
     public let kind: OperationKind
+    /// The exact CLI invocation this task ran (when the caller supplied it), so the transcript
+    /// can render "just ran" copyably. Nil for ops that build their argv inside a closure only.
+    public internal(set) var invocation: CommandInvocation?
     public internal(set) var state: TaskState = .running(progress: nil)
     public internal(set) var transcript: [LogLine] = []
     /// Whether the task exposes a Stop control while active (all current kinds do; the flag
@@ -79,10 +82,11 @@ public final class OperationTask: Identifiable {
     /// and any caller that needs to act on completion).
     fileprivate var driver: Task<Void, Never>?
 
-    init(id: String, title: String, kind: OperationKind) {
+    init(id: String, title: String, kind: OperationKind, invocation: CommandInvocation? = nil) {
         self.id = id
         self.title = title
         self.kind = kind
+        self.invocation = invocation
     }
 
     /// The transcript joined into a single copyable string.
@@ -134,10 +138,11 @@ public final class TaskCenter {
     public func runStreaming(
         kind: OperationKind,
         title: String,
+        invocation: CommandInvocation? = nil,
         onSuccess: (@MainActor () async -> Void)? = nil,
         _ stream: @escaping @Sendable () -> AsyncThrowingStream<OutputLine, Error>
     ) -> OperationTask {
-        let task = makeTask(kind: kind, title: title)
+        let task = makeTask(kind: kind, title: title, invocation: invocation)
         streams[task.id] = stream
         successHandlers[task.id] = onSuccess
         tasks.append(task)
@@ -151,10 +156,11 @@ public final class TaskCenter {
     public func runAsync(
         kind: OperationKind,
         title: String,
+        invocation: CommandInvocation? = nil,
         onSuccess: (@MainActor () async -> Void)? = nil,
         _ operation: @escaping @Sendable () async throws -> Void
     ) -> OperationTask {
-        let task = makeTask(kind: kind, title: title)
+        let task = makeTask(kind: kind, title: title, invocation: invocation)
         operations[task.id] = operation
         successHandlers[task.id] = onSuccess
         tasks.append(task)
@@ -190,9 +196,12 @@ public final class TaskCenter {
 
     // MARK: - Internals
 
-    private func makeTask(kind: OperationKind, title: String) -> OperationTask {
+    private func makeTask(
+        kind: OperationKind, title: String, invocation: CommandInvocation? = nil
+    ) -> OperationTask {
         counter += 1
-        return OperationTask(id: "task-\(counter)", title: title, kind: kind)
+        return OperationTask(
+            id: "task-\(counter)", title: title, kind: kind, invocation: invocation)
     }
 
     private func drive(_ task: OperationTask) {
