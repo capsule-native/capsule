@@ -18,6 +18,7 @@ struct MachineSettingsSheet: View {
 
     @State private var draft: MachineSettingsDraft
     @State private var busy = false
+    @Environment(\.colorSchemeContrast) private var contrast
 
     init(actions: MachineActionsModel, machine: Machine, onClose: @escaping () -> Void) {
         self.actions = actions
@@ -66,7 +67,7 @@ struct MachineSettingsSheet: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.orange.opacity(0.08))
+            .background(CapsuleColors.softFill(.orange, contrast: contrast))
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
             // MARK: Command preview

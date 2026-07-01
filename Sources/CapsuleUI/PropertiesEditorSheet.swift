@@ -15,6 +15,7 @@ import UniformTypeIdentifiers
 struct PropertiesEditorSheet: View {
     @Bindable var model: SystemPropertiesModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorSchemeContrast) private var contrast
     @State private var exportError: String?
 
     var body: some View {
@@ -24,7 +25,7 @@ struct PropertiesEditorSheet: View {
                 Label(err, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.red)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8).background(.red.opacity(0.08))
+                    .padding(8).background(CapsuleColors.softFill(.red, contrast: contrast))
             }
             if model.requiresRestart { restartBanner }
             TextEditor(text: $model.editBuffer)
@@ -66,7 +67,7 @@ struct PropertiesEditorSheet: View {
         Label(model.restartBannerMessage, systemImage: "arrow.clockwise.circle")
             .foregroundStyle(.orange).font(.callout)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(8).background(.orange.opacity(0.12))
+            .padding(8).background(CapsuleColors.softFill(.orange, contrast: contrast))
     }
 
     private func export() {

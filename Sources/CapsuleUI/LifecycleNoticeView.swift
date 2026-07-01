@@ -16,6 +16,7 @@ struct LifecycleNoticeView: View {
     let onAction: (RecoveryAction) -> Void
     let onForceStop: (String) -> Void
     let onDismiss: () -> Void
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -54,7 +55,10 @@ struct LifecycleNoticeView: View {
             .accessibilityLabel(Text("Dismiss", bundle: .module))
         }
         .padding(12)
-        .background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(
+            CapsuleColors.softFill(.orange, contrast: contrast),
+            in: RoundedRectangle(cornerRadius: 8)
+        )
         .padding(.horizontal, 12)
     }
 }

@@ -101,7 +101,10 @@ let package = Package(
                 "CapsuleUI",
                 "CapsuleDomain",
                 .product(name: "SwiftTerm", package: "SwiftTerm"),
-            ]
+            ],
+            // One user-facing string (the terminal's VoiceOver label) resolves against this
+            // target's own catalog.
+            resources: [.process("Resources")]
         ),
 
         // MARK: - Composition root / app lifecycle (wires the adapter into the domain)
