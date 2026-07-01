@@ -170,6 +170,7 @@ public struct AppShellView: View {
 
             ContentColumnView(
                 section: shell.selection,
+                systemTab: $shell.systemTab,
                 health: systemModel.health,
                 actions: actions,
                 browserModel: browserModel,

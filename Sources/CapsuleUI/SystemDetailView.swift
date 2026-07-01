@@ -13,23 +13,28 @@ import SwiftUI
 struct SystemDetailView: View {
     let health: SystemHealth
     let actions: ShellActions
+    @Binding var selection: SystemTab
     let storageModel: StorageDashboardModel
     let serviceLogsModel: LogsModel
     let aboutModel: AboutModel
 
     var body: some View {
-        TabView {
+        TabView(selection: $selection) {
             overview
                 .tabItem { Label("Overview", systemImage: "heart.text.square") }
+                .tag(SystemTab.overview)
             StorageDashboardView(model: storageModel)
                 .tabItem { Label("Storage", systemImage: "internaldrive") }
+                .tag(SystemTab.storage)
             ServiceLogsView(model: serviceLogsModel, isRunning: health.isRunning)
                 .tabItem { Label("Service Logs", systemImage: "doc.text.magnifyingglass") }
+                .tag(SystemTab.serviceLogs)
             AboutDiagnosticsView(
                 model: aboutModel,
                 onExportDiagnostics: { actions.recover(.exportDiagnostics) }
             )
             .tabItem { Label("About", systemImage: "info.circle") }
+            .tag(SystemTab.about)
         }
     }
 
