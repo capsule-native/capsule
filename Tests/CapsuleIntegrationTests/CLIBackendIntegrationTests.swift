@@ -11,8 +11,10 @@
 //  asserts that gate, so a flag-unset run is a clean skip rather than a failure.
 
 import CapsuleBackend
+import CapsuleDomain
 import XCTest
 
+@testable import CapsuleApp
 @testable import CapsuleCLIBackend
 
 final class CLIBackendIntegrationTests: XCTestCase {
@@ -168,5 +170,27 @@ final class CLIBackendIntegrationTests: XCTestCase {
                 "real CLI saw an unknown option in \(argv): \(result.output)"
             )
         }
+    }
+
+    // MARK: - M11: plugin discovery (always-on; pure filesystem scan, no CLI, no mutation)
+
+    /// Mirrors `testGuardSkipsCleanlyWithoutEnv`: runs unconditionally and asserts the scanner
+    /// returns cleanly against the real libexec dirs whether or not any plugin is installed.
+    func testLibexecPluginScannerRunsCleanlyAgainstRealDirs() throws {
+        let scanner = LibexecPluginScanner()
+        let plugins = scanner.installedPlugins()  // empty is success, not failure
+        for plugin in plugins {
+            XCTAssertFalse(plugin.name.isEmpty, "a discovered plugin must have a non-empty name")
+            XCTAssertFalse(
+                plugin.name.hasPrefix("container-"),
+                "the container- prefix must be stripped (\(plugin.name))"
+            )
+            XCTAssertTrue(
+                FileManager.default.isExecutableFile(atPath: plugin.path),
+                "a discovered plugin must point at an executable (\(plugin.path))"
+            )
+        }
+        let names = plugins.map(\.name)
+        XCTAssertEqual(names.count, Set(names).count, "plugin names must be de-duplicated")
     }
 }
