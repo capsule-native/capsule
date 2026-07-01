@@ -52,6 +52,7 @@ public struct AppEnvironment {
     public var actions: ShellActions
     public var updater: any UpdaterController
     public var terminalSurfaceProvider: any TerminalSurfaceProviding
+    public var commandContext: CommandContext
 
     public init(
         shell: ShellState,
@@ -82,7 +83,8 @@ public struct AppEnvironment {
         copyModel: CopyModel,
         actions: ShellActions,
         updater: any UpdaterController,
-        terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
+        terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider(),
+        commandContext: CommandContext
     ) {
         self.shell = shell
         self.systemModel = systemModel
@@ -113,6 +115,7 @@ public struct AppEnvironment {
         self.actions = actions
         self.updater = updater
         self.terminalSurfaceProvider = terminalSurfaceProvider
+        self.commandContext = commandContext
     }
 
     /// The production environment: CLI backend, normalized errors, and a wired shell.
@@ -290,6 +293,23 @@ public struct AppEnvironment {
             name == "container" ? cliBackend.executableURL.path : name
         })
         let actions = makeActions(systemModel: systemModel, shell: shell)
+        let pluginCatalog = PluginCatalogModel(
+            discovering: LibexecPluginScanner(),
+            isServiceRunning: { systemModel.health.isRunning })
+        let commandContext = CommandContext(
+            shell: shell,
+            systemModel: systemModel,
+            imageBrowserModel: imageBrowserModel,
+            containerBrowserModel: browserModel,
+            lifecycleModel: lifecycleModel,
+            runModel: runModel,
+            buildModel: buildModel,
+            pluginCatalog: pluginCatalog,
+            actions: actions,
+            followLogs: {
+                if let id = browserModel.selection.first { logsModel.start(id: id) }
+                shell.revealLogs()
+            })
         return AppEnvironment(
             shell: shell,
             systemModel: systemModel,
@@ -319,7 +339,8 @@ public struct AppEnvironment {
             copyModel: copyModel,
             actions: actions,
             updater: NoopUpdaterController(),
-            terminalSurfaceProvider: terminalSurfaceProvider
+            terminalSurfaceProvider: terminalSurfaceProvider,
+            commandContext: commandContext
         )
     }
 
