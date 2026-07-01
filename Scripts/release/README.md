@@ -57,6 +57,17 @@ ID cert + notary creds from repository secrets, then publishes the artifacts and
 The signing/notarization steps are skipped automatically when the secrets are absent (e.g. on a
 fork), so the workflow never fails for want of credentials.
 
+## Notes
+
+- **Version comes from the app, not the tag.** Artifact names and the Sparkle appcast use
+  `CFBundleShortVersionString` from `App/Info.plist`. Bump it (and `CFBundleVersion`) and commit
+  **before** tagging `vX.Y.Z`, or a `v1.2.3` tag will still package `Capsule-0.1.0.zip`.
+- **Notary password on argv.** `notarize.sh` / `release.yml` pass the app-specific password to
+  `notarytool store-credentials --password` (the API has no stdin form). It's masked and never
+  echoed; on the ephemeral, single-tenant `macos-26` runner nothing else can read the process
+  table. Don't port this workflow to a shared/self-hosted runner without switching to a notary
+  API key.
+
 ## Why archive→export instead of `codesign --deep`
 
 `xcodebuild -exportArchive` signs embedded code inside-out — including Sparkle’s nested

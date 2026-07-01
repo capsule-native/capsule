@@ -54,7 +54,7 @@ let package = Package(
         .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", from: "1.0.0"),
         // Auto-updates for the UNSANDBOXED, Developer-ID-signed distribution (Milestone 13).
         // Sparkle ships via SwiftPM as a signed binary xcframework; only the composition root
-        // (CapsuleApp) links it, behind the `UpdaterDriving` seam so the rest of the app —
+        // (CapsuleApp) links it, behind the `UpdaterController` seam so the rest of the app —
         // and every unit test — stays free of any Sparkle dependency.
         .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.6.0"),
     ],
@@ -113,8 +113,8 @@ let package = Package(
         ),
 
         // MARK: - Composition root / app lifecycle (wires the adapter into the domain)
-        // The ONLY target that links Sparkle: it supplies the `SparkleUpdaterDriver` that
-        // backs CapsuleUI's `UpdaterDriving` seam. Keeping the import here means `swift test`
+        // The ONLY target that links Sparkle: it supplies the `SparkleUpdaterController` that
+        // backs CapsuleUI's `UpdaterController` seam. Keeping the import here means `swift test`
         // and every library target build without Sparkle in their graph.
         .target(
             name: "CapsuleApp",

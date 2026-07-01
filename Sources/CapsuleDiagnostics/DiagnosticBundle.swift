@@ -136,6 +136,11 @@ public struct DiagnosticBundleBuilder: Sendable {
     }
 
     /// Builds the bundle, redacting (or, when opted in, secret-scrubbing) the transcript.
+    ///
+    /// Log lines are ALWAYS secret-scrubbed, regardless of `includeCommandContent`: the
+    /// content opt-in governs command argv/stderr, never credentials. This keeps the exported
+    /// bundle consistent with the Privacy page's promise that credentials are scrubbed even
+    /// from opted-in content.
     public func build(options: DiagnosticOptions = .default) -> DiagnosticBundle {
         let processed =
             options.includeCommandContent
@@ -146,7 +151,7 @@ public struct DiagnosticBundleBuilder: Sendable {
             capsuleVersion: capsuleVersion,
             containerSystemVersion: containerSystemVersion,
             hostOSVersion: hostOSVersion,
-            logEntries: logEntries,
+            logEntries: logEntries.map { SecretRedactor.redact($0) },
             commandTranscript: processed,
             includesCommandContent: options.includeCommandContent
         )
