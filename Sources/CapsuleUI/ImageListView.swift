@@ -20,17 +20,20 @@ private typealias Image = CapsuleDomain.Image
 struct ImageListView: View {
     @Bindable var model: ImageBrowserModel
     let actions: ImageActionsModel
+    let registrySearchModel: RegistrySearchModel
     @Bindable var runModel: RunModel
     @Bindable var buildModel: BuildModel
 
     @State private var activeSheet: ImageSheet?
 
     init(
-        model: ImageBrowserModel, actions: ImageActionsModel, runModel: RunModel,
+        model: ImageBrowserModel, actions: ImageActionsModel,
+        registrySearchModel: RegistrySearchModel, runModel: RunModel,
         buildModel: BuildModel
     ) {
         self.model = model
         self.actions = actions
+        self.registrySearchModel = registrySearchModel
         self.runModel = runModel
         self.buildModel = buildModel
     }
@@ -55,6 +58,7 @@ struct ImageListView: View {
                 case let .pull(reference):
                     PullImageSheet(
                         initialReference: reference,
+                        searchModel: registrySearchModel,
                         onPull: { ref, plat in actions.pull(reference: ref, platform: plat) },
                         onRetry: { actions.retryTask($0) },
                         onClose: { activeSheet = nil },

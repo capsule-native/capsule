@@ -11,7 +11,15 @@
 import CapsuleDomain
 import SwiftUI
 
+/// Where the Pull Image sheet's reference comes from: typed by hand, or picked from the
+/// Docker Hub browse pane.
+enum PullSheetSource {
+    case reference
+    case browse
+}
+
 struct PullImageSheet: View {
+    let searchModel: RegistrySearchModel?
     let onPull: (String, String?) -> OperationTask
     let onRetry: (OperationTask) -> Void
     let onClose: () -> Void
@@ -20,14 +28,17 @@ struct PullImageSheet: View {
     @State private var reference: String
     @State private var platform = ""
     @State private var task: OperationTask?
+    @State private var source: PullSheetSource = .reference
 
     init(
         initialReference: String = "",
+        searchModel: RegistrySearchModel? = nil,
         onPull: @escaping (String, String?) -> OperationTask,
         onRetry: @escaping (OperationTask) -> Void,
         onClose: @escaping () -> Void,
         invocationFor: @escaping (String, String?) -> CommandInvocation
     ) {
+        self.searchModel = searchModel
         self.onPull = onPull
         self.onRetry = onRetry
         self.onClose = onClose
@@ -44,11 +55,24 @@ struct PullImageSheet: View {
             Label("Pull Image", systemImage: "arrow.down.circle")
                 .font(.headline)
 
+            if task == nil, searchModel != nil {
+                Picker("Source", selection: $source) {
+                    Text("Reference", bundle: .module).tag(PullSheetSource.reference)
+                    Text("Browse", bundle: .module).tag(PullSheetSource.browse)
+                }
+                .pickerStyle(.segmented)
+            }
+
             if let task {
                 TaskTranscriptView(task: task, onRetry: { onRetry(task) })
                 HStack {
                     Spacer()
                     Button("Done", action: onClose).keyboardShortcut(.defaultAction)
+                }
+            } else if source == .browse, let searchModel {
+                RegistryBrowseView(model: searchModel) { picked in
+                    reference = picked
+                    source = .reference
                 }
             } else {
                 Form {
@@ -79,6 +103,15 @@ struct PullImageSheet: View {
             }
         }
         .padding(20)
-        .frame(width: 480)
+        .frame(
+            width: isBrowsing ? 560 : 480,
+            height: isBrowsing ? 620 : nil)
+    }
+
+    /// True while the Browse pane is showing; the sheet grows to list-friendly dimensions
+    /// (BuildSheet/QuickRunSheet precedent) and returns to the intrinsic-height reference
+    /// form everywhere else — including the transcript, which keeps its original frame.
+    private var isBrowsing: Bool {
+        source == .browse && task == nil && searchModel != nil
     }
 }

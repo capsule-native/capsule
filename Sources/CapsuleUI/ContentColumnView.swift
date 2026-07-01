@@ -21,6 +21,7 @@ struct ContentColumnView: View {
     let statsModel: ContainerStatsModel
     let imageBrowserModel: ImageBrowserModel
     let imageActionsModel: ImageActionsModel
+    let registrySearchModel: RegistrySearchModel
     let networkBrowserModel: NetworkBrowserModel
     let networkActionsModel: NetworkActionsModel
     let machineBrowserModel: MachineBrowserModel
@@ -70,7 +71,8 @@ struct ContentColumnView: View {
                 logsModel: logsModel, copyModel: copyModel)
         case .images:
             ImageListView(
-                model: imageBrowserModel, actions: imageActionsModel, runModel: runModel,
+                model: imageBrowserModel, actions: imageActionsModel,
+                registrySearchModel: registrySearchModel, runModel: runModel,
                 buildModel: buildModel)
         case .volumes:
             VolumeListView(model: volumeBrowserModel, actions: volumeActionsModel)

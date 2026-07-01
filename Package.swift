@@ -161,7 +161,10 @@ let package = Package(
         ),
         .testTarget(
             name: "CapsuleIntegrationTests",
-            dependencies: ["CapsuleApp", "CapsuleCLIBackend", "CapsuleBackend", "CapsuleDomain"]
+            dependencies: [
+                "CapsuleApp", "CapsuleCLIBackend", "CapsuleBackend", "CapsuleDomain",
+                "CapsuleRegistryClient",
+            ]
         ),
     ],
     swiftLanguageModes: [.v5]
