@@ -208,7 +208,15 @@ struct ActivityPaneView: View {
                             TaskTranscriptView(
                                 task: task,
                                 onRetry: { taskCenter?.retry(task) },
-                                onCancel: { taskCenter?.cancel(task) })
+                                onCancel: { taskCenter?.cancel(task) },
+                                onEscalate: { invocation in
+                                    shell.openTerminal(
+                                        TerminalRequest(
+                                            containerID: nil,
+                                            title: invocation.rawDisplay,
+                                            argv: invocation.argv,
+                                            kind: .runInteractive))
+                                })
                             Divider()
                         }
                     }
