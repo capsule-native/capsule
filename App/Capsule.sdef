@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dictionary SYSTEM "file://localhost/System/Library/DTDs/sdef.dtd">
+<dictionary title="Capsule Terminology">
+  <suite name="Capsule Suite" code="Caps"
+         description="Commands for managing containers with Capsule.">
+
+    <command name="run container" code="CapsRunC"
+             description="Run a detached container from an image.">
+      <cocoa class="CapsuleRunContainerCommand"/>
+      <direct-parameter type="text" description="The image reference to run."/>
+      <parameter name="named" code="cNam" type="text" optional="yes"
+                 description="A name for the new container.">
+        <cocoa key="containerName"/>
+      </parameter>
+      <result type="text" description="The new container's id."/>
+    </command>
+
+    <command name="pull image" code="CapsPull" description="Pull an image from a registry.">
+      <cocoa class="CapsulePullImageCommand"/>
+      <direct-parameter type="text" description="The image reference to pull."/>
+      <parameter name="for platform" code="cPlt" type="text" optional="yes"
+                 description="A platform, e.g. linux/arm64.">
+        <cocoa key="platform"/>
+      </parameter>
+      <result type="text" description="The pull transcript."/>
+    </command>
+
+    <command name="build image" code="CapsBild"
+             description="Build an image from a build-context folder.">
+      <cocoa class="CapsuleBuildImageCommand"/>
+      <direct-parameter type="text" description="Path to the build-context folder."/>
+      <parameter name="tag" code="cTag" type="text"
+                 description="The image tag to apply.">
+        <cocoa key="tag"/>
+      </parameter>
+      <result type="text" description="The build transcript."/>
+    </command>
+
+    <command name="copy file" code="CapsCopF"
+             description="Copy a host file into a running container.">
+      <cocoa class="CapsuleCopyFileCommand"/>
+      <direct-parameter type="text" description="Path to the host file to copy."/>
+      <parameter name="into" code="cIno" type="text"
+                 description="The target container id or name.">
+        <cocoa key="container"/>
+      </parameter>
+      <parameter name="at" code="cAtp" type="text"
+                 description="Absolute path inside the container.">
+        <cocoa key="containerPath"/>
+      </parameter>
+    </command>
+
+    <command name="export container" code="CapsExpC"
+             description="Export a container's filesystem to a tar archive.">
+      <cocoa class="CapsuleExportContainerCommand"/>
+      <direct-parameter type="text" description="The container id or name to export."/>
+      <parameter name="to" code="cTop" type="text"
+                 description="Path to write the .tar archive to.">
+        <cocoa key="destinationPath"/>
+      </parameter>
+    </command>
+
+    <command name="start services" code="CapsStrt"
+             description="Start the container system service.">
+      <cocoa class="CapsuleStartServicesCommand"/>
+    </command>
+
+    <command name="stop services" code="CapsStop"
+             description="Stop the container system service.">
+      <cocoa class="CapsuleStopServicesCommand"/>
+    </command>
+
+    <command name="reclaim space" code="CapsRclm"
+             description="Prune unused containers, images, and volumes.">
+      <cocoa class="CapsuleReclaimSpaceCommand"/>
+      <result type="text" description="A summary of what was reclaimed."/>
+    </command>
+
+    <command name="list containers" code="CapsLsCn"
+             description="List container names.">
+      <cocoa class="CapsuleListContainersCommand"/>
+      <parameter name="including stopped" code="cInS" type="boolean" optional="yes"
+                 description="Include stopped containers (default true).">
+        <cocoa key="includeStopped"/>
+      </parameter>
+      <result description="The container names.">
+        <type type="text" list="yes"/>
+      </result>
+    </command>
+
+    <command name="list images" code="CapsLsIm" description="List local image references.">
+      <cocoa class="CapsuleListImagesCommand"/>
+      <result description="The image references.">
+        <type type="text" list="yes"/>
+      </result>
+    </command>
+
+  </suite>
+</dictionary>

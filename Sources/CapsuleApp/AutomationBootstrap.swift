@@ -22,5 +22,8 @@ public enum AutomationBootstrap {
     @MainActor
     public static func install() {
         AutomationRuntime.service = LiveAutomationService(backend: CLIContainerBackend())
+        // Retain the AppleScript command classes (referenced only by name from the sdef) so
+        // dead-code stripping keeps them registered with the Objective-C runtime.
+        AppleScriptSupport.keepCommandClassesAlive()
     }
 }

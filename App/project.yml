@@ -44,6 +44,9 @@ targets:
       - path: App/Sources
       - path: App/Assets.xcassets
       - path: App/Resources/Localizable.xcstrings
+      # AppleScript terminology — copied into Contents/Resources so OSAScriptingDefinition
+      # (Capsule.sdef) resolves it.
+      - path: App/Capsule.sdef
     settings:
       base:
         PRODUCT_NAME: Capsule
