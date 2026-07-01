@@ -14,7 +14,7 @@ import Foundation
 import Observation
 
 /// A one-tap build preset that seeds the cache/progress flags.
-public enum BuildPreset: String, Sendable, CaseIterable, Identifiable {
+public enum BuildPreset: String, Sendable, Codable, CaseIterable, Identifiable {
     case standard
     case noCache
     case plainProgress
@@ -41,6 +41,37 @@ public struct BuildDraft: Sendable, Equatable {
     public var preset: BuildPreset = .standard
 
     public init() {}
+}
+
+extension BuildDraft: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case contextDirectory, tag, dockerfile, buildArgRows, noCache, preset
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init()
+        // The app is unsandboxed, so the context folder persists as a plain path
+        // (no security-scoped bookmark) rather than the synthesized URL container.
+        if let path = try container.decodeIfPresent(String.self, forKey: .contextDirectory) {
+            self.contextDirectory = URL(fileURLWithPath: path)
+        }
+        self.tag = try container.decode(String.self, forKey: .tag)
+        self.dockerfile = try container.decode(String.self, forKey: .dockerfile)
+        self.buildArgRows = try container.decode([String].self, forKey: .buildArgRows)
+        self.noCache = try container.decode(Bool.self, forKey: .noCache)
+        self.preset = try container.decode(BuildPreset.self, forKey: .preset)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(contextDirectory?.path, forKey: .contextDirectory)
+        try container.encode(tag, forKey: .tag)
+        try container.encode(dockerfile, forKey: .dockerfile)
+        try container.encode(buildArgRows, forKey: .buildArgRows)
+        try container.encode(noCache, forKey: .noCache)
+        try container.encode(preset, forKey: .preset)
+    }
 }
 
 @MainActor

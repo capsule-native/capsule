@@ -14,7 +14,7 @@ import Foundation
 import Observation
 
 /// A UI-friendly draft of a run: raw text rows the model trims/validates into a config.
-public struct RunDraft: Sendable, Equatable {
+public struct RunDraft: Sendable, Equatable, Codable {
     public var image: String = ""
     public var name: String = ""
     public var command: String = ""
