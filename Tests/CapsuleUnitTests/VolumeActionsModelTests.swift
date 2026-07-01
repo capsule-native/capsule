@@ -228,4 +228,13 @@ final class VolumeActionsModelTests: XCTestCase {
         XCTAssertNotNil(model.notice)
         XCTAssertEqual(reloads, 0, "a validation failure never reaches the backend")
     }
+
+    func testVolumeCommandInvocationDropsEmptyNameAndDrivesPreview() {
+        let m = VolumeActionsModel(backend: MockBackend())
+        var draft = VolumeDraft()
+        draft.size = "10G"
+        XCTAssertFalse(m.commandInvocation(for: draft).rawDisplay.hasSuffix(" "))
+        XCTAssertEqual(m.commandPreview(for: draft), m.commandInvocation(for: draft).displayString)
+        XCTAssertEqual(m.pruneInvocation.rawDisplay, "container volume prune")
+    }
 }
