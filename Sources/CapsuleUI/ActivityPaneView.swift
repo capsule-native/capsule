@@ -213,7 +213,7 @@ struct ActivityPaneView: View {
                                     shell.openTerminal(
                                         TerminalRequest(
                                             containerID: nil,
-                                            title: invocation.rawDisplay,
+                                            title: invocation.displayString,
                                             argv: invocation.argv,
                                             kind: .runInteractive))
                                 })

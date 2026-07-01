@@ -88,6 +88,22 @@ final class CommandCatalogTests: XCTestCase {
         XCTAssertTrue(actions.contains { $0.title == "Run Preset: web" })
     }
 
+    /// Regression for the launch-bootstrap fix: a preset already saved in the store (e.g. from
+    /// a prior session) must surface in the catalog after `loadPresets()` alone — the same call
+    /// `AppShellView`'s launch `.task` now makes — with no sheet ever opened.
+    func testPersistedPresetSurfacesAfterLoadPresetsWithoutOpeningSheet() {
+        let savedPreset = SavedRunPreset(name: "web", draft: RunDraft(image: "nginx:latest"))
+        let store = InMemoryPresetStore(runPresets: [savedPreset])
+        let (ctx, _, _, run, _) = makeContext(runPresetStore: store)
+
+        // Simulate the launch bootstrap: load from the store directly, no sheet involved.
+        run.loadPresets()
+
+        let actions = CommandCatalog.actions(ctx)
+        XCTAssertTrue(actions.contains { $0.id.hasPrefix("preset-run-") })
+        XCTAssertTrue(actions.contains { $0.title == "Run Preset: web" })
+    }
+
     func testPluginSurfacesAsActionAfterRefresh() {
         let (ctx, _, _, _, pluginCatalog) = makeContext(plugins: OnePlugin())
         XCTAssertFalse(CommandCatalog.actions(ctx).contains { $0.id == "plugin-compose" })

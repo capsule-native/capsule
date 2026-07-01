@@ -108,6 +108,15 @@ public struct AppShellView: View {
         .task {
             await systemModel.refreshStatus()
             commandContext.pluginCatalog.refresh()
+            runModel.loadPresets()
+            buildModel.loadPresets()
+        }
+        .onChange(of: systemModel.health.isRunning) { _, isRunning in
+            // Plugins require the service; re-discover them the moment it comes up so they
+            // surface in the palette/menu without requiring a relaunch.
+            if isRunning {
+                commandContext.pluginCatalog.refresh()
+            }
         }
         .sheet(isPresented: $shell.commandPalettePresented) {
             CommandPaletteView(shell: shell, context: commandContext)
