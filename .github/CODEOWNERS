@@ -1,0 +1,48 @@
+# Capsule — code ownership
+#
+# Ownership is split by architectural layer so reviews land with the people who understand
+# that seam. GitHub requests review from the matching owners automatically. Later patterns
+# win, so the fallback owner is listed first.
+#
+# NOTE: the handles below are placeholders for the maintainer teams. Replace them with your
+# org's real GitHub teams/usernames (e.g. @your-org/ui) before enabling branch protection —
+# an unknown owner makes a rule inert.
+
+# Fallback owner for everything not matched more specifically below.
+*                               @capsule-maintainers
+
+# ── UI shell ────────────────────────────────────────────────────────────────
+# SwiftUI views/inspectors/sheets, the app lifecycle, scene, menus, composition root.
+/Sources/CapsuleUI/             @capsule-ui
+/Sources/CapsuleApp/            @capsule-ui
+/Sources/CapsuleTerminal/       @capsule-ui
+/App/                           @capsule-ui
+
+# ── Backend adapter ─────────────────────────────────────────────────────────
+# The port, the CLI adapter (Process/argv/parsing), the domain models, diagnostics.
+/Sources/CapsuleBackend/        @capsule-backend
+/Sources/CapsuleCLIBackend/     @capsule-backend
+/Sources/CapsuleDomain/         @capsule-backend
+/Sources/CapsuleDiagnostics/    @capsule-backend
+
+# ── Automation layer ────────────────────────────────────────────────────────
+# App Intents + AppleScript vocabulary and the scriptability definition.
+/Sources/CapsuleAutomation/     @capsule-automation
+/Sources/CapsuleApp/AppleScript/ @capsule-automation
+/Sources/CapsuleApp/CapsuleShortcuts.swift @capsule-automation
+/App/Capsule.sdef               @capsule-automation
+
+# ── Release pipeline ────────────────────────────────────────────────────────
+# Signing/notarization scripts, Makefile, CI + release workflows, packaging config.
+/Scripts/                       @capsule-release
+/Makefile                       @capsule-release
+/.github/                       @capsule-release
+/Package.swift                  @capsule-release
+/Package.resolved               @capsule-release
+/App/project.yml                @capsule-release
+/App/Info.plist                 @capsule-release
+/App/Capsule.entitlements       @capsule-release
+
+# CODEOWNERS itself + contributor docs are maintained by the core maintainers.
+/.github/CODEOWNERS             @capsule-maintainers
+/CONTRIBUTING.md                @capsule-maintainers

@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest a capability or improvement for Capsule.
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Capsule stays inside a narrow envelope (Apple silicon, macOS 26+,
+        unsandboxed, CLI-backed). Requests that fit that envelope are easiest to land.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The user-facing problem or friction, not the implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you imagine it working. UI sketches or `container` commands welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered (optional)
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area?
+      options:
+        - Containers
+        - Images / Registries
+        - Volumes / Networks
+        - Machines
+        - System / Settings
+        - Terminal
+        - Automation (Shortcuts / AppleScript)
+        - Packaging / Updates
+        - Other
+    validations:
+      required: true
