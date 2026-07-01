@@ -20,7 +20,7 @@ import PackageDescription
 //     CapsuleTerminal   ──▶ CapsuleUI, CapsuleDomain, SwiftTerm  (engine adapter)
 //     CapsuleUI         ──▶ CapsuleDomain
 //     CapsuleAutomation ──▶ CapsuleBackend                      (leaf / side; drives the port)
-//     CapsuleDiagnostics──▶ CapsuleDomain                       (leaf / side)
+//     CapsuleDiagnostics──▶ CapsuleDomain, CapsuleBackend       (leaf / side)
 //     CapsuleCLIBackend ──▶ CapsuleBackend, CapsuleDiagnostics  (adapter; conforms to port)
 //     CapsuleDomain     ──▶ CapsuleBackend                      (the port)
 //     CapsuleBackend    ──▶ (no Capsule dependencies)           (port; bottom of the graph)

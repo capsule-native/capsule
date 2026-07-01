@@ -1,7 +1,8 @@
-# Capsule
-
-A native macOS app for managing containers, backed by a command-line container
-runtime.
+<div align="center">
+  <img src="docs/assets/capsule-logo.png" alt="Capsule app icon" width="128" height="128" />
+  <h1>Capsule</h1>
+  <p><strong>A native macOS app for managing containers, backed by a command-line container runtime.</strong></p>
+</div>
 
 ## Supported runtime envelope
 
@@ -24,14 +25,15 @@ target — generated from [`App/project.yml`](App/project.yml) via XcodeGen — 
 consumes those library products.
 
 ```
-CapsuleApp         ──▶ CapsuleUI, CapsuleCLIBackend, CapsuleAutomation,
-                       CapsuleDiagnostics, CapsuleDomain, CapsuleBackend
+CapsuleApp         ──▶ CapsuleUI, CapsuleTerminal, CapsuleCLIBackend, CapsuleAutomation,
+                       CapsuleDiagnostics, CapsuleDomain, CapsuleBackend  (+ Sparkle)
+CapsuleTerminal    ──▶ CapsuleUI, CapsuleDomain, SwiftTerm   (terminal engine adapter)
 CapsuleUI          ──▶ CapsuleDomain
-CapsuleAutomation  ──▶ CapsuleDomain                       (leaf / side)
-CapsuleDiagnostics ──▶ CapsuleDomain                       (leaf / side)
-CapsuleCLIBackend  ──▶ CapsuleBackend, CapsuleDiagnostics  (adapter; conforms to port)
-CapsuleDomain      ──▶ CapsuleBackend                      (the port)
-CapsuleBackend     ──▶ (no Capsule dependencies)           (port; bottom of the graph)
+CapsuleAutomation  ──▶ CapsuleBackend                        (leaf / side; drives the port)
+CapsuleDiagnostics ──▶ CapsuleDomain, CapsuleBackend         (leaf / side)
+CapsuleCLIBackend  ──▶ CapsuleBackend, CapsuleDiagnostics    (adapter; conforms to port)
+CapsuleDomain      ──▶ CapsuleBackend                        (the port)
+CapsuleBackend     ──▶ (no Capsule dependencies)             (port; bottom of the graph)
 ```
 
 `X ──▶ Y` means "X depends on Y". `CapsuleApp` is the only composition root.
@@ -39,12 +41,13 @@ CapsuleBackend     ──▶ (no Capsule dependencies)           (port; bottom o
 | Module | Responsibility |
 | --- | --- |
 | `CapsuleApp` | App lifecycle, top-level `Scene`, menu commands, window management, the Sparkle-backed updater, composition root. |
-| `CapsuleDomain` | Resource models, actions, task state, outcome/diagnostics types. No UI, no `Process`. |
-| `CapsuleBackend` | `ContainerBackend` protocol plus shared request/response value types (the port). |
+| `CapsuleDomain` | Resource models, actions, task state, outcome/diagnostics types, privacy disclosure. No UI, no `Process`. |
+| `CapsuleBackend` | `ContainerBackend` protocol + shared value types (the port) + `MockBackend`. |
 | `CapsuleCLIBackend` | `Process` plumbing, argument building, output parsing. Conforms to `ContainerBackend`. |
-| `CapsuleAutomation` | App Intents, AppleScript terminology, shortcut-facing models (stubs). |
-| `CapsuleDiagnostics` | `OSLog` wrappers, diagnostic-bundle export, error normalization. |
-| `CapsuleUI` | SwiftUI views, inspectors, sheets, terminal wrappers, the updater/privacy settings surfaces. |
+| `CapsuleAutomation` | App Intents + AppleScript vocabulary over the backend port. |
+| `CapsuleDiagnostics` | `OSLog` wrappers, diagnostic-bundle export, error normalization, secret redaction. |
+| `CapsuleUI` | SwiftUI views, inspectors, sheets, the updater/privacy settings surfaces. |
+| `CapsuleTerminal` | SwiftTerm/PTY engine adapter. |
 
 ### Enforced boundaries
 

@@ -26,6 +26,7 @@ architecture map, code-style rules, and the screenshot-update policy.
       opt-in.
 - [ ] Screenshots under `docs/` refreshed if this changes visible UI (see the screenshot policy).
 - [ ] User-facing strings routed through the String Catalog / `LocalizedDisplay`.
+- [ ] If AI-assisted, output was reviewed against the boundaries in CONTRIBUTING.md ("Working with AI agents") and `make check && make test` pass.
 
 ## Screenshots
 
