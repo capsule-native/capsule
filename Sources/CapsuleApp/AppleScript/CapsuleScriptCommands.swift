@@ -99,3 +99,12 @@ final class CapsuleListImagesCommand: CapsuleScriptCommand {
         try await service.listImages()
     }
 }
+
+@objc(CapsuleContainerLogsCommand)
+final class CapsuleContainerLogsCommand: CapsuleScriptCommand {
+    override func run(service: any AutomationService) async throws -> Any? {
+        let container = try requireDirectString("container")
+        return try await service.containerLogs(
+            id: container, tail: evaluatedArguments?["tail"] as? Int)
+    }
+}

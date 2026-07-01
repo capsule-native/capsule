@@ -95,5 +95,16 @@
       </result>
     </command>
 
+    <command name="container logs" code="CapsLogs"
+             description="Get a snapshot of a container's recent logs.">
+      <cocoa class="CapsuleContainerLogsCommand"/>
+      <direct-parameter type="text" description="The container id or name."/>
+      <parameter name="tail" code="cTal" type="integer" optional="yes"
+                 description="Maximum number of recent lines.">
+        <cocoa key="tail"/>
+      </parameter>
+      <result type="text" description="The log snapshot."/>
+    </command>
+
   </suite>
 </dictionary>

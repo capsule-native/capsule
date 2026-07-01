@@ -100,7 +100,7 @@ public struct AppShellView: View {
                 shell: shell,
                 availableFeatures: systemModel.health.availableFeatures,
                 bannerKind: systemModel.health.bannerKind,
-                statusLabel: systemModel.health.statusLabel
+                statusLabel: systemModel.health.localizedStatusLabel
             )
         } detail: {
             detailColumn

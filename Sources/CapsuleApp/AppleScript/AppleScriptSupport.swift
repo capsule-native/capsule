@@ -26,6 +26,7 @@ enum AppleScriptSupport {
         CapsuleReclaimSpaceCommand.self,
         CapsuleListContainersCommand.self,
         CapsuleListImagesCommand.self,
+        CapsuleContainerLogsCommand.self,
     ]
 
     /// Forces `commandClasses` to be evaluated so the classes are not stripped.

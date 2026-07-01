@@ -15,7 +15,7 @@ struct SidebarView: View {
     @Bindable var shell: ShellState
     let availableFeatures: Set<SystemFeature>
     let bannerKind: BannerKind
-    let statusLabel: String
+    let statusLabel: LocalizedStringResource
 
     private var resourceSections: [SidebarSection] {
         SidebarSection.allCases.filter { $0 != .system }
@@ -55,7 +55,7 @@ struct SidebarView: View {
             Circle()
                 .fill(CapsuleColors.accent(for: bannerKind))
                 .frame(width: 8, height: 8)
-            Text(verbatim: statusLabel)
+            Text(statusLabel)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -64,6 +64,7 @@ struct SidebarView: View {
         .padding(.vertical, 8)
         .background(.bar)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("Service status: \(statusLabel)", bundle: .module))
+        .accessibilityLabel(
+            Text("Service status: \(String(localized: statusLabel))", bundle: .module))
     }
 }

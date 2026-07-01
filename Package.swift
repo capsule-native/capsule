@@ -19,7 +19,7 @@ import PackageDescription
 //                           CapsuleDiagnostics, CapsuleDomain, CapsuleBackend
 //     CapsuleTerminal   ──▶ CapsuleUI, CapsuleDomain, SwiftTerm  (engine adapter)
 //     CapsuleUI         ──▶ CapsuleDomain
-//     CapsuleAutomation ──▶ CapsuleDomain                       (leaf / side)
+//     CapsuleAutomation ──▶ CapsuleBackend                      (leaf / side; drives the port)
 //     CapsuleDiagnostics──▶ CapsuleDomain                       (leaf / side)
 //     CapsuleCLIBackend ──▶ CapsuleBackend, CapsuleDiagnostics  (adapter; conforms to port)
 //     CapsuleDomain     ──▶ CapsuleBackend                      (the port)
@@ -74,7 +74,7 @@ let package = Package(
         // restricts UI and Domain, so importing the port here is allowed.
         .target(
             name: "CapsuleAutomation",
-            dependencies: ["CapsuleDomain", "CapsuleBackend"],
+            dependencies: ["CapsuleBackend"],
             resources: [.process("Resources")]
         ),
 
