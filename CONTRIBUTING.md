@@ -12,6 +12,28 @@ Capsule targets a deliberately narrow, modern envelope. Contributions must stay 
   Runtime**, **notarized**. No Intel, no iOS, no sandboxed/App Store build. See the
   [README](README.md#supported-runtime-envelope).
 
+## Working with AI agents
+
+Capsule ships an agent playbook so AI coding assistants stay inside the same
+guardrails as human contributors.
+
+- **[CLAUDE.md](CLAUDE.md)** is the lean playbook: orientation, when to read
+  code, the canonical `make` commands, and which subagent to use for which task.
+  It treats this file and the [README](README.md) as the source of truth and
+  does not duplicate them. [AGENTS.md](AGENTS.md) is a thin pointer to it.
+- **Project subagents** live in [`.claude/agents/`](.claude/agents/):
+  `command-adder` (adds a `container` command end-to-end),
+  `architecture-guardian` (read-only boundary/secret reviewer),
+  `swiftui-view-builder` (CapsuleUI views), and `test-author` (tests).
+- **The rules agents follow are the ones already enforced here** — the layering
+  rules in [Enforced boundaries](#enforced-boundaries-non-negotiable), checked by
+  `ArchitectureGuardTests` and `Scripts/check-architecture.sh`; a deliberate new
+  edge means updating **both**.
+- **Human review still gates merges.** Treat agent output like any other patch:
+  run `make check && make test`, keep secrets off argv, and follow the
+  [Adding a command without touching the UI](#adding-a-command-without-touching-the-ui)
+  recipe. Note AI assistance in your PR (see the pull-request template).
+
 ## Architecture map
 
 Capsule’s reusable core is a Swift Package of strictly-layered modules under `Sources/`. The
