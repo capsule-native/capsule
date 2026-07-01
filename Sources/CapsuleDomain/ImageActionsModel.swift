@@ -42,6 +42,36 @@ public final class ImageActionsModel {
         self.taskCenter = taskCenter ?? TaskCenter(normalize: normalize)
     }
 
+    // MARK: - Invocations (the exact argv each op will run)
+
+    public func pullInvocation(reference: String, platform: String?) -> CommandInvocation {
+        CommandInvocation(CLICommand.pullImage(reference: reference, platform: platform))
+    }
+
+    public func pushInvocation(reference: String, platform: String?) -> CommandInvocation {
+        CommandInvocation(CLICommand.pushImage(reference: reference, platform: platform))
+    }
+
+    public func saveInvocation(
+        references: [String], to url: URL, platform: String?
+    )
+        -> CommandInvocation
+    {
+        CommandInvocation(CLICommand.saveImage(references: references, to: url, platform: platform))
+    }
+
+    public func loadInvocation(from url: URL) -> CommandInvocation {
+        CommandInvocation(CLICommand.loadImage(from: url))
+    }
+
+    public func tagInvocation(source: String, target: String) -> CommandInvocation {
+        CommandInvocation(CLICommand.tagImage(source: source, target: target))
+    }
+
+    public func pruneInvocation(all: Bool) -> CommandInvocation {
+        CommandInvocation(CLICommand.pruneImages(all: all))
+    }
+
     // MARK: - Tag
 
     /// Creates a new reference (`target`) for an existing image (`source`). Returns whether
