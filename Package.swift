@@ -51,7 +51,12 @@ let package = Package(
         // First external dependency: a mature, MIT, pure-Swift terminal emulator. `from:`
         // floors the major; the exact resolved version is pinned in Package.resolved
         // (committed). `swift package resolve` (Step 4) picks the latest 1.x.
-        .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", from: "1.0.0")
+        .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", from: "1.0.0"),
+        // Auto-updates for the UNSANDBOXED, Developer-ID-signed distribution (Milestone 13).
+        // Sparkle ships via SwiftPM as a signed binary xcframework; only the composition root
+        // (CapsuleApp) links it, behind the `UpdaterDriving` seam so the rest of the app —
+        // and every unit test — stays free of any Sparkle dependency.
+        .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.6.0"),
     ],
     targets: [
         // MARK: - Port layer (bottom of the graph; no Capsule dependencies)
@@ -108,6 +113,9 @@ let package = Package(
         ),
 
         // MARK: - Composition root / app lifecycle (wires the adapter into the domain)
+        // The ONLY target that links Sparkle: it supplies the `SparkleUpdaterDriver` that
+        // backs CapsuleUI's `UpdaterDriving` seam. Keeping the import here means `swift test`
+        // and every library target build without Sparkle in their graph.
         .target(
             name: "CapsuleApp",
             dependencies: [
@@ -118,6 +126,7 @@ let package = Package(
                 "CapsuleCLIBackend",
                 "CapsuleAutomation",
                 "CapsuleDiagnostics",
+                .product(name: "Sparkle", package: "Sparkle"),
             ]
         ),
 

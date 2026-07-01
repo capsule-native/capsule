@@ -118,8 +118,20 @@ public struct AppEnvironment {
         self.commandContext = commandContext
     }
 
-    /// The production environment: CLI backend, normalized errors, and a wired shell.
+    /// The production environment with a no-op updater. Unit tests build this directly, so it
+    /// must never instantiate Sparkle (which would try to schedule checks against `SUFeedURL`).
+    /// The real app calls `live(updater:)` with `SparkleUpdaterController()` from
+    /// `CapsuleScene.init()`.
+    ///
+    /// (A no-op default argument can't be used here: `NoopUpdaterController.init()` is
+    /// `@MainActor`-isolated and default arguments are evaluated in a nonisolated context.)
     public static func live() -> AppEnvironment {
+        live(updater: NoopUpdaterController())
+    }
+
+    /// The production environment: CLI backend, normalized errors, a wired shell, and the
+    /// injected `updater`.
+    public static func live(updater: any UpdaterController) -> AppEnvironment {
         let cliBackend = CLIContainerBackend()
         let backend: any ContainerBackend = cliBackend
         let shell = ShellState()
@@ -338,7 +350,7 @@ public struct AppEnvironment {
             logsModel: logsModel,
             copyModel: copyModel,
             actions: actions,
-            updater: NoopUpdaterController(),
+            updater: updater,
             terminalSurfaceProvider: terminalSurfaceProvider,
             commandContext: commandContext
         )

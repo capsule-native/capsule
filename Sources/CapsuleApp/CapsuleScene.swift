@@ -48,7 +48,10 @@ public struct CapsuleScene: Scene {
     private let commandContext: CommandContext
 
     public init() {
-        self.init(environment: .live())
+        // The real app entry point (CapsuleMain) is the ONLY caller of this initializer, so
+        // this is where the live Sparkle updater is instantiated. Unit tests build
+        // `AppEnvironment.live()` directly (default no-op updater) and never reach here.
+        self.init(environment: .live(updater: SparkleUpdaterController()))
     }
 
     public init(environment: AppEnvironment) {
@@ -135,7 +138,8 @@ public struct CapsuleScene: Scene {
                 dnsModel: dnsModel,
                 kernelModel: kernelManagerModel,
                 propertiesModel: propertiesModel,
-                systemHealth: systemModel.health)
+                systemHealth: systemModel.health,
+                updater: updater)
         }
     }
 }
