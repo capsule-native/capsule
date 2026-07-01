@@ -83,7 +83,7 @@ struct CreateMachineSheet: View {
 
                 // MARK: Advanced
 
-                DisclosureGroup("Advanced") {
+                AdvancedDisclosure {
                     TextField("Name (optional)", text: $draft.name)
                     Toggle("Set as default", isOn: $draft.setDefault)
                     Toggle("Create without booting", isOn: $draft.noBoot)
@@ -109,16 +109,7 @@ struct CreateMachineSheet: View {
 
             // MARK: Command preview
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Command preview").font(.caption).foregroundStyle(.secondary)
-                Text(actions.commandPreview(for: draft))
-                    .font(.system(.caption, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
-                    .background(CapsuleColors.activitySurface)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-            }
+            CommandPreviewView(actions.commandInvocation(for: draft))
 
             // MARK: Buttons
 

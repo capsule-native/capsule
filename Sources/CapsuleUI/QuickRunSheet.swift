@@ -65,16 +65,7 @@ struct QuickRunSheet: View {
                 .disabled(model.draft.interactive)
         }
 
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Command preview").font(.caption).foregroundStyle(.secondary)
-            Text(model.commandPreview)
-                .font(.system(.caption, design: .monospaced))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(CapsuleColors.activitySurface)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-        }
+        CommandPreviewView(model.commandInvocation)
     }
 
     @ViewBuilder
