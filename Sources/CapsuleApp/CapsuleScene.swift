@@ -45,6 +45,7 @@ public struct CapsuleScene: Scene {
     private let actions: ShellActions
     private let updater: any UpdaterController
     private let terminalSurfaceProvider: any TerminalSurfaceProviding
+    private let commandContext: CommandContext
 
     public init() {
         self.init(environment: .live())
@@ -80,6 +81,7 @@ public struct CapsuleScene: Scene {
         self.actions = environment.actions
         self.updater = environment.updater
         self.terminalSurfaceProvider = environment.terminalSurfaceProvider
+        self.commandContext = environment.commandContext
     }
 
     public var body: some Scene {
@@ -108,7 +110,8 @@ public struct CapsuleScene: Scene {
                 logsModel: logsModel,
                 copyModel: copyModel,
                 actions: actions,
-                terminalSurfaceProvider: terminalSurfaceProvider
+                terminalSurfaceProvider: terminalSurfaceProvider,
+                commandContext: commandContext
             )
         }
         .commands {
