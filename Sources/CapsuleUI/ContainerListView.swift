@@ -41,7 +41,6 @@ struct ContainerListView: View {
 
     var body: some View {
         content
-            .searchable(text: $model.searchText, prompt: "Search containers")
             .toolbar { toolbarContent }
             .task {
                 model.loadScopes()
@@ -220,7 +219,7 @@ struct ContainerListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup {
+        ToolbarItemGroup(placement: .navigation) {
             Button {
                 Task { await lifecycle.startAll(ids: selectedStartableIDs) }
             } label: {
@@ -255,7 +254,7 @@ struct ContainerListView: View {
             .help("Filter containers by state")
         }
 
-        ToolbarItem {
+        ToolbarItem(placement: .navigation) {
             Menu {
                 ForEach(ContainerScope.builtIns) { scope in
                     Button(scope.name) { model.activate(scope) }

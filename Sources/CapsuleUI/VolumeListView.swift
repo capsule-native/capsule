@@ -24,7 +24,6 @@ struct VolumeListView: View {
 
     var body: some View {
         content
-            .searchable(text: $model.searchText, prompt: "Search volumes")
             .toolbar { toolbarContent }
             .task { await model.refresh() }
             .sheet(item: $activeSheet) { sheet in
@@ -118,7 +117,7 @@ struct VolumeListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup {
+        ToolbarItemGroup(placement: .navigation) {
             Button {
                 activeSheet = .create
             } label: {

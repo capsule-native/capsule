@@ -37,7 +37,6 @@ struct ImageListView: View {
 
     var body: some View {
         content
-            .searchable(text: $model.searchText, prompt: "Search images")
             .toolbar { toolbarContent }
             .task { await model.refresh() }
             .sheet(item: $activeSheet) { sheet in
@@ -197,7 +196,7 @@ struct ImageListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup {
+        ToolbarItemGroup(placement: .navigation) {
             Button {
                 activeSheet = .run(image: selectedReference ?? "")
             } label: {
@@ -237,7 +236,7 @@ struct ImageListView: View {
             .help("Sort images")
         }
 
-        ToolbarItemGroup {
+        ToolbarItemGroup(placement: .navigation) {
             Toggle(isOn: $model.showDanglingOnly) {
                 Label("Dangling only", systemImage: "questionmark.diamond")
             }

@@ -105,6 +105,9 @@ public struct AppShellView: View {
         } detail: {
             detailColumn
         }
+        .inspector(isPresented: $shell.inspectorPresented) {
+            inspectorPanel
+        }
         .task {
             await systemModel.refreshStatus()
             commandContext.pluginCatalog.refresh()
@@ -232,26 +235,14 @@ public struct AppShellView: View {
                 )
             }
         }
-        .inspector(isPresented: $shell.inspectorPresented) {
-            Group {
-                switch shell.selection {
-                case .containers:
-                    ContainerInspectorView(model: browserModel, stats: statsModel)
-                case .images:
-                    ImageInspectorView(model: imageBrowserModel)
-                case .networks:
-                    NetworkInspectorView(model: networkBrowserModel)
-                case .volumes:
-                    VolumeInspectorView(model: volumeBrowserModel)
-                case .machines:
-                    MachineInspectorView(model: machineBrowserModel, actions: machineActionsModel)
-                default:
-                    InspectorView(section: shell.selection)
+        .toolbar {
+            if sectionSupportsSearch {
+                ToolbarItem(placement: .primaryAction) {
+                    NativeSearchField(text: searchTextBinding, prompt: searchPrompt)
+                        .frame(width: 200)
+                        .accessibilityLabel(Text("Search", bundle: .module))
                 }
             }
-            .inspectorColumnWidth(min: 240, ideal: 320, max: 420)
-        }
-        .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
                     shell.toggleActivityPane()
@@ -269,6 +260,74 @@ public struct AppShellView: View {
                 .help("Toggle the Inspector")
                 .accessibilityLabel(Text("Toggle inspector", bundle: .module))
             }
+        }
+    }
+
+    /// The inspector is attached to the `NavigationSplitView` itself — not to the detail column —
+    /// so it forms a sibling region rather than nesting inside the detail's toolbar host. This
+    /// keeps the detail's toolbar items ordered sensibly in the content column (the toggles below
+    /// land beside the list actions rather than jumping to the leading edge).
+    @ViewBuilder
+    private var inspectorPanel: some View {
+        Group {
+            switch shell.selection {
+            case .containers:
+                ContainerInspectorView(model: browserModel, stats: statsModel)
+            case .images:
+                ImageInspectorView(model: imageBrowserModel)
+            case .networks:
+                NetworkInspectorView(model: networkBrowserModel)
+            case .volumes:
+                VolumeInspectorView(model: volumeBrowserModel)
+            case .machines:
+                MachineInspectorView(model: machineBrowserModel, actions: machineActionsModel)
+            default:
+                InspectorView(section: shell.selection)
+            }
+        }
+        .inspectorColumnWidth(min: 240, ideal: 320, max: 420)
+    }
+
+    // MARK: - Search
+    //
+    // Search is a real `NSSearchField` placed as an ordinary toolbar item (see
+    // ``NativeSearchField``) rather than via `.searchable`. On macOS a `.searchable` field is a
+    // special trailing element that anchors to the whole window's trailing edge — landing over
+    // the inspector and overhanging the content/inspector divider by a dozen-odd points no matter
+    // how the inspector is attached or sized. An ordinary toolbar item stays in the content
+    // column beside the list actions, so it never straddles the divider.
+
+    /// Only resource surfaces back a filterable list; System (status/logs/about) has nothing to
+    /// search, so it gets no field.
+    private var sectionSupportsSearch: Bool {
+        switch shell.selection {
+        case .containers, .images, .volumes, .networks, .machines: return true
+        case .system: return false
+        }
+    }
+
+    /// Routes the single, shell-level search field to the browser model backing the current
+    /// section. Each model is the very instance handed down to its list view, so filtering keeps
+    /// working unchanged — only the search field itself moved.
+    private var searchTextBinding: Binding<String> {
+        switch shell.selection {
+        case .containers: return $browserModel.searchText
+        case .images: return $imageBrowserModel.searchText
+        case .volumes: return $volumeBrowserModel.searchText
+        case .networks: return $networkBrowserModel.searchText
+        case .machines: return $machineBrowserModel.searchText
+        case .system: return .constant("")
+        }
+    }
+
+    private var searchPrompt: String {
+        switch shell.selection {
+        case .containers: return String(localized: "Search containers", bundle: .module)
+        case .images: return String(localized: "Search images", bundle: .module)
+        case .volumes: return String(localized: "Search volumes", bundle: .module)
+        case .networks: return String(localized: "Search networks", bundle: .module)
+        case .machines: return String(localized: "Search machines", bundle: .module)
+        case .system: return ""
         }
     }
 
@@ -371,5 +430,45 @@ public struct AppShellView: View {
         }
         .padding(24)
         .frame(width: 380)
+    }
+}
+
+/// A real `NSSearchField` bridged into SwiftUI so it can live as an ordinary toolbar item. We use
+/// this instead of `.searchable` because a `.searchable` field on macOS anchors to the window's
+/// trailing edge and overhangs the inspector divider (see the note on ``AppShellView``'s search
+/// helpers). As a plain toolbar item this stays in the content column, and it keeps the native
+/// look and behaviors (rounded field, magnifier, built-in clear button).
+struct NativeSearchField: NSViewRepresentable {
+    @Binding var text: String
+    var prompt: String
+
+    func makeNSView(context: Context) -> NSSearchField {
+        let field = NSSearchField()
+        field.delegate = context.coordinator
+        field.placeholderString = prompt
+        field.sendsSearchStringImmediately = true
+        field.sendsWholeSearchString = false
+        field.controlSize = .regular
+        // Let the SwiftUI `.frame(width:)` drive the width instead of the intrinsic content size.
+        field.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        return field
+    }
+
+    func updateNSView(_ field: NSSearchField, context: Context) {
+        context.coordinator.text = $text
+        if field.stringValue != text { field.stringValue = text }
+        if field.placeholderString != prompt { field.placeholderString = prompt }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
+
+    final class Coordinator: NSObject, NSSearchFieldDelegate {
+        var text: Binding<String>
+        init(text: Binding<String>) { self.text = text }
+
+        func controlTextDidChange(_ obj: Notification) {
+            guard let field = obj.object as? NSSearchField else { return }
+            text.wrappedValue = field.stringValue
+        }
     }
 }

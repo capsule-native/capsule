@@ -24,7 +24,6 @@ struct MachineListView: View {
 
     var body: some View {
         content
-            .searchable(text: $model.searchText, prompt: "Search machines")
             .toolbar { toolbarContent }
             .task { await model.refresh() }
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -178,7 +177,7 @@ struct MachineListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup {
+        ToolbarItemGroup(placement: .navigation) {
             Button {
                 activeSheet = .create
             } label: {

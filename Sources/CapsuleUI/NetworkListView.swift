@@ -26,7 +26,6 @@ struct NetworkListView: View {
 
     var body: some View {
         content
-            .searchable(text: $model.searchText, prompt: "Search networks")
             .toolbar { toolbarContent }
             .task { await model.refresh() }
             .sheet(item: $activeSheet) { sheet in
@@ -132,7 +131,7 @@ struct NetworkListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItemGroup {
+        ToolbarItemGroup(placement: .navigation) {
             Button {
                 activeSheet = .create
             } label: {
