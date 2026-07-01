@@ -7,7 +7,6 @@
 import XCTest
 
 @testable import CapsuleBackend
-@testable import CapsuleCLIBackend
 
 final class CLICommandMachineTests: XCTestCase {
     func test_create_delegatesToConfig() {

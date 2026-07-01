@@ -7,7 +7,7 @@
 
 import XCTest
 
-@testable import CapsuleCLIBackend
+@testable import CapsuleBackend
 
 final class ArgumentBuilderTests: XCTestCase {
     func testBuildsArgvInOrder() {

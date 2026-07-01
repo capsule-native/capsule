@@ -88,6 +88,50 @@ final class ArchitectureGuardTests: XCTestCase {
         XCTAssertFalse(try swiftFiles(inModule: "CapsuleUI").isEmpty)
         XCTAssertFalse(try swiftFiles(inModule: "CapsuleDomain").isEmpty)
         XCTAssertFalse(try swiftFiles(inModule: "CapsuleTerminal").isEmpty)
+        XCTAssertFalse(try swiftFiles(inModule: "CapsuleBackend").isEmpty)
+        XCTAssertFalse(try swiftFiles(inModule: "CapsuleCLIBackend").isEmpty)
+    }
+
+    func testBackendDoesNotUseProcess() throws {
+        // The relocated argv factory is pure value logic — CapsuleBackend must stay
+        // Foundation.Process-free so the CLI adapter remains the only Process user.
+        for file in try swiftFiles(inModule: "CapsuleBackend") {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            XCTAssertFalse(
+                source.contains("Process("),
+                "CapsuleBackend must not use Foundation.Process (\(file.lastPathComponent))"
+            )
+        }
+    }
+
+    func testRelocatedCommandFactoryLivesInBackend() throws {
+        let backendNames = try swiftFiles(inModule: "CapsuleBackend").map(\.lastPathComponent)
+        XCTAssertTrue(
+            backendNames.contains("CLICommand.swift"),
+            "CLICommand.swift must live in CapsuleBackend after the M11 relocation"
+        )
+        XCTAssertTrue(
+            backendNames.contains("ArgumentBuilder.swift"),
+            "ArgumentBuilder.swift must live in CapsuleBackend after the M11 relocation"
+        )
+
+        let adapterNames = try swiftFiles(inModule: "CapsuleCLIBackend").map(\.lastPathComponent)
+        XCTAssertFalse(
+            adapterNames.contains("CLICommand.swift"),
+            "CLICommand.swift must no longer live in CapsuleCLIBackend"
+        )
+        XCTAssertFalse(
+            adapterNames.contains("ArgumentBuilder.swift"),
+            "ArgumentBuilder.swift must no longer live in CapsuleCLIBackend"
+        )
+    }
+
+    func testCLIBackendStillOwnsTheProcessRunner() throws {
+        let adapterNames = try swiftFiles(inModule: "CapsuleCLIBackend").map(\.lastPathComponent)
+        XCTAssertTrue(
+            adapterNames.contains("CLIProcessRunner.swift"),
+            "CapsuleCLIBackend must still own CLIProcessRunner (the only Foundation.Process user)"
+        )
     }
 
     // MARK: - Helpers

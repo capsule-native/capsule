@@ -11,8 +11,6 @@
 import CapsuleBackend
 import XCTest
 
-@testable import CapsuleCLIBackend
-
 final class CLICommandTests: XCTestCase {
     func testListContainers() {
         XCTAssertEqual(CLICommand.listContainers(all: false), ["list", "--format", "json"])

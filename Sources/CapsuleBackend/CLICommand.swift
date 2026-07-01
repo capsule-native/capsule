@@ -11,7 +11,6 @@
 //
 //  Subcommand names and flags mirror `container` v1.0.0, verified against `--help`.
 
-import CapsuleBackend
 import Foundation
 
 public enum CLICommand {
