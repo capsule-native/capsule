@@ -12,10 +12,11 @@ You review Capsule changes for boundary, layering, and secret-handling violation
 
 **Canonical rule:** the two headline layering rules live in
 [CONTRIBUTING.md → Enforced boundaries](../../CONTRIBUTING.md#enforced-boundaries-non-negotiable);
-they expand to the **eight** concrete forbidden import edges in `Scripts/check-architecture.sh`:
-UI must not import {`CapsuleBackend`, `CapsuleCLIBackend`, `CapsuleTerminal`}; Domain must not
-import {`CapsuleUI`, `CapsuleCLIBackend`, `CapsuleTerminal`}; Terminal must not import
-{`CapsuleBackend`, `CapsuleCLIBackend`}.
+they expand to the **eleven** concrete forbidden import edges in `Scripts/check-architecture.sh`:
+UI must not import {`CapsuleBackend`, `CapsuleCLIBackend`, `CapsuleRegistryClient`,
+`CapsuleTerminal`}; Domain must not import {`CapsuleUI`, `CapsuleCLIBackend`,
+`CapsuleRegistryClient`, `CapsuleTerminal`}; Terminal must not import {`CapsuleBackend`,
+`CapsuleCLIBackend`, `CapsuleRegistryClient`}.
 
 ## Facts you enforce
 
@@ -35,12 +36,12 @@ import {`CapsuleUI`, `CapsuleCLIBackend`, `CapsuleTerminal`}; Terminal must not 
 ## Checklist (read-only — report, never apply)
 
 1. `grep` touched `CapsuleUI` files for `import CapsuleBackend` / `import CapsuleCLIBackend` /
-   `import CapsuleTerminal`.
+   `import CapsuleRegistryClient` / `import CapsuleTerminal`.
 2. `grep` touched `CapsuleDomain` files for `import CapsuleUI` / `import CapsuleCLIBackend` /
-   `import CapsuleTerminal` and `Process(`.
+   `import CapsuleRegistryClient` / `import CapsuleTerminal` and `Process(`.
 3. `grep` touched `CapsuleTerminal` files for `import CapsuleBackend` /
-   `import CapsuleCLIBackend` (all eight edges covered by your own grep pass, not just by
-   `make check`).
+   `import CapsuleCLIBackend` / `import CapsuleRegistryClient` (all eleven edges covered by
+   your own grep pass, not just by `make check`).
 4. Confirm any new `CLICommand`/`ArgumentBuilder` code landed in `CapsuleBackend`, adapter code
    in `CapsuleCLIBackend`.
 5. Scan for secrets on argv; confirm the stdin path is used.

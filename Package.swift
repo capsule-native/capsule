@@ -15,13 +15,14 @@ import PackageDescription
 //
 // Dependency direction (X -> Y means "X depends on Y"):
 //
-//     CapsuleApp        ──▶ CapsuleUI, CapsuleTerminal, CapsuleCLIBackend, CapsuleAutomation,
-//                           CapsuleDiagnostics, CapsuleDomain, CapsuleBackend
+//     CapsuleApp        ──▶ CapsuleUI, CapsuleTerminal, CapsuleCLIBackend, CapsuleRegistryClient,
+//                           CapsuleAutomation, CapsuleDiagnostics, CapsuleDomain, CapsuleBackend
 //     CapsuleTerminal   ──▶ CapsuleUI, CapsuleDomain, SwiftTerm  (engine adapter)
 //     CapsuleUI         ──▶ CapsuleDomain
 //     CapsuleAutomation ──▶ CapsuleBackend                      (leaf / side; drives the port)
 //     CapsuleDiagnostics──▶ CapsuleDomain, CapsuleBackend       (leaf / side)
 //     CapsuleCLIBackend ──▶ CapsuleBackend, CapsuleDiagnostics  (adapter; conforms to port)
+//     CapsuleRegistryClient ──▶ CapsuleBackend                  (adapter; conforms to the search port)
 //     CapsuleDomain     ──▶ CapsuleBackend                      (the port)
 //     CapsuleBackend    ──▶ (no Capsule dependencies)           (port; bottom of the graph)
 //
@@ -43,6 +44,7 @@ let package = Package(
         .library(name: "CapsuleDomain", targets: ["CapsuleDomain"]),
         .library(name: "CapsuleBackend", targets: ["CapsuleBackend"]),
         .library(name: "CapsuleCLIBackend", targets: ["CapsuleCLIBackend"]),
+        .library(name: "CapsuleRegistryClient", targets: ["CapsuleRegistryClient"]),
         .library(name: "CapsuleAutomation", targets: ["CapsuleAutomation"]),
         .library(name: "CapsuleDiagnostics", targets: ["CapsuleDiagnostics"]),
         .library(name: "CapsuleTerminal", targets: ["CapsuleTerminal"]),
@@ -89,6 +91,15 @@ let package = Package(
             dependencies: ["CapsuleBackend", "CapsuleDiagnostics"]
         ),
 
+        // MARK: - Registry-search adapter (URLSession; the only first-party HTTP user)
+        // Conforms to the `ImageRegistrySearching` port with an unauthenticated Docker Hub
+        // client. Depends only on the port, so further registries can be adapted beside it
+        // and neither UI nor Domain ever see the HTTP layer.
+        .target(
+            name: "CapsuleRegistryClient",
+            dependencies: ["CapsuleBackend"]
+        ),
+
         // MARK: - Presentation (Domain only — must NOT import any Backend module)
         // Ships the UI String Catalog; library-authored user-facing strings resolve against
         // this target's `Bundle.module`.
@@ -124,6 +135,7 @@ let package = Package(
                 "CapsuleDomain",
                 "CapsuleBackend",
                 "CapsuleCLIBackend",
+                "CapsuleRegistryClient",
                 "CapsuleAutomation",
                 "CapsuleDiagnostics",
                 .product(name: "Sparkle", package: "Sparkle"),
@@ -139,6 +151,7 @@ let package = Package(
                 "CapsuleDomain",
                 "CapsuleBackend",
                 "CapsuleCLIBackend",
+                "CapsuleRegistryClient",
                 "CapsuleAutomation",
                 "CapsuleDiagnostics",
             ],

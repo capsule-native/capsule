@@ -82,6 +82,20 @@ final class ArchitectureGuardTests: XCTestCase {
         }
     }
 
+    func testRegistryClientAdapterStaysBehindThePort() throws {
+        // The HTTP registry-search adapter mirrors the CLI adapter's rules: UI, Domain,
+        // and the terminal engine see only the `ImageRegistrySearching` port.
+        for module in ["CapsuleUI", "CapsuleDomain", "CapsuleTerminal"] {
+            for file in try swiftFiles(inModule: module) {
+                let source = try String(contentsOf: file, encoding: .utf8)
+                XCTAssertFalse(
+                    source.contains("import CapsuleRegistryClient"),
+                    "\(module) must not import CapsuleRegistryClient (\(file.lastPathComponent))"
+                )
+            }
+        }
+    }
+
     func testGuardActuallyFoundSources() throws {
         // Guards the guard: if path resolution breaks, the loops above would pass
         // vacuously. Make sure we are really scanning files.
@@ -90,6 +104,7 @@ final class ArchitectureGuardTests: XCTestCase {
         XCTAssertFalse(try swiftFiles(inModule: "CapsuleTerminal").isEmpty)
         XCTAssertFalse(try swiftFiles(inModule: "CapsuleBackend").isEmpty)
         XCTAssertFalse(try swiftFiles(inModule: "CapsuleCLIBackend").isEmpty)
+        XCTAssertFalse(try swiftFiles(inModule: "CapsuleRegistryClient").isEmpty)
     }
 
     func testBackendDoesNotUseProcess() throws {
