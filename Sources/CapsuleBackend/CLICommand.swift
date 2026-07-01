@@ -131,6 +131,16 @@ public enum CLICommand {
         ArgumentBuilder("exec").adding(id, "ls", "-la", path).arguments
     }
 
+    /// Interactive `exec -it <id> <command>` (defaults to `sh`). The `-it` short flags stay a
+    /// single token to mirror the invocation users type by hand, and this is the single source
+    /// of truth shared by `ContainerLifecycleModel.openShell/execShell` and the Exec sheet.
+    public static func execShell(id: String, command: [String]) -> [String] {
+        ArgumentBuilder("exec")
+            .adding("-it", id)
+            .adding(contentsOf: command.isEmpty ? ["sh"] : command)
+            .arguments
+    }
+
     // MARK: - Images
 
     public static func build(_ config: BuildConfiguration) -> [String] {

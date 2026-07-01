@@ -185,4 +185,11 @@ final class CLICommandTests: XCTestCase {
     func testDNSListCommand() {
         XCTAssertEqual(CLICommand.listDNSDomains(), ["system", "dns", "list", "--format", "json"])
     }
+
+    func testExecShellDefaultsToShAndKeepsItSingleToken() {
+        XCTAssertEqual(CLICommand.execShell(id: "abc", command: []), ["exec", "-it", "abc", "sh"])
+        XCTAssertEqual(
+            CLICommand.execShell(id: "abc", command: ["bash", "-l"]),
+            ["exec", "-it", "abc", "bash", "-l"])
+    }
 }
