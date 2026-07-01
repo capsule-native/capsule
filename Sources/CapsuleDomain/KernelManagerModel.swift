@@ -111,10 +111,13 @@ public final class KernelManagerModel {
         }
     }
 
-    /// The equivalent shell command the user would type.
-    public var commandPreview: String {
-        "container " + configuration.arguments.joined(separator: " ")
+    /// The faithful kernel-set invocation the user would type.
+    public var commandInvocation: CommandInvocation {
+        CommandInvocation(configuration.arguments)
     }
+
+    /// The equivalent shell command (redacted), derived from `commandInvocation`.
+    public var commandPreview: String { commandInvocation.displayString }
 
     // MARK: - Actions
 
