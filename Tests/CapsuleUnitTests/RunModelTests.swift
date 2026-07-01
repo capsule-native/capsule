@@ -43,6 +43,24 @@ final class RunModelTests: XCTestCase {
         XCTAssertEqual(model().commandPreview, "container run")
     }
 
+    func testCommandInvocationDrivesPreviewAndRedactsSecretEnv() {
+        let m = model()
+        m.draft.image = "alpine"
+        m.draft.envRows = ["TOKEN=secret", "FOO=bar"]
+        m.draft.portRows = ["8080:80"]
+        XCTAssertEqual(
+            m.commandInvocation.rawDisplay,
+            "container run -e TOKEN=secret -e FOO=bar -p 8080:80 alpine")
+        XCTAssertEqual(
+            m.commandPreview, "container run -e TOKEN=‹redacted› -e FOO=bar -p 8080:80 alpine")
+        XCTAssertEqual(m.commandPreview, m.commandInvocation.displayString)
+    }
+
+    func testCommandInvocationFallsBackWhileEmpty() {
+        XCTAssertEqual(model().commandInvocation.rawDisplay, "container run")
+        XCTAssertEqual(model().commandPreview, "container run")
+    }
+
     func testValidationTokenizesQuotedCommandAndDropsBlankRows() {
         let m = model()
         m.draft.image = "alpine"

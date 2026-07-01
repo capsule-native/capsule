@@ -106,16 +106,20 @@ public final class RunModel {
         return .success(config)
     }
 
-    /// A live `container run …` preview — the "Run Inspector". Falls back to `container run`
-    /// while the image is empty so the field never shows a half-built command.
-    public var commandPreview: String {
+    /// The faithful `container run …` invocation — the "Run Inspector". Falls back to
+    /// `container run` while the image is empty so the field never shows a half-built command.
+    public var commandInvocation: CommandInvocation {
         switch validatedConfiguration() {
         case let .success(config):
-            return (["container"] + config.arguments).joined(separator: " ")
+            return CommandInvocation(config.arguments)
         case .failure:
-            return "container run"
+            return CommandInvocation(["run"])
         }
     }
+
+    /// The redacted, space-joined preview string. Kept as a `String` accessor for call-site
+    /// compatibility; now derives from `commandInvocation` so the preview cannot drift.
+    public var commandPreview: String { commandInvocation.displayString }
 
     /// Runs the container attached with a TTY in the embedded terminal (or copies the command
     /// when the terminal is unavailable). Forces `-i -t` and clears `--detach`.
