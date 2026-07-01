@@ -78,12 +78,15 @@ extension BuildDraft: Codable {
 @Observable
 public final class BuildModel {
     public var draft = BuildDraft()
+    /// The user's saved build presets, loaded from the injected ``PresetStore``.
+    public private(set) var buildPresets: [SavedBuildPreset] = []
 
     private let backend: any ContainerBackend
     private let taskCenter: TaskCenter
     private let normalize: @Sendable (any Error) -> CapsuleError
     private let onActivity: @MainActor (String) -> Void
     private let reloadList: @MainActor () async -> Void
+    private let presetStore: any PresetStore
 
     public init(
         backend: any ContainerBackend,
@@ -91,13 +94,15 @@ public final class BuildModel {
         normalize: @escaping @Sendable (any Error) -> CapsuleError = SystemStatusModel
             .defaultNormalize,
         onActivity: @escaping @MainActor (String) -> Void = { _ in },
-        reloadList: @escaping @MainActor () async -> Void = {}
+        reloadList: @escaping @MainActor () async -> Void = {},
+        presetStore: any PresetStore = InMemoryPresetStore()
     ) {
         self.backend = backend
         self.taskCenter = taskCenter
         self.normalize = normalize
         self.onActivity = onActivity
         self.reloadList = reloadList
+        self.presetStore = presetStore
     }
 
     public func reset() {
@@ -152,6 +157,32 @@ public final class BuildModel {
         guard case var .success(config) = validatedConfiguration() else { return nil }
         config.plainProgress = true
         return start(config)
+    }
+
+    // MARK: Saved presets
+
+    /// Loads saved build presets from the store into ``buildPresets``.
+    public func loadPresets() {
+        buildPresets = presetStore.loadBuildPresets()
+    }
+
+    /// Saves the current draft as a new named preset and persists the list.
+    public func savePreset(name: String) {
+        let preset = SavedBuildPreset(name: name, draft: draft)
+        buildPresets.append(preset)
+        presetStore.saveBuildPresets(buildPresets)
+        onActivity("Saved build preset “\(name)”.")
+    }
+
+    /// Removes a preset and persists the updated list.
+    public func deletePreset(_ preset: SavedBuildPreset) {
+        buildPresets.removeAll { $0.id == preset.id }
+        presetStore.saveBuildPresets(buildPresets)
+    }
+
+    /// Loads a preset's draft into the sheet, ready to build.
+    public func apply(_ preset: SavedBuildPreset) {
+        draft = preset.draft
     }
 
     private func start(_ config: BuildConfiguration) -> OperationTask {
