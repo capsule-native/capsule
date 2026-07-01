@@ -19,7 +19,8 @@ FORMAT_PATHS := Sources Tests App/Sources App/CapsuleUITests Package.swift
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build test format lint arch headers check ci xcodeproj app run package clean hooks bootstrap
+.PHONY: help build test format lint arch headers check ci xcodeproj app run clean hooks bootstrap \
+	coverage archive export notarize package appcast release release-dry
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -59,15 +60,36 @@ app: xcodeproj ## Build the macOS .app bundle via xcodebuild
 run: app ## Build and launch the macOS app
 	open "$(DERIVED_DATA)/Build/Products/Debug/Capsule.app"
 
-package: ## Notes on producing a signed, notarized build (requires a Developer ID)
-	@echo "Signed/notarized packaging requires a Developer ID Application identity."
-	@echo "Build:   make app"
-	@echo "Archive: xcodebuild -project $(PROJECT) -scheme $(SCHEME) archive ..."
-	@echo "Sign:    codesign --options runtime --entitlements App/Capsule.entitlements ..."
-	@echo "Notarize:xcrun notarytool submit ... && xcrun stapler staple ..."
+coverage: ## Run unit tests with coverage; write dist/coverage/{coverage.lcov,coverage.txt}
+	./Scripts/coverage.sh
+
+# ── Release pipeline (see Scripts/release/README.md) ─────────────────────────
+# Each step accepts --dry-run via the scripts; `release-dry` prints the whole plan without
+# needing a Developer ID or notary credentials.
+
+archive: ## Release pipeline: archive Capsule → dist/Capsule.xcarchive
+	./Scripts/release/build.sh
+
+export: ## Release pipeline: export a Developer-ID-signed dist/Capsule.app
+	./Scripts/release/export.sh
+
+notarize: ## Release pipeline: notarize + staple dist/Capsule.app
+	./Scripts/release/notarize.sh
+
+package: ## Release pipeline: build the distributable zip + DMG
+	./Scripts/release/package.sh
+
+appcast: ## Release pipeline: sign artifacts + (re)generate appcast.xml (Sparkle)
+	./Scripts/release/appcast.sh
+
+release: ## Full signed/notarized/stapled release (requires TEAM_ID + NOTARY_PROFILE)
+	./Scripts/release/release.sh
+
+release-dry: ## Print the full release plan without signing anything (no credentials needed)
+	./Scripts/release/release.sh --dry-run
 
 clean: ## Remove build artifacts and the generated Xcode project
-	rm -rf .build DerivedData $(PROJECT)
+	rm -rf .build DerivedData dist $(PROJECT)
 
 hooks: ## Install git hooks (formatting + license headers on commit)
 	git config core.hooksPath Scripts/hooks
