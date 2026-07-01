@@ -78,17 +78,27 @@ public final class ContainerLifecycleModel {
         launchOrCopy(
             TerminalRequest(
                 containerID: id, title: "Shell · \(id)",
-                argv: ["container", "exec", "-it", id, "sh"], kind: .execShell))
+                argv: execInvocation(id: id, command: []).argv, kind: .execShell))
     }
 
     /// Runs a custom command interactively (`exec -it … <command>`) in the embedded terminal,
     /// falling back to the clipboard. An empty command defaults to `sh`.
     public func execShell(id: String, command: [String]) {
-        let argv = command.isEmpty ? ["sh"] : command
         launchOrCopy(
             TerminalRequest(
                 containerID: id, title: "Exec · \(id)",
-                argv: ["container", "exec", "-it", id] + argv, kind: .execShell))
+                argv: execInvocation(id: id, command: command).argv, kind: .execShell))
+    }
+
+    /// The faithful `exec -it <id> <command>` invocation (defaults to `sh`) — the single
+    /// source of truth shared by the shell/exec actions and the Exec sheet's preview.
+    public func execInvocation(id: String, command: [String]) -> CommandInvocation {
+        CommandInvocation(CLICommand.execShell(id: id, command: command))
+    }
+
+    /// The `container prune` invocation, for the Clean Up sheet's preview.
+    public var pruneInvocation: CommandInvocation {
+        CommandInvocation(CLICommand.pruneContainers())
     }
 
     /// Starts a stopped container attached to its main process (`start -ai`) in the embedded

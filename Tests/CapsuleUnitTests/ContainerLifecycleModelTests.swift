@@ -325,4 +325,14 @@ final class ContainerLifecycleModelTests: XCTestCase {
         XCTAssertTrue(launched.isEmpty)
         XCTAssertEqual(copied, [["container", "kill", "c1"]])
     }
+
+    func testExecInvocationDefaultsToShAndPruneInvocation() {
+        let m = ContainerLifecycleModel(backend: MockBackend())
+        XCTAssertEqual(
+            m.execInvocation(id: "abc", command: []).rawDisplay, "container exec -it abc sh")
+        XCTAssertEqual(
+            m.execInvocation(id: "abc", command: ["bash"]).rawDisplay, "container exec -it abc bash"
+        )
+        XCTAssertEqual(m.pruneInvocation.rawDisplay, "container prune")
+    }
 }
