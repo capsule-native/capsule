@@ -52,6 +52,8 @@ struct NetworkPruneSheet: View {
                 .foregroundStyle(.secondary)
             }
 
+            CommandPreviewView(actions.pruneInvocation)
+
             HStack {
                 Button(resultMessage == nil ? "Cancel" : "Done", role: .cancel, action: onClose)
                     .keyboardShortcut(.cancelAction)

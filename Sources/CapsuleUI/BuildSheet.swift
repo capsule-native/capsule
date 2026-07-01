@@ -44,6 +44,7 @@ struct BuildSheet: View {
                         .fixedSize()
                         Toggle("No cache", isOn: $model.draft.noCache)
                     }
+                    CommandPreviewView(model.commandInvocation)
                     if let task = activeTask {
                         Divider()
                         TaskTranscriptView(task: task)

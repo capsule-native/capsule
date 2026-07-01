@@ -45,6 +45,8 @@ struct CopySheet: View {
                     .foregroundStyle(.secondary)
             }
 
+            CommandPreviewView(model.commandInvocation)
+
             if let task = activeTask {
                 TaskTranscriptView(task: task)
             }
@@ -103,7 +105,7 @@ struct CopySheet: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
-            DisclosureGroup("Browse", isExpanded: $isBrowsing) {
+            AdvancedDisclosure("Browse", isExpanded: $isBrowsing) {
                 browseList
             }
             .onChange(of: isBrowsing) { _, expanded in
