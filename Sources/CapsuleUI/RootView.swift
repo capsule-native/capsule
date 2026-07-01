@@ -39,6 +39,7 @@ public struct RootView: View {
     private let copyModel: CopyModel
     private let actions: ShellActions
     private let terminalSurfaceProvider: any TerminalSurfaceProviding
+    private let commandContext: CommandContext
 
     @AppStorage("capsule.hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
@@ -66,7 +67,8 @@ public struct RootView: View {
         logsModel: LogsModel,
         copyModel: CopyModel,
         actions: ShellActions,
-        terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
+        terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider(),
+        commandContext: CommandContext
     ) {
         self.shell = shell
         self.systemModel = systemModel
@@ -92,6 +94,7 @@ public struct RootView: View {
         self.copyModel = copyModel
         self.actions = actions
         self.terminalSurfaceProvider = terminalSurfaceProvider
+        self.commandContext = commandContext
     }
 
     public var body: some View {
@@ -119,7 +122,8 @@ public struct RootView: View {
             logsModel: logsModel,
             copyModel: copyModel,
             actions: actions,
-            terminalSurfaceProvider: terminalSurfaceProvider
+            terminalSurfaceProvider: terminalSurfaceProvider,
+            commandContext: commandContext
         )
         .sheet(isPresented: showOnboarding) {
             OnboardingView(health: systemModel.health, actions: actions) {

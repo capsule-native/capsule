@@ -153,15 +153,22 @@ public final class VolumeActionsModel {
     /// The `container …` command the current draft would run. Renders live: entered fields
     /// (size, labels, options) appear even when the name is not yet entered. Returns a plain
     /// String so the sheet never names `VolumeConfiguration` or touches `.arguments`.
-    public func commandPreview(for draft: VolumeDraft) -> String {
+    /// The faithful `container volume create …` invocation. When the name is empty the
+    /// trailing positional would be an empty token — drop it so the preview stays clean.
+    public func commandInvocation(for draft: VolumeDraft) -> CommandInvocation {
         let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let config = configuration(from: draft, name: name)
-        var argv = ["container"] + config.arguments
-        // When name is empty the positional would be an empty token — drop it so the
-        // preview stays clean ("container volume create --label k=v" not "…k=v ").
-        if name.isEmpty { argv.removeLast() }
-        return argv.joined(separator: " ")
+        var argv = configuration(from: draft, name: name).arguments
+        if name.isEmpty, !argv.isEmpty { argv.removeLast() }
+        return CommandInvocation(argv)
     }
+
+    /// The redacted preview string, derived from `commandInvocation(for:)`.
+    public func commandPreview(for draft: VolumeDraft) -> String {
+        commandInvocation(for: draft).displayString
+    }
+
+    /// The `container volume prune` invocation, for the Clean Up sheet's preview.
+    public var pruneInvocation: CommandInvocation { CommandInvocation(CLICommand.pruneVolumes()) }
 
     // MARK: - Private helpers
 

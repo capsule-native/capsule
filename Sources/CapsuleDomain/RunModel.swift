@@ -14,7 +14,7 @@ import Foundation
 import Observation
 
 /// A UI-friendly draft of a run: raw text rows the model trims/validates into a config.
-public struct RunDraft: Sendable, Equatable {
+public struct RunDraft: Sendable, Equatable, Codable {
     public var image: String = ""
     public var name: String = ""
     public var command: String = ""
@@ -44,6 +44,8 @@ public final class RunModel {
     public private(set) var lastFailedConfig: RunConfiguration?
     /// The most recent failed detached-run task (its transcript drives Inspect Logs).
     public private(set) var lastFailedTask: OperationTask?
+    /// The user's saved run presets, loaded from the injected ``PresetStore``.
+    public private(set) var runPresets: [SavedRunPreset] = []
 
     private let backend: any ContainerBackend
     private let taskCenter: TaskCenter
@@ -53,6 +55,7 @@ public final class RunModel {
     private let terminalAvailable: @MainActor () -> Bool
     private let launchTerminal: @MainActor (TerminalRequest) -> Void
     private let copyCommand: @MainActor ([String]) -> Void
+    private let presetStore: any PresetStore
 
     public init(
         backend: any ContainerBackend,
@@ -63,7 +66,8 @@ public final class RunModel {
         reloadList: @escaping @MainActor () async -> Void = {},
         terminalAvailable: @escaping @MainActor () -> Bool = { false },
         launchTerminal: @escaping @MainActor (TerminalRequest) -> Void = { _ in },
-        copyCommand: @escaping @MainActor ([String]) -> Void = { _ in }
+        copyCommand: @escaping @MainActor ([String]) -> Void = { _ in },
+        presetStore: any PresetStore = InMemoryPresetStore()
     ) {
         self.backend = backend
         self.taskCenter = taskCenter
@@ -73,6 +77,7 @@ public final class RunModel {
         self.terminalAvailable = terminalAvailable
         self.launchTerminal = launchTerminal
         self.copyCommand = copyCommand
+        self.presetStore = presetStore
     }
 
     /// Resets the draft, optionally prefilling the image (the contextual "Run Image…" path).
@@ -106,15 +111,26 @@ public final class RunModel {
         return .success(config)
     }
 
-    /// A live `container run …` preview — the "Run Inspector". Falls back to `container run`
-    /// while the image is empty so the field never shows a half-built command.
-    public var commandPreview: String {
+    /// The faithful `container run …` invocation — the "Run Inspector". Falls back to
+    /// `container run` while the image is empty so the field never shows a half-built command.
+    public var commandInvocation: CommandInvocation {
         switch validatedConfiguration() {
         case let .success(config):
-            return (["container"] + config.arguments).joined(separator: " ")
+            return CommandInvocation(config.arguments)
         case .failure:
-            return "container run"
+            return CommandInvocation(["run"])
         }
+    }
+
+    /// The redacted, space-joined preview string. Kept as a `String` accessor for call-site
+    /// compatibility; now derives from `commandInvocation` so the preview cannot drift.
+    public var commandPreview: String { commandInvocation.displayString }
+
+    /// The `run <image>` invocation for a given image — the Command Console's best-fit seed
+    /// when an image (but no container) is selected. Builds the argv via `RunConfiguration`
+    /// so `RunConfiguration` never leaks into the UI.
+    public func runInvocation(forImage image: String) -> CommandInvocation {
+        CommandInvocation(RunConfiguration(image: image).arguments)
     }
 
     /// Runs the container attached with a TTY in the embedded terminal (or copies the command
@@ -145,6 +161,7 @@ public final class RunModel {
         onActivity("Running \(config.image)…")
         let task = taskCenter.runAsync(
             kind: .run, title: "Run \(config.image)",
+            invocation: CommandInvocation(config.arguments),
             onSuccess: { [reloadList] in await reloadList() }
         ) { [backend] in
             _ = try await backend.runContainer(config)
@@ -169,6 +186,32 @@ public final class RunModel {
         guard let config = lastFailedConfig else { return }
         draft.image = config.image
         runInTerminal()
+    }
+
+    // MARK: Saved presets
+
+    /// Loads saved run presets from the store into ``runPresets``.
+    public func loadPresets() {
+        runPresets = presetStore.loadRunPresets()
+    }
+
+    /// Saves the current draft as a new named preset and persists the list.
+    public func savePreset(name: String) {
+        let preset = SavedRunPreset(name: name, draft: draft)
+        runPresets.append(preset)
+        presetStore.saveRunPresets(runPresets)
+        onActivity("Saved run preset “\(name)”.")
+    }
+
+    /// Removes a preset and persists the updated list.
+    public func deletePreset(_ preset: SavedRunPreset) {
+        runPresets.removeAll { $0.id == preset.id }
+        presetStore.saveRunPresets(runPresets)
+    }
+
+    /// Loads a preset's draft into the sheet, ready to run.
+    public func apply(_ preset: SavedRunPreset) {
+        draft = preset.draft
     }
 
     private func cleaned(_ rows: [String]) -> [String] {

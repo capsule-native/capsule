@@ -54,7 +54,7 @@ struct CreateNetworkSheet: View {
                     }
                 }
 
-                DisclosureGroup("Advanced Options") {
+                AdvancedDisclosure("Advanced Options") {
                     TextField("IPv6 subnet", text: $draft.subnetV6, prompt: Text("e.g. fd00::/64"))
                     Toggle("Internal (no external connectivity)", isOn: $draft.isInternal)
                     TextField(
@@ -66,16 +66,7 @@ struct CreateNetworkSheet: View {
             }
             .formStyle(.grouped)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Command preview").font(.caption).foregroundStyle(.secondary)
-                Text(actions.commandPreview(for: draft))
-                    .font(.system(.caption, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
-                    .background(CapsuleColors.activitySurface)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-            }
+            CommandPreviewView(actions.commandInvocation(for: draft))
 
             HStack {
                 Button("Cancel", role: .cancel, action: onClose)

@@ -16,6 +16,7 @@ struct RegistryLoginSheet: View {
     let onLogin: (String, String?, String?) async -> ErrorDetail?
     let onTest: (String, String?, String?) async -> RegistryTestResult
     let onClose: () -> Void
+    let invocationFor: (String, String?) -> CommandInvocation
 
     @State private var server = ""
     @State private var username = ""
@@ -46,6 +47,8 @@ struct RegistryLoginSheet: View {
                 SecureField("Password", text: $password)
             }
             .formStyle(.grouped)
+
+            CommandPreviewView(invocationFor(trimmedServer, credentials.0))
 
             if let testResult {
                 switch testResult {

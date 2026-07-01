@@ -226,4 +226,23 @@ final class ImageActionsModelTests: XCTestCase {
         XCTAssertEqual(backend.lastLoadedURL, url)
         XCTAssertEqual(reloads, 1)
     }
+
+    func testImageInvocationAccessors() {
+        let m = ImageActionsModel(backend: MockBackend())
+        XCTAssertEqual(
+            m.pullInvocation(reference: "alpine", platform: nil).rawDisplay,
+            "container image pull alpine")
+        XCTAssertEqual(
+            m.tagInvocation(source: "a", target: "b").rawDisplay, "container image tag a b")
+        XCTAssertEqual(m.pruneInvocation(all: true).rawDisplay, "container image prune --all")
+        XCTAssertEqual(
+            m.loadInvocation(from: URL(fileURLWithPath: "/x.tar")).rawDisplay,
+            "container image load --input /x.tar")
+    }
+
+    func testPullTaskCarriesInvocation() {
+        let m = ImageActionsModel(backend: MockBackend())
+        let task = m.pull(reference: "alpine", platform: nil)
+        XCTAssertEqual(task.invocation?.rawDisplay, "container image pull alpine")
+    }
 }

@@ -14,7 +14,7 @@ import Foundation
 import Observation
 
 /// A one-tap build preset that seeds the cache/progress flags.
-public enum BuildPreset: String, Sendable, CaseIterable, Identifiable {
+public enum BuildPreset: String, Sendable, Codable, CaseIterable, Identifiable {
     case standard
     case noCache
     case plainProgress
@@ -43,16 +43,50 @@ public struct BuildDraft: Sendable, Equatable {
     public init() {}
 }
 
+extension BuildDraft: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case contextDirectory, tag, dockerfile, buildArgRows, noCache, preset
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init()
+        // The app is unsandboxed, so the context folder persists as a plain path
+        // (no security-scoped bookmark) rather than the synthesized URL container.
+        if let path = try container.decodeIfPresent(String.self, forKey: .contextDirectory) {
+            self.contextDirectory = URL(fileURLWithPath: path)
+        }
+        self.tag = try container.decode(String.self, forKey: .tag)
+        self.dockerfile = try container.decode(String.self, forKey: .dockerfile)
+        self.buildArgRows = try container.decode([String].self, forKey: .buildArgRows)
+        self.noCache = try container.decode(Bool.self, forKey: .noCache)
+        self.preset = try container.decode(BuildPreset.self, forKey: .preset)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(contextDirectory?.path, forKey: .contextDirectory)
+        try container.encode(tag, forKey: .tag)
+        try container.encode(dockerfile, forKey: .dockerfile)
+        try container.encode(buildArgRows, forKey: .buildArgRows)
+        try container.encode(noCache, forKey: .noCache)
+        try container.encode(preset, forKey: .preset)
+    }
+}
+
 @MainActor
 @Observable
 public final class BuildModel {
     public var draft = BuildDraft()
+    /// The user's saved build presets, loaded from the injected ``PresetStore``.
+    public private(set) var buildPresets: [SavedBuildPreset] = []
 
     private let backend: any ContainerBackend
     private let taskCenter: TaskCenter
     private let normalize: @Sendable (any Error) -> CapsuleError
     private let onActivity: @MainActor (String) -> Void
     private let reloadList: @MainActor () async -> Void
+    private let presetStore: any PresetStore
 
     public init(
         backend: any ContainerBackend,
@@ -60,13 +94,15 @@ public final class BuildModel {
         normalize: @escaping @Sendable (any Error) -> CapsuleError = SystemStatusModel
             .defaultNormalize,
         onActivity: @escaping @MainActor (String) -> Void = { _ in },
-        reloadList: @escaping @MainActor () async -> Void = {}
+        reloadList: @escaping @MainActor () async -> Void = {},
+        presetStore: any PresetStore = InMemoryPresetStore()
     ) {
         self.backend = backend
         self.taskCenter = taskCenter
         self.normalize = normalize
         self.onActivity = onActivity
         self.reloadList = reloadList
+        self.presetStore = presetStore
     }
 
     public func reset() {
@@ -97,6 +133,17 @@ public final class BuildModel {
         return .success(config)
     }
 
+    /// The faithful `container build …` invocation for the live preview; falls back to
+    /// `container build` while the draft is incomplete so the field never shows a stub.
+    public var commandInvocation: CommandInvocation {
+        switch validatedConfiguration() {
+        case let .success(config):
+            return CommandInvocation(config.arguments)
+        case .failure:
+            return CommandInvocation(["build"])
+        }
+    }
+
     /// Starts the build as a streaming Activity task; reloads the image list on success.
     @discardableResult
     public func build() -> OperationTask? {
@@ -112,10 +159,37 @@ public final class BuildModel {
         return start(config)
     }
 
+    // MARK: Saved presets
+
+    /// Loads saved build presets from the store into ``buildPresets``.
+    public func loadPresets() {
+        buildPresets = presetStore.loadBuildPresets()
+    }
+
+    /// Saves the current draft as a new named preset and persists the list.
+    public func savePreset(name: String) {
+        let preset = SavedBuildPreset(name: name, draft: draft)
+        buildPresets.append(preset)
+        presetStore.saveBuildPresets(buildPresets)
+        onActivity("Saved build preset “\(name)”.")
+    }
+
+    /// Removes a preset and persists the updated list.
+    public func deletePreset(_ preset: SavedBuildPreset) {
+        buildPresets.removeAll { $0.id == preset.id }
+        presetStore.saveBuildPresets(buildPresets)
+    }
+
+    /// Loads a preset's draft into the sheet, ready to build.
+    public func apply(_ preset: SavedBuildPreset) {
+        draft = preset.draft
+    }
+
     private func start(_ config: BuildConfiguration) -> OperationTask {
         onActivity("Building \(config.tag)…")
         return taskCenter.runStreaming(
             kind: .build, title: "Build \(config.tag)",
+            invocation: CommandInvocation(config.arguments),
             onSuccess: { [reloadList] in await reloadList() }
         ) { [backend] in
             backend.buildImage(config)

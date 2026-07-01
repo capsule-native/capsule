@@ -106,4 +106,11 @@ final class RegistriesModelTests: XCTestCase {
 
         guard case .failure = result else { return XCTFail("expected .failure") }
     }
+
+    func testLoginInvocationIsSecretFree() {
+        let m = RegistriesModel(backend: MockBackend())
+        XCTAssertEqual(
+            m.loginInvocation(server: "ghcr.io", username: "me").rawDisplay,
+            "container registry login --username me --password-stdin ghcr.io")
+    }
 }

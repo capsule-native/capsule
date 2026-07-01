@@ -9,6 +9,7 @@
 //  Activity pane. It binds only to domain models (`SystemStatusModel`, `WorkspaceModel`)
 //  and the view-only `ShellState`.
 
+import AppKit
 import CapsuleDomain
 import SwiftUI
 
@@ -37,6 +38,7 @@ public struct AppShellView: View {
     @Bindable var copyModel: CopyModel
     let actions: ShellActions
     let terminalSurfaceProvider: any TerminalSurfaceProviding
+    let commandContext: CommandContext
 
     public init(
         shell: ShellState,
@@ -62,7 +64,8 @@ public struct AppShellView: View {
         logsModel: LogsModel,
         copyModel: CopyModel,
         actions: ShellActions,
-        terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider()
+        terminalSurfaceProvider: any TerminalSurfaceProviding = StubTerminalSurfaceProvider(),
+        commandContext: CommandContext
     ) {
         self.shell = shell
         self.systemModel = systemModel
@@ -88,6 +91,7 @@ public struct AppShellView: View {
         self.copyModel = copyModel
         self.actions = actions
         self.terminalSurfaceProvider = terminalSurfaceProvider
+        self.commandContext = commandContext
     }
 
     public var body: some View {
@@ -103,6 +107,22 @@ public struct AppShellView: View {
         }
         .task {
             await systemModel.refreshStatus()
+            commandContext.pluginCatalog.refresh()
+            runModel.loadPresets()
+            buildModel.loadPresets()
+        }
+        .onChange(of: systemModel.health.isRunning) { _, isRunning in
+            // Plugins require the service; re-discover them the moment it comes up so they
+            // surface in the palette/menu without requiring a relaunch.
+            if isRunning {
+                commandContext.pluginCatalog.refresh()
+            }
+        }
+        .sheet(isPresented: $shell.commandPalettePresented) {
+            CommandPaletteView(shell: shell, context: commandContext)
+        }
+        .sheet(item: $shell.pendingSheet) { intent in
+            pendingSheetView(intent)
         }
     }
 
@@ -170,6 +190,7 @@ public struct AppShellView: View {
 
             ContentColumnView(
                 section: shell.selection,
+                systemTab: $shell.systemTab,
                 health: systemModel.health,
                 actions: actions,
                 browserModel: browserModel,
@@ -283,5 +304,70 @@ public struct AppShellView: View {
             return
         }
         lifecycleModel.openShell(id: id)
+    }
+
+    /// Presents the app-level sheets requested from the palette/menus, reusing the same sheet
+    /// views/models the list surfaces use. The caller (the catalog action) preps the model
+    /// (e.g. `runModel.reset` / `runModel.apply`) before setting `shell.pendingSheet`.
+    @ViewBuilder
+    private func pendingSheetView(_ intent: AppSheetIntent) -> some View {
+        switch intent {
+        case .run:
+            QuickRunSheet(
+                model: runModel,
+                onResolveImage: { _ in shell.present(.pull) },
+                onClose: { shell.pendingSheet = nil })
+        case .build:
+            BuildSheet(model: buildModel, onClose: { shell.pendingSheet = nil })
+        case .pull:
+            PullImageSheet(
+                initialReference: "",
+                onPull: { reference, platform in
+                    imageActionsModel.pull(reference: reference, platform: platform)
+                },
+                onRetry: { imageActionsModel.retryTask($0) },
+                onClose: { shell.pendingSheet = nil },
+                invocationFor: { ref, platform in
+                    imageActionsModel.pullInvocation(reference: ref, platform: platform)
+                })
+        case let .copy(containerID):
+            CopySheet(model: copyModel, onClose: { shell.pendingSheet = nil })
+                .onAppear { copyModel.reset(containerID: containerID ?? "") }
+        case let .export(containerID):
+            exportSheet(containerID: containerID)
+        case let .console(seed):
+            CommandConsoleView(
+                seed: seed,
+                onRunEmbedded: { request in shell.openTerminal(request) },
+                onRunExternal: { argv in lifecycleModel.openInExternalTerminal(argv) },
+                onClose: { shell.pendingSheet = nil })
+        }
+    }
+
+    /// A minimal export prompt: a Save panel feeds `lifecycleModel.export(id:to:)`.
+    private func exportSheet(containerID: String) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Export Container").font(.headline)
+            Text("Export “\(containerID)” to a tar archive on disk.")
+                .foregroundStyle(.secondary)
+            HStack {
+                Spacer()
+                Button("Cancel") { shell.pendingSheet = nil }
+                Button("Choose File…") {
+                    let panel = NSSavePanel()
+                    panel.nameFieldStringValue = "\(containerID).tar"
+                    panel.canCreateDirectories = true
+                    panel.title = "Export Container"
+                    let response = panel.runModal()
+                    shell.pendingSheet = nil
+                    if response == .OK, let url = panel.url {
+                        Task { await lifecycleModel.export(id: containerID, to: url) }
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 380)
     }
 }

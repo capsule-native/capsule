@@ -84,6 +84,12 @@ public final class RegistriesModel {
         }
     }
 
+    /// The faithful `registry login` argv — it carries `--password-stdin` and the optional
+    /// username but never the secret (delivered via stdin), so this is safe to show verbatim.
+    public func loginInvocation(server: String, username: String?) -> CommandInvocation {
+        CommandInvocation(CLICommand.registryLogin(server: server, username: username))
+    }
+
     public func logout(server: String) async {
         do {
             try await backend.registryLogout(server: server)

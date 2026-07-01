@@ -13,6 +13,7 @@ import SwiftUI
 
 struct ContentColumnView: View {
     let section: SidebarSection
+    @Binding var systemTab: SystemTab
     let health: SystemHealth
     let actions: ShellActions
     let browserModel: ContainerBrowserModel
@@ -41,6 +42,7 @@ struct ContentColumnView: View {
             if section == .system {
                 SystemDetailView(
                     health: health, actions: actions,
+                    selection: $systemTab,
                     storageModel: storageModel,
                     serviceLogsModel: serviceLogsModel,
                     aboutModel: aboutModel)

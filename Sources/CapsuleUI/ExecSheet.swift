@@ -18,9 +18,8 @@ struct ExecSheet: View {
 
     @State private var command: String = "sh"
 
-    private var argv: [String] {
-        let tokens = CommandTokenizer.tokenize(command)
-        return ["container", "exec", "-it", containerID] + (tokens.isEmpty ? ["sh"] : tokens)
+    private var invocation: CommandInvocation {
+        lifecycle.execInvocation(id: containerID, command: CommandTokenizer.tokenize(command))
     }
 
     var body: some View {
@@ -38,23 +37,14 @@ struct ExecSheet: View {
                     .labelsHidden()
             }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Command preview").font(.caption).foregroundStyle(.secondary)
-                Text(argv.joined(separator: " "))
-                    .font(.system(.caption, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
-                    .background(CapsuleColors.activitySurface)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-            }
+            CommandPreviewView(invocation)
 
             HStack {
                 Button("Cancel", action: onClose)
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Open in Terminal.app") {
-                    lifecycle.openInExternalTerminal(argv)
+                    lifecycle.openInExternalTerminal(invocation.argv)
                     onClose()
                 }
                 Button("Run") {

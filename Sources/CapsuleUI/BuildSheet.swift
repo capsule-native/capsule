@@ -20,6 +20,8 @@ struct BuildSheet: View {
 
     @State private var activeTask: OperationTask?
     @State private var isDropTargeted = false
+    @State private var showingSavePreset = false
+    @State private var newPresetName = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -27,6 +29,7 @@ struct BuildSheet: View {
                 Label("Build an Image", systemImage: "hammer")
                     .font(.headline)
                 Spacer()
+                presetsMenu
             }
             .padding(12)
             Divider()
@@ -44,6 +47,7 @@ struct BuildSheet: View {
                         .fixedSize()
                         Toggle("No cache", isOn: $model.draft.noCache)
                     }
+                    CommandPreviewView(model.commandInvocation)
                     if let task = activeTask {
                         Divider()
                         TaskTranscriptView(task: task)
@@ -56,6 +60,18 @@ struct BuildSheet: View {
             footer
         }
         .frame(width: 560, height: 640)
+        .task { model.loadPresets() }
+        .alert("Save Build Preset", isPresented: $showingSavePreset) {
+            TextField("Preset name", text: $newPresetName)
+            Button("Save") {
+                let name = newPresetName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty { model.savePreset(name: name) }
+                newPresetName = ""
+            }
+            Button("Cancel", role: .cancel) { newPresetName = "" }
+        } message: {
+            Text("Saves the current build configuration as a reusable preset.")
+        }
     }
 
     private var dropZone: some View {
@@ -85,6 +101,32 @@ struct BuildSheet: View {
                     loadDroppedFolder(providers)
                 }
         }
+    }
+
+    private var presetsMenu: some View {
+        Menu {
+            if model.buildPresets.isEmpty {
+                Text("No saved presets")
+            } else {
+                ForEach(model.buildPresets) { preset in
+                    Button(preset.name) { model.apply(preset) }
+                }
+                Divider()
+                Menu("Delete Preset") {
+                    ForEach(model.buildPresets) { preset in
+                        Button(preset.name, role: .destructive) { model.deletePreset(preset) }
+                    }
+                }
+            }
+            Divider()
+            Button("Save as Preset…") {
+                newPresetName = ""
+                showingSavePreset = true
+            }
+        } label: {
+            Label("Presets", systemImage: "square.stack.3d.up")
+        }
+        .help("Saved build presets")
     }
 
     @ViewBuilder

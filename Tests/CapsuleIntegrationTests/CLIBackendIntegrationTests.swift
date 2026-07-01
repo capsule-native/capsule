@@ -11,8 +11,10 @@
 //  asserts that gate, so a flag-unset run is a clean skip rather than a failure.
 
 import CapsuleBackend
+import CapsuleDomain
 import XCTest
 
+@testable import CapsuleApp
 @testable import CapsuleCLIBackend
 
 final class CLIBackendIntegrationTests: XCTestCase {
@@ -123,5 +125,72 @@ final class CLIBackendIntegrationTests: XCTestCase {
         let backend = CLIContainerBackend()
         // Unprivileged list: an empty `[]` is success, not failure; it must never throw.
         _ = try await backend.listDNSDomains()
+    }
+
+    // MARK: - M11: relocated argv factory (CLICommand now lives in CapsuleBackend)
+
+    /// Runs `container <arguments>` via the user's PATH and returns the status plus the
+    /// combined stdout+stderr. Read EOF before `waitUntilExit()` to avoid a pipe-buffer
+    /// deadlock on larger output.
+    private func runContainer(_ arguments: [String]) throws -> (status: Int32, output: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["container"] + arguments
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        try process.run()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        return (process.terminationStatus, String(decoding: data, as: UTF8.self))
+    }
+
+    /// The relocated `CLICommand` must still emit flags / subcommand paths the real CLI
+    /// accepts. Only read-only argv is probed (no host mutation); service state is irrelevant
+    /// because we assert on argv-shape rejection, not exit code.
+    func testRelocatedCLICommandYieldsRealCLIValidArgv() throws {
+        try requireIntegration()
+        let probes: [[String]] = [
+            CLICommand.listContainers(all: true),  // ["list", "--all", "--format", "json"]
+            CLICommand.listImages(),  // ["image", "list", "--format", "json"]
+            CLICommand.systemDiskUsage(),  // ["system", "df", "--format", "json"]
+        ]
+        for argv in probes {
+            let result = try runContainer(argv)
+            XCTAssertFalse(
+                result.output.contains("Usage:"),
+                "real CLI rejected the relocated argv shape \(argv): \(result.output)"
+            )
+            XCTAssertFalse(
+                result.output.localizedCaseInsensitiveContains("unexpected argument"),
+                "real CLI saw an unexpected argument in \(argv): \(result.output)"
+            )
+            XCTAssertFalse(
+                result.output.localizedCaseInsensitiveContains("unknown option"),
+                "real CLI saw an unknown option in \(argv): \(result.output)"
+            )
+        }
+    }
+
+    // MARK: - M11: plugin discovery (always-on; pure filesystem scan, no CLI, no mutation)
+
+    /// Mirrors `testGuardSkipsCleanlyWithoutEnv`: runs unconditionally and asserts the scanner
+    /// returns cleanly against the real libexec dirs whether or not any plugin is installed.
+    func testLibexecPluginScannerRunsCleanlyAgainstRealDirs() throws {
+        let scanner = LibexecPluginScanner()
+        let plugins = scanner.installedPlugins()  // empty is success, not failure
+        for plugin in plugins {
+            XCTAssertFalse(plugin.name.isEmpty, "a discovered plugin must have a non-empty name")
+            XCTAssertFalse(
+                plugin.name.hasPrefix("container-"),
+                "the container- prefix must be stripped (\(plugin.name))"
+            )
+            XCTAssertTrue(
+                FileManager.default.isExecutableFile(atPath: plugin.path),
+                "a discovered plugin must point at an executable (\(plugin.path))"
+            )
+        }
+        let names = plugins.map(\.name)
+        XCTAssertEqual(names.count, Set(names).count, "plugin names must be de-duplicated")
     }
 }

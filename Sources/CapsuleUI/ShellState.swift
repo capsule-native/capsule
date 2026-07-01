@@ -57,6 +57,12 @@ public final class ShellState {
     public var terminalSession: TerminalSessionState?
     /// Height of the Activity pane while the Terminal tab is showing (drag-resizable).
     public var terminalPaneHeight: Double
+    /// Which System sub-tab is shown (deep-linked by `Open System Logs` / `Reclaim Disk Space`).
+    public var systemTab: SystemTab
+    /// Whether the ⌘K command palette overlay is presented.
+    public var commandPalettePresented: Bool
+    /// The app-level sheet to present (palette/menu path), or nil.
+    public var pendingSheet: AppSheetIntent?
 
     /// Caps the retained activity lines so the pane never grows without bound.
     private let activityLogLimit = 200
@@ -68,7 +74,10 @@ public final class ShellState {
         activityTab: ActivityTab = .logs,
         activityLog: [String] = [],
         terminalSession: TerminalSessionState? = nil,
-        terminalPaneHeight: Double = 320
+        terminalPaneHeight: Double = 320,
+        systemTab: SystemTab = .overview,
+        commandPalettePresented: Bool = false,
+        pendingSheet: AppSheetIntent? = nil
     ) {
         self.selection = selection
         self.inspectorPresented = inspectorPresented
@@ -77,6 +86,9 @@ public final class ShellState {
         self.activityLog = activityLog
         self.terminalSession = terminalSession
         self.terminalPaneHeight = terminalPaneHeight
+        self.systemTab = systemTab
+        self.commandPalettePresented = commandPalettePresented
+        self.pendingSheet = pendingSheet
     }
 
     /// Appends an activity line, trimming the oldest entries past the retention cap.
@@ -89,6 +101,18 @@ public final class ShellState {
 
     public func toggleInspector() { inspectorPresented.toggle() }
     public func toggleActivityPane() { activityPanePresented.toggle() }
+
+    /// Deep-links to a System sub-tab: selects the System surface and switches its tab.
+    public func openSystem(tab: SystemTab) {
+        selection = .system
+        systemTab = tab
+    }
+
+    /// Shows/hides the ⌘K command palette.
+    public func toggleCommandPalette() { commandPalettePresented.toggle() }
+
+    /// Requests an app-level sheet (presented by `AppShellView`).
+    public func present(_ intent: AppSheetIntent) { pendingSheet = intent }
 
     /// Reveals the Activity pane's Logs tab — the destination for the "Open Logs"
     /// recovery action.

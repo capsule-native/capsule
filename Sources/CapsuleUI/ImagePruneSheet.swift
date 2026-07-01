@@ -72,6 +72,8 @@ struct ImagePruneSheet: View {
                 .foregroundStyle(.secondary)
             }
 
+            CommandPreviewView(actions.pruneInvocation(all: scope.isAll))
+
             HStack {
                 Button(resultMessage == nil ? "Cancel" : "Done", role: .cancel, action: onClose)
                     .keyboardShortcut(.cancelAction)

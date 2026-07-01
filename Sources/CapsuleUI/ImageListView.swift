@@ -49,24 +49,34 @@ struct ImageListView: View {
                             activeSheet = nil
                             Task { await actions.tag(source: reference, target: target) }
                         },
-                        onCancel: { activeSheet = nil })
+                        onCancel: { activeSheet = nil },
+                        invocationFor: { target in
+                            actions.tagInvocation(source: reference, target: target)
+                        })
                 case let .pull(reference):
                     PullImageSheet(
                         initialReference: reference,
                         onPull: { ref, plat in actions.pull(reference: ref, platform: plat) },
                         onRetry: { actions.retryTask($0) },
-                        onClose: { activeSheet = nil })
+                        onClose: { activeSheet = nil },
+                        invocationFor: { ref, plat in
+                            actions.pullInvocation(reference: ref, platform: plat)
+                        })
                 case let .push(reference, digest):
                     PushImageSheet(
                         initialReference: reference, initialDigest: digest,
                         onPush: { ref, plat in actions.push(reference: ref, platform: plat) },
                         onRetry: { actions.retryTask($0) },
-                        onClose: { activeSheet = nil })
+                        onClose: { activeSheet = nil },
+                        invocationFor: { ref, plat in
+                            actions.pushInvocation(reference: ref, platform: plat)
+                        })
                 case .load:
                     LoadImageSheet(
                         onLoad: { url in actions.load(from: url) },
                         onRetry: { actions.retryTask($0) },
-                        onClose: { activeSheet = nil })
+                        onClose: { activeSheet = nil },
+                        invocationFor: { url in actions.loadInvocation(from: url) })
                 case let .confirm(request):
                     ConfirmationSheet(
                         request: request,

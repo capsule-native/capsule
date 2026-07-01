@@ -79,8 +79,12 @@ public final class MachineActionsModel {
             setDefault: draft.setDefault, noBoot: draft.noBoot)
     }
 
+    public func commandInvocation(for draft: MachineDraft) -> CommandInvocation {
+        CommandInvocation(configuration(from: draft).arguments)
+    }
+
     public func commandPreview(for draft: MachineDraft) -> String {
-        "container " + configuration(from: draft).arguments.joined(separator: " ")
+        commandInvocation(for: draft).displayString
     }
 
     public func createProblem(_ draft: MachineDraft) -> String? {
@@ -110,8 +114,13 @@ public final class MachineActionsModel {
             ?? MachineValidation.homeMountProblem(draft.homeMount)
     }
 
+    public func settingsInvocation(name: String?, draft: MachineSettingsDraft) -> CommandInvocation
+    {
+        CommandInvocation(settings(from: draft).arguments(name: name))
+    }
+
     public func settingsPreview(name: String?, draft: MachineSettingsDraft) -> String {
-        "container " + settings(from: draft).arguments(name: name).joined(separator: " ")
+        settingsInvocation(name: name, draft: draft).displayString
     }
 
     @discardableResult
@@ -247,6 +256,7 @@ public final class MachineActionsModel {
         if let taskCenter {
             taskCenter.runStreaming(
                 kind: .machineCreate, title: "Create machine \(name)",
+                invocation: CommandInvocation(config.arguments),
                 onSuccess: { [weak self] in
                     await self?.reloadList()
                     self?.onActivity("Created machine \u{201c}\(name)\u{201d}.")

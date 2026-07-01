@@ -71,16 +71,7 @@ struct MachineSettingsSheet: View {
 
             // MARK: Command preview
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Command preview").font(.caption).foregroundStyle(.secondary)
-                Text(actions.settingsPreview(name: machine.name, draft: draft))
-                    .font(.system(.caption, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
-                    .background(CapsuleColors.activitySurface)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-            }
+            CommandPreviewView(actions.settingsInvocation(name: machine.name, draft: draft))
 
             // MARK: Buttons
 

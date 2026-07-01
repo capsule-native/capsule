@@ -31,7 +31,7 @@ struct CreateVolumeSheet: View {
 
             labeledField("Name (required)", text: $draft.name, prompt: "data")
 
-            DisclosureGroup("Advanced Options", isExpanded: $showAdvanced) {
+            AdvancedDisclosure("Advanced Options", isExpanded: $showAdvanced) {
                 VStack(alignment: .leading, spacing: 12) {
                     labeledField("Size", text: $draft.size, prompt: "10G")
                     keyValueEditor(
@@ -67,16 +67,7 @@ struct CreateVolumeSheet: View {
     }
 
     private var commandPreview: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Command preview").font(.caption).foregroundStyle(.secondary)
-            Text(actions.commandPreview(for: draft))
-                .font(.system(.caption, design: .monospaced))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(CapsuleColors.activitySurface)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-        }
+        CommandPreviewView(actions.commandInvocation(for: draft))
     }
 
     private func create() {

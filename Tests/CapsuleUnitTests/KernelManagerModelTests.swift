@@ -7,6 +7,7 @@
 
 import CapsuleBackend
 import XCTest
+
 @testable import CapsuleDomain
 
 @MainActor
@@ -99,5 +100,13 @@ final class KernelManagerModelTests: XCTestCase {
         XCTAssertNil(
             m.validationMessage,
             "validationMessage should be nil once tarURL is non-empty")
+    }
+
+    func testCommandInvocationDrivesPreview() {
+        let m = KernelManagerModel(backend: MockBackend(), taskCenter: TaskCenter())
+        m.draft.mode = .recommended
+        XCTAssertEqual(m.commandInvocation.rawDisplay, m.commandPreview)
+        XCTAssertTrue(m.commandPreview.hasPrefix("container "))
+        XCTAssertTrue(m.commandPreview.contains("--recommended"))
     }
 }

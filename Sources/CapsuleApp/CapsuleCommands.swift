@@ -23,6 +23,7 @@ public struct CapsuleCommands: Commands {
     private let systemModel: SystemStatusModel
     private let actions: ShellActions
     private let machineActionsModel: MachineActionsModel
+    private let commandContext: CommandContext
     @Environment(\.openWindow) private var openWindow
 
     public init(
@@ -30,13 +31,15 @@ public struct CapsuleCommands: Commands {
         shell: ShellState,
         systemModel: SystemStatusModel,
         actions: ShellActions,
-        machineActionsModel: MachineActionsModel
+        machineActionsModel: MachineActionsModel,
+        commandContext: CommandContext
     ) {
         self.updater = updater
         self.shell = shell
         self.systemModel = systemModel
         self.actions = actions
         self.machineActionsModel = machineActionsModel
+        self.commandContext = commandContext
     }
 
     public var body: some Commands {
@@ -96,9 +99,46 @@ public struct CapsuleCommands: Commands {
 
             Divider()
 
-            Button("Command Palette…") {}
+            Button("Command Palette…") { shell.toggleCommandPalette() }
                 .keyboardShortcut("k", modifiers: [.command])
-                .disabled(true)
+        }
+
+        // Commands — every fixed catalog action, rendered from the same source the palette uses.
+        CommandMenu("Commands") {
+            ForEach(fixedActions) { menuButton($0) }
+        }
+
+        // Presets — dynamic Run/Build presets and discovered plugins.
+        CommandMenu("Presets") {
+            if dynamicActions.isEmpty {
+                Button("No Presets or Plugins") {}.disabled(true)
+            } else {
+                ForEach(dynamicActions) { menuButton($0) }
+            }
+        }
+    }
+
+    @MainActor
+    private var catalogActions: [CommandAction] { CommandCatalog.actions(commandContext) }
+
+    @MainActor
+    private var fixedActions: [CommandAction] {
+        catalogActions.filter { !$0.id.hasPrefix("preset-") && !$0.id.hasPrefix("plugin-") }
+    }
+
+    @MainActor
+    private var dynamicActions: [CommandAction] {
+        catalogActions.filter { $0.id.hasPrefix("preset-") || $0.id.hasPrefix("plugin-") }
+    }
+
+    @ViewBuilder
+    private func menuButton(_ action: CommandAction) -> some View {
+        let button = Button(action.title) { action.run() }
+            .disabled(!action.isEnabled)
+        if let shortcut = action.shortcut {
+            button.keyboardShortcut(shortcut.key, modifiers: shortcut.modifiers)
+        } else {
+            button
         }
     }
 }

@@ -18,6 +18,8 @@ struct QuickRunSheet: View {
     var onClose: () -> Void
 
     @State private var activeTask: OperationTask?
+    @State private var showingSavePreset = false
+    @State private var newPresetName = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -37,6 +39,18 @@ struct QuickRunSheet: View {
             footer
         }
         .frame(width: 540, height: 620)
+        .task { model.loadPresets() }
+        .alert("Save Run Preset", isPresented: $showingSavePreset) {
+            TextField("Preset name", text: $newPresetName)
+            Button("Save") {
+                let name = newPresetName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty { model.savePreset(name: name) }
+                newPresetName = ""
+            }
+            Button("Cancel", role: .cancel) { newPresetName = "" }
+        } message: {
+            Text("Saves the current run configuration as a reusable preset.")
+        }
     }
 
     private var header: some View {
@@ -44,8 +58,35 @@ struct QuickRunSheet: View {
             Label("Run a Container", systemImage: "play.rectangle")
                 .font(.headline)
             Spacer()
+            presetsMenu
         }
         .padding(12)
+    }
+
+    private var presetsMenu: some View {
+        Menu {
+            if model.runPresets.isEmpty {
+                Text("No saved presets")
+            } else {
+                ForEach(model.runPresets) { preset in
+                    Button(preset.name) { model.apply(preset) }
+                }
+                Divider()
+                Menu("Delete Preset") {
+                    ForEach(model.runPresets) { preset in
+                        Button(preset.name, role: .destructive) { model.deletePreset(preset) }
+                    }
+                }
+            }
+            Divider()
+            Button("Save as Preset…") {
+                newPresetName = ""
+                showingSavePreset = true
+            }
+        } label: {
+            Label("Presets", systemImage: "square.stack.3d.up")
+        }
+        .help("Saved run presets")
     }
 
     @ViewBuilder
@@ -65,16 +106,7 @@ struct QuickRunSheet: View {
                 .disabled(model.draft.interactive)
         }
 
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Command preview").font(.caption).foregroundStyle(.secondary)
-            Text(model.commandPreview)
-                .font(.system(.caption, design: .monospaced))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(CapsuleColors.activitySurface)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-        }
+        CommandPreviewView(model.commandInvocation)
     }
 
     @ViewBuilder

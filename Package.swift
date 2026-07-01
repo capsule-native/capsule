@@ -113,7 +113,7 @@ let package = Package(
         ),
         .testTarget(
             name: "CapsuleIntegrationTests",
-            dependencies: ["CapsuleCLIBackend", "CapsuleBackend", "CapsuleDomain"]
+            dependencies: ["CapsuleApp", "CapsuleCLIBackend", "CapsuleBackend", "CapsuleDomain"]
         ),
     ],
     swiftLanguageModes: [.v5]

@@ -80,13 +80,20 @@ public final class NetworkActionsModel {
 
     // MARK: - Create-sheet validity accessors
 
-    /// The `container network create …` preview for a draft, tolerant of empty required
+    /// The faithful `container network create …` invocation, tolerant of empty required
     /// fields so the sheet can show it live. Keeps `NetworkConfiguration` out of the UI.
-    public func commandPreview(for draft: NetworkDraft) -> String {
+    public func commandInvocation(for draft: NetworkDraft) -> CommandInvocation {
         let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let config = configuration(from: draft, name: name)
-        return "container " + config.arguments.joined(separator: " ")
+        return CommandInvocation(configuration(from: draft, name: name).arguments)
     }
+
+    /// The redacted preview string, derived from `commandInvocation(for:)`.
+    public func commandPreview(for draft: NetworkDraft) -> String {
+        commandInvocation(for: draft).displayString
+    }
+
+    /// The `container network prune` invocation, for the Clean Up sheet's preview.
+    public var pruneInvocation: CommandInvocation { CommandInvocation(CLICommand.pruneNetworks()) }
 
     /// The live subnet-conflict message for the Create sheet (nil = clear). Checks the IPv4
     /// subnet first, then the IPv6 subnet; returns the first conflict message found. Surfaced

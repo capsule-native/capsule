@@ -238,4 +238,13 @@ final class NetworkActionsModelTests: XCTestCase {
             targets.map(\.name), ["idle"],
             "builtin is protected and a connected network is not a prune candidate")
     }
+
+    func testNetworkCommandInvocationDrivesPreview() {
+        let m = NetworkActionsModel(backend: MockBackend())
+        var draft = NetworkDraft()
+        draft.name = "app-net"
+        XCTAssertEqual(m.commandPreview(for: draft), m.commandInvocation(for: draft).displayString)
+        XCTAssertTrue(m.commandPreview(for: draft).hasPrefix("container network create"))
+        XCTAssertEqual(m.pruneInvocation.rawDisplay, "container network prune")
+    }
 }

@@ -93,6 +93,21 @@ public final class CopyModel {
         return trimmed.isEmpty ? "container" : trimmed
     }
 
+    /// The faithful `container copy …` invocation, composing the `id:path` endpoint exactly
+    /// as `CLIContainerBackend.copyTo/FromContainer` does, so the preview matches what runs.
+    public var commandInvocation: CommandInvocation {
+        let id = containerID.trimmingCharacters(in: .whitespaces)
+        let path = containerPath.trimmingCharacters(in: .whitespaces)
+        let containerEndpoint = "\(id):\(path)"
+        let host = hostURL?.path ?? ""
+        switch direction {
+        case .toContainer:
+            return CommandInvocation(CLICommand.copy(source: host, destination: containerEndpoint))
+        case .fromContainer:
+            return CommandInvocation(CLICommand.copy(source: containerEndpoint, destination: host))
+        }
+    }
+
     /// Runs the copy as a `.copy` Activity task in the validated direction.
     @discardableResult
     public func copy() -> OperationTask? {
@@ -105,7 +120,8 @@ public final class CopyModel {
             ? "Copy \(hostURL.lastPathComponent) → \(id):\(path)"
             : "Copy \(id):\(path) → \(hostURL.lastPathComponent)"
         onActivity(title)
-        return taskCenter.runAsync(kind: .copy, title: title) { [backend] in
+        return taskCenter.runAsync(kind: .copy, title: title, invocation: commandInvocation) {
+            [backend] in
             switch direction {
             case .toContainer:
                 try await backend.copyToContainer(

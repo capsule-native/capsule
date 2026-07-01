@@ -15,6 +15,7 @@ struct TaskTranscriptView: View {
     let task: OperationTask
     var onRetry: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onEscalate: ((CommandInvocation) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -38,6 +39,10 @@ struct TaskTranscriptView: View {
                 if isRetryable, let onRetry {
                     Button("Retry", action: onRetry)
                 }
+            }
+
+            if let invocation = task.invocation {
+                CommandPreviewView(invocation, onEscalate: onEscalate)
             }
 
             if let progress = determinateProgress {

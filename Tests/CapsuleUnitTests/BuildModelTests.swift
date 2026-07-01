@@ -83,4 +83,25 @@ final class BuildModelTests: XCTestCase {
         await task?.wait()
         XCTAssertEqual(backend.lastBuildConfig?.plainProgress, true)
     }
+
+    func testBuildCommandInvocationRedactsSecretBuildArg() {
+        let m = BuildModel(backend: MockBackend(), taskCenter: TaskCenter())
+        m.draft.contextDirectory = URL(fileURLWithPath: "/work/app")
+        m.draft.tag = "app:dev"
+        m.draft.buildArgRows = ["TOKEN=abc", "MODE=ci"]
+        XCTAssertEqual(
+            m.commandInvocation.rawDisplay,
+            "container build --tag app:dev --build-arg TOKEN=abc --build-arg MODE=ci /work/app")
+        XCTAssertEqual(
+            m.commandInvocation.displayString,
+            "container build --tag app:dev --build-arg TOKEN=‹redacted› --build-arg MODE=ci /work/app"
+        )
+    }
+
+    func testBuildCommandInvocationFallsBackWhileEmpty() {
+        XCTAssertEqual(
+            BuildModel(backend: MockBackend(), taskCenter: TaskCenter()).commandInvocation
+                .rawDisplay,
+            "container build")
+    }
 }

@@ -11,8 +11,6 @@
 import CapsuleBackend
 import XCTest
 
-@testable import CapsuleCLIBackend
-
 final class CLICommandTests: XCTestCase {
     func testListContainers() {
         XCTAssertEqual(CLICommand.listContainers(all: false), ["list", "--format", "json"])
@@ -186,5 +184,12 @@ final class CLICommandTests: XCTestCase {
 
     func testDNSListCommand() {
         XCTAssertEqual(CLICommand.listDNSDomains(), ["system", "dns", "list", "--format", "json"])
+    }
+
+    func testExecShellDefaultsToShAndKeepsItSingleToken() {
+        XCTAssertEqual(CLICommand.execShell(id: "abc", command: []), ["exec", "-it", "abc", "sh"])
+        XCTAssertEqual(
+            CLICommand.execShell(id: "abc", command: ["bash", "-l"]),
+            ["exec", "-it", "abc", "bash", "-l"])
     }
 }
