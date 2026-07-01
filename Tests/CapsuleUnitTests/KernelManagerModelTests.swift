@@ -7,6 +7,7 @@
 
 import CapsuleBackend
 import XCTest
+
 @testable import CapsuleDomain
 
 @MainActor

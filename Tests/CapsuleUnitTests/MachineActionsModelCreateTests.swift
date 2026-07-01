@@ -63,4 +63,13 @@ final class MachineActionsModelCreateTests: XCTestCase {
         XCTAssertNotNil(mock.lastCreatedMachine)
         if case .created = a.banner?.kind {} else { XCTFail("expected created banner") }
     }
+
+    func testCreateCommandInvocationDrivesPreview() {
+        let m = MachineActionsModel(backend: MockBackend())
+        var draft = MachineDraft()
+        draft.image = "ubuntu:24.04"
+        XCTAssertEqual(m.commandPreview(for: draft), m.commandInvocation(for: draft).displayString)
+        XCTAssertTrue(
+            m.commandInvocation(for: draft).rawDisplay.hasPrefix("container machine create"))
+    }
 }

@@ -26,4 +26,13 @@ final class MachineActionsModelSetTests: XCTestCase {
         var d = MachineSettingsDraft(); d.cpus = "0"
         XCTAssertNotNil(a.settingsProblem(d))
     }
+
+    func testSettingsInvocationDrivesPreview() {
+        let m = MachineActionsModel(backend: MockBackend())
+        var draft = MachineSettingsDraft()
+        draft.cpus = "4"
+        XCTAssertEqual(
+            m.settingsPreview(name: "dev", draft: draft),
+            m.settingsInvocation(name: "dev", draft: draft).displayString)
+    }
 }
