@@ -98,9 +98,10 @@ public final class SystemStatusModel {
             }
             return
         }
-        let task = taskCenter.runAsync(kind: .systemStart, title: "Start container services") {
-            [backend] in try await backend.startSystem()
-        }
+        let task = taskCenter.runAsync(
+            kind: .systemStart, title: "Start container services",
+            invocation: CommandInvocation(CLICommand.startSystem())
+        ) { [backend] in try await backend.startSystem() }
         await task.wait()
         if case .succeeded = task.state { onActivity("Started container services.") }
         await refreshStatus()

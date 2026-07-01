@@ -127,6 +127,7 @@ public final class BuildModel {
         onActivity("Building \(config.tag)…")
         return taskCenter.runStreaming(
             kind: .build, title: "Build \(config.tag)",
+            invocation: CommandInvocation(config.arguments),
             onSuccess: { [reloadList] in await reloadList() }
         ) { [backend] in
             backend.buildImage(config)

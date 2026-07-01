@@ -120,7 +120,8 @@ public final class CopyModel {
             ? "Copy \(hostURL.lastPathComponent) → \(id):\(path)"
             : "Copy \(id):\(path) → \(hostURL.lastPathComponent)"
         onActivity(title)
-        return taskCenter.runAsync(kind: .copy, title: title) { [backend] in
+        return taskCenter.runAsync(kind: .copy, title: title, invocation: commandInvocation) {
+            [backend] in
             switch direction {
             case .toContainer:
                 try await backend.copyToContainer(

@@ -171,6 +171,7 @@ public final class ImageActionsModel {
         onActivity("Pulling “\(reference)”…")
         return taskCenter.runStreaming(
             kind: .pull, title: "Pull \(reference)",
+            invocation: pullInvocation(reference: reference, platform: platform),
             onSuccess: { [reloadList] in await reloadList() }
         ) { [backend] in
             backend.pullImage(reference: reference, platform: platform)
@@ -181,7 +182,10 @@ public final class ImageActionsModel {
     @discardableResult
     public func push(reference: String, platform: String?) -> OperationTask {
         onActivity("Pushing “\(reference)”…")
-        return taskCenter.runStreaming(kind: .push, title: "Push \(reference)") { [backend] in
+        return taskCenter.runStreaming(
+            kind: .push, title: "Push \(reference)",
+            invocation: pushInvocation(reference: reference, platform: platform)
+        ) { [backend] in
             backend.pushImage(reference: reference, platform: platform)
         }
     }
@@ -190,7 +194,8 @@ public final class ImageActionsModel {
     @discardableResult
     public func save(references: [String], to url: URL, platform: String?) -> OperationTask {
         taskCenter.runAsync(
-            kind: .save, title: "Save \(references.joined(separator: ", "))"
+            kind: .save, title: "Save \(references.joined(separator: ", "))",
+            invocation: saveInvocation(references: references, to: url, platform: platform)
         ) { [backend] in
             try await backend.saveImage(references: references, to: url, platform: platform)
         }
@@ -201,6 +206,7 @@ public final class ImageActionsModel {
     public func load(from url: URL) -> OperationTask {
         taskCenter.runAsync(
             kind: .load, title: "Load \(url.lastPathComponent)",
+            invocation: loadInvocation(from: url),
             onSuccess: { [reloadList] in await reloadList() }
         ) { [backend] in
             try await backend.loadImage(from: url)

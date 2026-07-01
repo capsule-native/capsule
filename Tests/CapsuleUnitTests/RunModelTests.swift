@@ -116,4 +116,11 @@ final class RunModelTests: XCTestCase {
         XCTAssertEqual(m.resolveImageReference, "ghost:latest")
         XCTAssertNotNil(m.lastFailedTask)
     }
+
+    func testRunDetachedRecordsInvocationOnTask() {
+        let m = model()
+        m.draft.image = "alpine"
+        let task = m.runDetached()
+        XCTAssertEqual(task?.invocation?.rawDisplay, "container run -d alpine")
+    }
 }

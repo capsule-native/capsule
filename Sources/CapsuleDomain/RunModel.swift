@@ -149,6 +149,7 @@ public final class RunModel {
         onActivity("Running \(config.image)…")
         let task = taskCenter.runAsync(
             kind: .run, title: "Run \(config.image)",
+            invocation: CommandInvocation(config.arguments),
             onSuccess: { [reloadList] in await reloadList() }
         ) { [backend] in
             _ = try await backend.runContainer(config)

@@ -400,9 +400,10 @@ public final class ContainerLifecycleModel {
             return
         }
         busy.insert(id)
-        let task = taskCenter.runAsync(kind: .export, title: "Export \(id)") {
-            [backend] in try await backend.exportContainer(id: id, to: url)
-        }
+        let task = taskCenter.runAsync(
+            kind: .export, title: "Export \(id)",
+            invocation: CommandInvocation(CLICommand.exportContainer(id: id, to: url))
+        ) { [backend] in try await backend.exportContainer(id: id, to: url) }
         await task.wait()
         busy.remove(id)
         if case .succeeded = task.state {

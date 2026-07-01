@@ -256,6 +256,7 @@ public final class MachineActionsModel {
         if let taskCenter {
             taskCenter.runStreaming(
                 kind: .machineCreate, title: "Create machine \(name)",
+                invocation: CommandInvocation(config.arguments),
                 onSuccess: { [weak self] in
                     await self?.reloadList()
                     self?.onActivity("Created machine \u{201c}\(name)\u{201d}.")

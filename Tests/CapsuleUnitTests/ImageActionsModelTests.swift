@@ -239,4 +239,10 @@ final class ImageActionsModelTests: XCTestCase {
             m.loadInvocation(from: URL(fileURLWithPath: "/x.tar")).rawDisplay,
             "container image load --input /x.tar")
     }
+
+    func testPullTaskCarriesInvocation() {
+        let m = ImageActionsModel(backend: MockBackend())
+        let task = m.pull(reference: "alpine", platform: nil)
+        XCTAssertEqual(task.invocation?.rawDisplay, "container image pull alpine")
+    }
 }

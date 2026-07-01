@@ -148,6 +148,7 @@ public final class KernelManagerModel {
         taskCenter.runStreaming(
             kind: .systemKernelInstall,
             title: "Install Kernel",
+            invocation: CommandInvocation(config.arguments),
             onSuccess: { [weak self] in await self?.loadCurrent() }
         ) { [backend] in
             backend.setKernel(config)
