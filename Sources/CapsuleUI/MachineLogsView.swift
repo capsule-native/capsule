@@ -57,8 +57,8 @@ struct MachineLogsView: View {
                 .lineLimit(1)
             Spacer()
             Picker("Log type", selection: $selectedTab) {
-                Text("Boot log").tag(LogTab.boot)
-                Text("Session log").tag(LogTab.session)
+                Text("Boot log", bundle: .module).tag(LogTab.boot)
+                Text("Session log", bundle: .module).tag(LogTab.session)
             }
             .pickerStyle(.segmented)
             .frame(width: 210)
@@ -77,8 +77,10 @@ struct MachineLogsView: View {
         switch selectedTab {
         case .boot:
             LogsPaneView(model: bootModel, onOpenInWindow: nil)
+                .accessibilityLabel(Text("Boot log output", bundle: .module))
         case .session:
             LogsPaneView(model: sessionModel, onOpenInWindow: nil)
+                .accessibilityLabel(Text("Session log output", bundle: .module))
         }
     }
 }

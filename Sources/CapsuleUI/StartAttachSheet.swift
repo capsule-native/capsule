@@ -18,7 +18,7 @@ struct StartAttachSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Start “\(containerName)”")
+            Text("Start “\(containerName)”", bundle: .module)
                 .font(.headline)
 
             Text(

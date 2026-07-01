@@ -118,6 +118,7 @@ struct ActivityPaneView: View {
             }
             .buttonStyle(.borderless)
             .help("Hide the Activity pane")
+            .accessibilityLabel(Text("Hide activity pane", bundle: .module))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -243,8 +244,11 @@ struct ActivityPaneView: View {
                                 ProgressView(value: progress)
                                     .progressViewStyle(.linear)
                                     .frame(width: 120)
+                                    .accessibilityValue(
+                                        Text("\(Int(progress * 100)) percent", bundle: .module))
                             } else {
                                 ProgressView().controlSize(.small)
+                                    .accessibilityLabel(Text("Loading", bundle: .module))
                             }
                             if task.isCancellable {
                                 Button("Stop", role: .destructive) { taskCenter?.cancel(task) }

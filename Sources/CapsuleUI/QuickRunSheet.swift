@@ -172,7 +172,8 @@ struct QuickRunSheet: View {
                     Image(systemName: "plus.circle")
                 }
                 .buttonStyle(.borderless)
-                .help("Add a \(label.lowercased()) row")
+                .accessibilityLabel(Text("Add row", bundle: .module))
+                .help(Text("Add a \(label.lowercased()) row", bundle: .module))
             }
             ForEach(rows.wrappedValue.indices, id: \.self) { index in
                 HStack {
@@ -184,6 +185,7 @@ struct QuickRunSheet: View {
                         Image(systemName: "minus.circle")
                     }
                     .buttonStyle(.borderless)
+                    .accessibilityLabel(Text("Remove row", bundle: .module))
                 }
             }
         }

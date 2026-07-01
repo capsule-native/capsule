@@ -155,7 +155,8 @@ struct MachineInspectorView: View {
                         Image(systemName: "doc.on.doc")
                     }
                     .buttonStyle(.borderless)
-                    .help("Copy \(label) (\(value))")
+                    .accessibilityLabel(Text("Copy \(label)", bundle: .module))
+                    .help(Text("Copy \(label) (\(value))", bundle: .module))
                 }
             }
         } else {
@@ -194,7 +195,10 @@ struct MachineInspectorView: View {
                         .padding(8)
                 }
                 .overlay {
-                    if isLoadingRaw { ProgressView() }
+                    if isLoadingRaw {
+                        ProgressView()
+                            .accessibilityLabel(Text("Loading", bundle: .module))
+                    }
                 }
             }
         }

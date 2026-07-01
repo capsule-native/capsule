@@ -41,6 +41,7 @@ struct CommandPreviewView: View {
                     }
                     .buttonStyle(.borderless)
                     .help("Copy command")
+                    .accessibilityLabel(Text("Copy command", bundle: .module))
                     if let onEscalate {
                         Button {
                             onEscalate(invocation)
@@ -49,6 +50,7 @@ struct CommandPreviewView: View {
                         }
                         .buttonStyle(.borderless)
                         .help("Open in Terminal")
+                        .accessibilityLabel(Text("Open in Terminal", bundle: .module))
                     }
                 }
             }

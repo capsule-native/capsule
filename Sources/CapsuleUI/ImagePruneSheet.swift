@@ -45,12 +45,14 @@ struct ImagePruneSheet: View {
             if let resultMessage {
                 Text(resultMessage).font(.callout)
             } else if isLoading {
-                ProgressView("Finding images…")
+                ProgressView { Text("Finding images…", bundle: .module) }
             } else if targets.isEmpty {
-                Text("No \(scope == .dangling ? "dangling" : "unused") images to remove.")
+                (scope == .dangling
+                    ? Text("No dangling images to remove.", bundle: .module)
+                    : Text("No unused images to remove.", bundle: .module))
                     .foregroundStyle(.secondary)
             } else {
-                Text("\(targets.count) image(s) will be removed:")
+                Text("^[\(targets.count) image](inflect: true) will be removed:", bundle: .module)
                     .font(.callout)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 2) {

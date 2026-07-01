@@ -23,6 +23,7 @@ struct ServiceLogsView: View {
             controls
             Divider()
             LogsPaneView(model: model)
+                .accessibilityLabel(Text("Service log output", bundle: .module))
         }
         .task { reload() }
         .onDisappear { model.stop() }

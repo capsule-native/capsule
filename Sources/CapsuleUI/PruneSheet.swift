@@ -33,8 +33,11 @@ struct PruneSheet: View {
                 Text("No stopped containers to remove.")
                     .foregroundStyle(.secondary)
             } else {
-                Text("\(targets.count) stopped container(s) will be removed:")
-                    .font(.callout)
+                Text(
+                    "^[\(targets.count) stopped container](inflect: true) will be removed:",
+                    bundle: .module
+                )
+                .font(.callout)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(targets) { container in

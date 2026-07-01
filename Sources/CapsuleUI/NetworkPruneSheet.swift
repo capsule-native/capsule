@@ -33,7 +33,7 @@ struct NetworkPruneSheet: View {
                 Text("No unused networks to remove.")
                     .foregroundStyle(.secondary)
             } else {
-                Text("\(targets.count) network(s) will be removed:")
+                Text("^[\(targets.count) network](inflect: true) will be removed:", bundle: .module)
                     .font(.callout)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 2) {

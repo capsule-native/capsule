@@ -56,7 +56,7 @@ struct ContentColumnView: View {
                 healthState
             }
         }
-        .navigationTitle(section.title)
+        .navigationTitle(Text("\(section.title)", bundle: .module))
     }
 
     /// The content shown for a running service. Containers get the live browser; other
@@ -89,7 +89,7 @@ struct ContentColumnView: View {
         ContentUnavailableView {
             Label(section.title, systemImage: section.symbolName)
         } description: {
-            Text("\(section.title) will appear here.")
+            Text("\(section.title) will appear here.", bundle: .module)
         }
     }
 
@@ -115,7 +115,9 @@ struct ContentColumnView: View {
         ContentUnavailableView {
             Label("\(section.title) unavailable", systemImage: "exclamationmark.octagon")
         } description: {
-            Text("\(section.title) are not supported by the current container build.")
+            Text(
+                "\(section.title) are not supported by the current container build.",
+                bundle: .module)
         }
     }
 

@@ -21,6 +21,8 @@ struct TaskTranscriptView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 stateIcon
+                    .accessibilityLabel(Text("Status", bundle: .module))
+                    .accessibilityValue(stateAccessibilityValue)
                 Text(task.title).font(.callout.weight(.medium))
                 Spacer()
                 if task.transcript.isEmpty == false {
@@ -31,6 +33,7 @@ struct TaskTranscriptView: View {
                     }
                     .buttonStyle(.borderless)
                     .help("Copy transcript")
+                    .accessibilityLabel(Text("Copy transcript", bundle: .module))
                 }
                 if task.state.isActive, task.isCancellable, let onCancel {
                     Button("Stop", role: .destructive, action: onCancel)
@@ -48,6 +51,7 @@ struct TaskTranscriptView: View {
             if let progress = determinateProgress {
                 ProgressView(value: progress)
                     .progressViewStyle(.linear)
+                    .accessibilityValue(Text("\(Int(progress * 100)) percent", bundle: .module))
             }
 
             if !task.transcript.isEmpty {
@@ -65,6 +69,7 @@ struct TaskTranscriptView: View {
                 }
                 .frame(maxHeight: 160)
                 .background(CapsuleColors.activitySurface)
+                .accessibilityLabel(Text("Task output", bundle: .module))
             }
         }
     }
@@ -95,6 +100,22 @@ struct TaskTranscriptView: View {
     private func color(for line: LogLine) -> Color {
         guard line.stream == .error else { return .primary }
         return isFailed ? .red : .secondary
+    }
+
+    /// A spoken description of the task's lifecycle state, since the icon is color + glyph only.
+    private var stateAccessibilityValue: Text {
+        switch task.state {
+        case .idle, .queued:
+            return Text("Queued", bundle: .module)
+        case .running:
+            return Text("Running", bundle: .module)
+        case .succeeded:
+            return Text("Succeeded", bundle: .module)
+        case .failed:
+            return Text("Failed", bundle: .module)
+        case .cancelled:
+            return Text("Cancelled", bundle: .module)
+        }
     }
 
     @ViewBuilder

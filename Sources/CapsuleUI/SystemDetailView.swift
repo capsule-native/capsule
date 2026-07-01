@@ -46,7 +46,7 @@ struct SystemDetailView: View {
                         Circle()
                             .fill(CapsuleColors.accent(for: health.bannerKind))
                             .frame(width: 8, height: 8)
-                        Text(health.statusLabel)
+                        Text(health.localizedStatusLabel)
                     }
                 }
                 if case let .running(version, _) = health {

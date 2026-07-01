@@ -43,7 +43,7 @@ struct MachineListView: View {
                             onClose: { activeSheet = nil })
                     } else {
                         VStack(spacing: 12) {
-                            Text("Machine \u{201c}\(name)\u{201d} not found.")
+                            Text("Machine \u{201c}\(name)\u{201d} not found.", bundle: .module)
                             Button("Dismiss") { activeSheet = nil }
                         }
                         .padding()
@@ -96,11 +96,12 @@ struct MachineListView: View {
 
     private var table: some View {
         Table(model.rows, selection: $model.selection) {
-            TableColumn("") { machine in
+            TableColumn(Text("Default", bundle: .module)) { machine in
                 if machine.isDefault {
                     Image(systemName: "star.fill")
                         .foregroundStyle(.yellow)
                         .help("Default machine")
+                        .accessibilityLabel(Text("Default machine", bundle: .module))
                 }
             }
             .width(18)

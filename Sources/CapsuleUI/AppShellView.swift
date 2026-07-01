@@ -259,6 +259,7 @@ public struct AppShellView: View {
                     Image(systemName: "square.bottomthird.inset.filled")
                 }
                 .help("Toggle the Activity pane")
+                .accessibilityLabel(Text("Toggle activity pane", bundle: .module))
 
                 Button {
                     shell.toggleInspector()
@@ -266,6 +267,7 @@ public struct AppShellView: View {
                     Image(systemName: "sidebar.right")
                 }
                 .help("Toggle the Inspector")
+                .accessibilityLabel(Text("Toggle inspector", bundle: .module))
             }
         }
     }
@@ -348,7 +350,7 @@ public struct AppShellView: View {
     private func exportSheet(containerID: String) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Export Container").font(.headline)
-            Text("Export “\(containerID)” to a tar archive on disk.")
+            Text("Export “\(containerID)” to a tar archive on disk.", bundle: .module)
                 .foregroundStyle(.secondary)
             HStack {
                 Spacer()

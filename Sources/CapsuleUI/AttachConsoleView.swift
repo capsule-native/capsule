@@ -77,6 +77,7 @@ struct AttachConsoleView: View {
                 }
                 .padding(8)
             }
+            .accessibilityLabel(Text("Console output", bundle: .module))
             .onChange(of: session.lines.count) {
                 if let last = session.lines.last { proxy.scrollTo(last.id, anchor: .bottom) }
             }

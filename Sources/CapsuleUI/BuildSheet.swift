@@ -86,6 +86,7 @@ struct BuildSheet: View {
                 .overlay {
                     HStack {
                         Image(systemName: "folder")
+                            .accessibilityLabel(Text("Choose folder", bundle: .module))
                         Text(model.draft.contextDirectory?.path ?? "Drag a folder here, or Choose…")
                             .font(.callout)
                             .foregroundStyle(
@@ -214,6 +215,7 @@ struct BuildSheet: View {
                     Image(systemName: "plus.circle")
                 }
                 .buttonStyle(.borderless)
+                .accessibilityLabel(Text("Add row", bundle: .module))
             }
             ForEach(rows.wrappedValue.indices, id: \.self) { index in
                 HStack {
@@ -225,6 +227,7 @@ struct BuildSheet: View {
                         Image(systemName: "minus.circle")
                     }
                     .buttonStyle(.borderless)
+                    .accessibilityLabel(Text("Remove row", bundle: .module))
                 }
             }
         }

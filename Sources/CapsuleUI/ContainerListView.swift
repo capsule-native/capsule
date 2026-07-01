@@ -131,14 +131,16 @@ struct ContainerListView: View {
 
     private var table: some View {
         Table(model.rows, selection: $model.selection) {
-            TableColumn("") { container in
+            TableColumn(Text("Status", bundle: .module)) { container in
                 if lifecycle.busy.contains(container.id) {
                     ProgressView().controlSize(.small)
+                        .accessibilityLabel(Text("Loading", bundle: .module))
                 } else {
                     Circle()
                         .fill(CapsuleColors.containerStateColor(container.state))
                         .frame(width: 8, height: 8)
-                        .help(container.state.rawValue.capitalized)
+                        .help(Text(container.state.localizedTitle))
+                        .accessibilityLabel(Text(container.state.localizedTitle))
                 }
             }
             .width(18)
@@ -246,7 +248,7 @@ struct ContainerListView: View {
         ToolbarItem(placement: .principal) {
             Picker("Filter", selection: $model.stateFilter) {
                 ForEach(ContainerStateFilter.allCases) { filter in
-                    Text(filter.title).tag(filter)
+                    Text(filter.localizedTitle).tag(filter)
                 }
             }
             .pickerStyle(.segmented)

@@ -63,7 +63,8 @@ struct ImageInspectorView: View {
                                 Image(systemName: "doc.on.doc")
                             }
                             .buttonStyle(.borderless)
-                            .help("Copy full digest (\(image.digest))")
+                            .accessibilityLabel(Text("Copy digest", bundle: .module))
+                            .help(Text("Copy full digest (\(image.digest))", bundle: .module))
                         }
                     }
                     LabeledContent("Size") {
@@ -131,7 +132,10 @@ struct ImageInspectorView: View {
                         .padding(8)
                 }
                 .overlay {
-                    if isLoadingRaw { ProgressView() }
+                    if isLoadingRaw {
+                        ProgressView()
+                            .accessibilityLabel(Text("Loading", bundle: .module))
+                    }
                 }
             }
         }

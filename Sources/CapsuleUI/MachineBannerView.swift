@@ -67,7 +67,7 @@ struct MachineBannerView: View {
                 .frame(height: 1)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(banner.title). \(banner.message)")
+        .accessibilityLabel(Text("\(banner.title). \(banner.message)", bundle: .module))
     }
 
     // MARK: - Action buttons per kind

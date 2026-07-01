@@ -46,7 +46,7 @@ struct CreateMachineSheet: View {
 
                 Picker("Image", selection: $imageSelection) {
                     ForEach(MachineImagePreset.all) { preset in
-                        Text(preset.displayName).tag(preset.reference)
+                        Text(verbatim: preset.displayName).tag(preset.reference)
                     }
                     Text("Custom\u{2026}").tag(Self.customImageTag)
                 }

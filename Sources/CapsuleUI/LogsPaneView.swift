@@ -44,6 +44,7 @@ struct LogsPaneView: View {
                 Image(systemName: "arrow.clockwise")
             }
             .help("Reload with the current follow / tail / boot settings")
+            .accessibilityLabel(Text("Reload", bundle: .module))
             .disabled(model.containerID == nil)
 
             TextField("Search", text: $model.searchText)
@@ -56,6 +57,7 @@ struct LogsPaneView: View {
                 Image(systemName: "square.and.arrow.down")
             }
             .help("Save the transcript")
+            .accessibilityLabel(Text("Save transcript", bundle: .module))
             .disabled(model.lines.isEmpty)
 
             if let onOpenInWindow {
@@ -65,6 +67,7 @@ struct LogsPaneView: View {
                     Image(systemName: "rectangle.on.rectangle")
                 }
                 .help("Open the logs in a separate window")
+                .accessibilityLabel(Text("Open in window", bundle: .module))
             }
         }
         .padding(.horizontal, 12)
@@ -88,6 +91,7 @@ struct LogsPaneView: View {
                 .padding(8)
             }
             .background(CapsuleColors.activitySurface)
+            .accessibilityLabel(Text("Log output", bundle: .module))
             .onChange(of: model.lines.count) {
                 withAnimation { proxy.scrollTo(bottomAnchor, anchor: .bottom) }
             }

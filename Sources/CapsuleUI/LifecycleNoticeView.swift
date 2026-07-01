@@ -28,7 +28,7 @@ struct LifecycleNoticeView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if notice.offersShellHint {
-                    Text("Open a shell from the read-only console to investigate.")
+                    Text("Open a shell from the read-only console to investigate.", bundle: .module)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
@@ -51,6 +51,7 @@ struct LifecycleNoticeView: View {
                 Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel(Text("Dismiss", bundle: .module))
         }
         .padding(12)
         .background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
