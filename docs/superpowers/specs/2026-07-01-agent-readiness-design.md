@@ -132,7 +132,7 @@ Project subagents in [`.claude/agents/`](.claude/agents/):
 
 - **command-adder** — add a `container` command end-to-end (domain → port → adapter → mock → argv tests).
 - **architecture-guardian** — read-only reviewer for layering, secrets, and boundary violations.
-- **swiftui-view-builder** — build CapsuleUI views/inspectors/sheets to house conventions.
+- **swiftui-view-builder** — build CapsuleUI views/inspectors/sheets to Capsule's house conventions.
 - **test-author** — write tests across the unit / argv / golden-UI tiers.
 ```
 
@@ -180,8 +180,11 @@ Body — links + operational delta (no verbatim recipe):
   `Sources/CapsuleCLIBackend/CLIContainerBackend.swift` using the canonical
   `runChecked(CLICommand.…)` pattern; decode reads via `OutputParser` in
   `Sources/CapsuleCLIBackend/OutputParser.swift`. Treat non-zero exit as failure by going through
-  `runChecked` (only prune-style/`systemStatus` deliberately bypass it). *(3a + 3b together are the
-  recipe's single "step 3", which M11 split across two modules.)*
+  `runChecked`. Deliberate bypasses only: prune-style/`systemStatus`, the `runRaw`/`streamRaw`
+  escape hatches, and the secret-feeding `runLogin` path — `runChecked` takes no `standardInput`,
+  so a secret-bearing command follows the `runLogin` pattern
+  (`runner.run(argv, environment:standardInput:)` + manual `BackendError.nonZeroExit` mapping).
+  *(3a + 3b together are the recipe's single "step 3", which M11 split across two modules.)*
 - **Step 4 — mock:** mirror behavior in `Sources/CapsuleBackend/MockBackend.swift` by mutating
   seeded state via `withState { … }` and recording typed inputs on a `lastXxx` spy prop.
   `MockBackend` never builds argv.
