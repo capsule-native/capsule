@@ -47,9 +47,13 @@ public struct SystemHealthBanner: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(text.title)
+                // `text.title`/`text.message` are chosen at runtime from a fixed set of English
+                // keys (plus dynamic values like a version line, which pass through verbatim).
+                // Resolving them as LocalizedStringKey against the main bundle localizes the
+                // fixed ones while leaving dynamic strings untouched.
+                Text(LocalizedStringKey(text.title))
                     .font(.headline)
-                Text(text.message)
+                Text(LocalizedStringKey(text.message))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)

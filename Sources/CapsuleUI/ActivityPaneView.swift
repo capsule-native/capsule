@@ -102,7 +102,7 @@ struct ActivityPaneView: View {
         HStack(spacing: 12) {
             Picker("Activity", selection: $shell.activityTab) {
                 ForEach(visibleTabs) { tab in
-                    Label(tab.title, systemImage: tab.symbolName).tag(tab)
+                    Label(LocalizedStringKey(tab.title), systemImage: tab.symbolName).tag(tab)
                 }
             }
             .pickerStyle(.segmented)

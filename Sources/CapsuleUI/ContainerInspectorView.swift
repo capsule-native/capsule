@@ -60,7 +60,7 @@ struct ContainerInspectorView: View {
                     LabeledContent("Image", value: container.image)
                     LabeledContent("State") {
                         Label {
-                            Text(container.state.rawValue.capitalized)
+                            Text(container.state.localizedTitle)
                         } icon: {
                             Circle()
                                 .fill(CapsuleColors.containerStateColor(container.state))
