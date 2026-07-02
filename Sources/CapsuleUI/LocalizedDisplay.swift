@@ -99,6 +99,7 @@ extension OperationKind {
         case .copy: return uiString("Copy")
         case .machineCreate: return uiString("Create Machine")
         case .systemKernelInstall: return uiString("Install Kernel")
+        case .cliInstall: return uiString("Download Installer")
         }
     }
 }
