@@ -34,7 +34,6 @@ public struct RootView: View {
     private let storageModel: StorageDashboardModel
     private let serviceLogsModel: LogsModel
     private let aboutModel: AboutModel
-    /// Threaded from the composition root; the System > About pane consumes it (Task 8).
     private let cliUpdateModel: ContainerCLIUpdateModel
     private let runModel: RunModel
     private let buildModel: BuildModel
@@ -125,6 +124,7 @@ public struct RootView: View {
             storageModel: storageModel,
             serviceLogsModel: serviceLogsModel,
             aboutModel: aboutModel,
+            cliUpdateModel: cliUpdateModel,
             runModel: runModel,
             buildModel: buildModel,
             logsModel: logsModel,

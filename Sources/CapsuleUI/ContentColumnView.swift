@@ -31,6 +31,7 @@ struct ContentColumnView: View {
     let storageModel: StorageDashboardModel
     let serviceLogsModel: LogsModel
     let aboutModel: AboutModel
+    let cliUpdateModel: ContainerCLIUpdateModel
     let runModel: RunModel
     let buildModel: BuildModel
     let logsModel: LogsModel
@@ -46,7 +47,8 @@ struct ContentColumnView: View {
                     selection: $systemTab,
                     storageModel: storageModel,
                     serviceLogsModel: serviceLogsModel,
-                    aboutModel: aboutModel)
+                    aboutModel: aboutModel,
+                    cliUpdateModel: cliUpdateModel)
             } else if health.isRunning {
                 if isGatedSurfaceUnavailable {
                     unsupportedSurface

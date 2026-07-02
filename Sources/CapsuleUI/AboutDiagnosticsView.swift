@@ -12,7 +12,10 @@ import SwiftUI
 
 struct AboutDiagnosticsView: View {
     @Bindable var model: AboutModel
+    let cliUpdate: ContainerCLIUpdateModel
     let onExportDiagnostics: () -> Void
+
+    @State private var showUpdateSheet = false
 
     var body: some View {
         Group {
@@ -33,6 +36,14 @@ struct AboutDiagnosticsView: View {
                                         .foregroundStyle(.secondary)
                                 }
                             }
+                        }
+                    }
+                    Section("Container CLI") {
+                        LabeledContent("Latest release") { latestLabel }
+                        HStack {
+                            Button("Update container…") { showUpdateSheet = true }
+                                .accessibilityIdentifier("about-update-container-button")
+                            Spacer()
                         }
                     }
                     if !model.compatibilityWarnings.isEmpty {
@@ -57,5 +68,34 @@ struct AboutDiagnosticsView: View {
             }
         }
         .task { await model.refresh() }
+        .task { await cliUpdate.checkLatest() }
+        .sheet(isPresented: $showUpdateSheet) {
+            UpdateContainerSheet(
+                scriptPreview: cliUpdate.updateScriptPreview,
+                updaterScriptAvailable: cliUpdate.updaterScriptAvailable,
+                onConfirm: { cliUpdate.runUpdater() })
+        }
+    }
+
+    private var installedCLIVersion: String? {
+        model.components.first { $0.appName == "container" }?.version
+    }
+
+    @ViewBuilder private var latestLabel: some View {
+        switch cliUpdate.latest {
+        case .idle, .checking:
+            Text("Checking…").foregroundStyle(.secondary)
+        case let .available(tag):
+            HStack(spacing: 8) {
+                Text(tag).monospaced()
+                if ContainerCLIUpdateModel.isUpToDate(installed: installedCLIVersion, latest: tag) {
+                    Text("Up to date").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text("Update available").font(.caption).foregroundStyle(.orange)
+                }
+            }
+        case let .failed(message):
+            Text(message).font(.caption).foregroundStyle(.secondary)
+        }
     }
 }

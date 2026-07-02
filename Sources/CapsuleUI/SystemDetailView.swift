@@ -17,6 +17,7 @@ struct SystemDetailView: View {
     let storageModel: StorageDashboardModel
     let serviceLogsModel: LogsModel
     let aboutModel: AboutModel
+    let cliUpdateModel: ContainerCLIUpdateModel
 
     var body: some View {
         TabView(selection: $selection) {
@@ -31,6 +32,7 @@ struct SystemDetailView: View {
                 .tag(SystemTab.serviceLogs)
             AboutDiagnosticsView(
                 model: aboutModel,
+                cliUpdate: cliUpdateModel,
                 onExportDiagnostics: { actions.recover(.exportDiagnostics) }
             )
             .tabItem { Label("About", systemImage: "info.circle") }
