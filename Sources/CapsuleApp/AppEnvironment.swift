@@ -47,6 +47,7 @@ public struct AppEnvironment {
     public var storageDashboardModel: StorageDashboardModel
     public var serviceLogsModel: LogsModel
     public var aboutModel: AboutModel
+    public var cliUpdateModel: ContainerCLIUpdateModel
     public var runModel: RunModel
     public var buildModel: BuildModel
     public var logsModel: LogsModel
@@ -80,6 +81,7 @@ public struct AppEnvironment {
         storageDashboardModel: StorageDashboardModel,
         serviceLogsModel: LogsModel,
         aboutModel: AboutModel,
+        cliUpdateModel: ContainerCLIUpdateModel,
         runModel: RunModel,
         buildModel: BuildModel,
         logsModel: LogsModel,
@@ -112,6 +114,7 @@ public struct AppEnvironment {
         self.storageDashboardModel = storageDashboardModel
         self.serviceLogsModel = serviceLogsModel
         self.aboutModel = aboutModel
+        self.cliUpdateModel = cliUpdateModel
         self.runModel = runModel
         self.buildModel = buildModel
         self.logsModel = logsModel
@@ -140,7 +143,12 @@ public struct AppEnvironment {
         return make(
             backend: cliBackend,
             registry: DockerHubClient(),
+            releaseSource: GitHubReleaseClient(),
             containerExecutablePath: cliBackend.executableURL.path,
+            updaterScriptExists: {
+                FileManager.default.isExecutableFile(
+                    atPath: ContainerCLIUpdateModel.updaterScriptPath)
+            },
             updater: updater)
     }
 
@@ -148,18 +156,29 @@ public struct AppEnvironment {
     /// data, a no-op updater, and no real `container` CLI. Selected at launch when the
     /// `CAPSULE_UITEST` environment variable is set (see `CapsuleScene.init`).
     ///
-    /// `CAPSULE_UITEST_SCENARIO` picks the seeded state: `healthy` (default) or `serviceDown`
-    /// (the service reads back stopped, so the health banner shows the error/recovery state).
+    /// `CAPSULE_UITEST_SCENARIO` picks the seeded state: `healthy` (default), `serviceDown`
+    /// (the service reads back stopped, so the health banner shows the error/recovery state),
+    /// or `cliMissing` (every probe throws `executableNotFound`, so the shell shows the
+    /// not-installed state with the Install recovery).
     public static func uiTest() -> AppEnvironment {
         let scenario = ProcessInfo.processInfo.environment["CAPSULE_UITEST_SCENARIO"] ?? "healthy"
-        let backend: any ContainerBackend =
-            scenario == "serviceDown"
-            ? MockBackend(systemRunState: .stopped)
-            : MockBackend()
+        let backend: any ContainerBackend
+        switch scenario {
+        case "serviceDown":
+            backend = MockBackend(systemRunState: .stopped)
+        case "cliMissing":
+            let mock = MockBackend()
+            mock.failure = .executableNotFound("/usr/local/bin/container")
+            backend = mock
+        default:
+            backend = MockBackend()
+        }
         return make(
             backend: backend,
             registry: MockImageRegistry.sample(),
+            releaseSource: MockContainerReleaseSource(),
             containerExecutablePath: "container",
+            updaterScriptExists: { true },
             updater: NoopUpdaterController())
     }
 
@@ -169,7 +188,9 @@ public struct AppEnvironment {
     static func make(
         backend: any ContainerBackend,
         registry: any ImageRegistrySearching,
+        releaseSource: any ContainerReleaseSource,
         containerExecutablePath: String,
+        updaterScriptExists: @escaping () -> Bool,
         updater: any UpdaterController
     ) -> AppEnvironment {
         let shell = ShellState()
@@ -252,6 +273,22 @@ public struct AppEnvironment {
                 argv, executablePath: containerExecutablePath, terminalApp: app)
             shell.appendActivity("Opened in Terminal (sudo): \(argv.joined(separator: " "))")
         }
+        let openInstallerPackage: @MainActor (URL) -> Void = { url in
+            NSWorkspace.shared.open(url)
+        }
+        let runScriptInTerminal: @MainActor (String) -> Void = { script in
+            openScriptInTerminal(script, terminalApp: currentTerminalApp())
+        }
+        let cliUpdateModel = ContainerCLIUpdateModel(
+            releaseSource: releaseSource,
+            taskCenter: taskCenter,
+            normalize: { ErrorNormalizer.normalize($0) },
+            onActivity: { line in shell.appendActivity(line) },
+            containerPath: containerExecutablePath,
+            updaterScriptExists: updaterScriptExists,
+            openInstaller: openInstallerPackage,
+            runScriptInTerminal: runScriptInTerminal
+        )
         let dnsModel = DNSModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
@@ -343,7 +380,8 @@ public struct AppEnvironment {
         let terminalSurfaceProvider = SwiftTermSurfaceProvider(executablePath: { name in
             name == "container" ? containerExecutablePath : name
         })
-        let actions = makeActions(systemModel: systemModel, shell: shell)
+        let actions = makeActions(
+            systemModel: systemModel, shell: shell, cliUpdateModel: cliUpdateModel)
         let pluginCatalog = PluginCatalogModel(
             discovering: LibexecPluginScanner(),
             isServiceRunning: { systemModel.health.isRunning })
@@ -385,6 +423,7 @@ public struct AppEnvironment {
             storageDashboardModel: storageDashboardModel,
             serviceLogsModel: serviceLogsModel,
             aboutModel: aboutModel,
+            cliUpdateModel: cliUpdateModel,
             runModel: runModel,
             buildModel: buildModel,
             logsModel: logsModel,
@@ -399,7 +438,8 @@ public struct AppEnvironment {
     /// Builds the recovery/stop callbacks that bridge UI actions to the system model.
     static func makeActions(
         systemModel: SystemStatusModel,
-        shell: ShellState
+        shell: ShellState,
+        cliUpdateModel: ContainerCLIUpdateModel
     ) -> ShellActions {
         ShellActions(
             recover: { action in
@@ -416,6 +456,8 @@ public struct AppEnvironment {
                     shell.openTerminal(
                         TerminalRequest(
                             containerID: nil, title: "Terminal", argv: command, kind: .retry))
+                case .installContainerCLI:
+                    Task { @MainActor in cliUpdateModel.installLatest() }
                 case .grantPermission(.administrator):
                     // SAFETY NET ONLY. DNS create/delete already perform the privileged handoff
                     // directly from the per-row Add/Delete buttons in Settings > Networking
@@ -427,7 +469,7 @@ public struct AppEnvironment {
                         "Administrator access is required. Open Settings > Networking to add or "
                             + "remove a DNS domain \u{2014} Capsule opens Terminal with sudo to finish it."
                     )
-                case .editConfiguration, .grantPermission, .installContainerCLI:
+                case .editConfiguration, .grantPermission:
                     shell.appendActivity("Action “\(action.title)” is not available yet.")
                 }
             },

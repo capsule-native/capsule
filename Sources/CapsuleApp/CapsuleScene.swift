@@ -40,6 +40,7 @@ public struct CapsuleScene: Scene {
     @State private var storageDashboardModel: StorageDashboardModel
     @State private var serviceLogsModel: LogsModel
     @State private var aboutModel: AboutModel
+    @State private var cliUpdateModel: ContainerCLIUpdateModel
     @State private var runModel: RunModel
     @State private var buildModel: BuildModel
     @State private var logsModel: LogsModel
@@ -86,6 +87,7 @@ public struct CapsuleScene: Scene {
         self._storageDashboardModel = State(initialValue: environment.storageDashboardModel)
         self._serviceLogsModel = State(initialValue: environment.serviceLogsModel)
         self._aboutModel = State(initialValue: environment.aboutModel)
+        self._cliUpdateModel = State(initialValue: environment.cliUpdateModel)
         self._runModel = State(initialValue: environment.runModel)
         self._buildModel = State(initialValue: environment.buildModel)
         self._logsModel = State(initialValue: environment.logsModel)
@@ -118,6 +120,7 @@ public struct CapsuleScene: Scene {
                 storageModel: storageDashboardModel,
                 serviceLogsModel: serviceLogsModel,
                 aboutModel: aboutModel,
+                cliUpdateModel: cliUpdateModel,
                 runModel: runModel,
                 buildModel: buildModel,
                 logsModel: logsModel,

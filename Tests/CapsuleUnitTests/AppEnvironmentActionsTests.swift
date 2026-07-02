@@ -14,10 +14,25 @@ import XCTest
 
 @MainActor
 final class AppEnvironmentActionsTests: XCTestCase {
+    /// A mock-backed CLI update model for `makeActions` fixtures: no network, no Terminal.
+    /// (`TaskCenter()` can't be a default argument — its `@MainActor` init is not callable
+    /// from the nonisolated default-argument context.)
+    private func makeCLIUpdateModel(taskCenter: TaskCenter) -> ContainerCLIUpdateModel {
+        ContainerCLIUpdateModel(
+            releaseSource: MockContainerReleaseSource(),
+            taskCenter: taskCenter,
+            containerPath: "container",
+            updaterScriptExists: { true },
+            openInstaller: { _ in },
+            runScriptInTerminal: { _ in })
+    }
+
     func testRetryInTerminalRoutesToEmbeddedTerminal() {
         let shell = ShellState()
         let systemModel = SystemStatusModel(backend: MockBackend())
-        let actions = AppEnvironment.makeActions(systemModel: systemModel, shell: shell)
+        let actions = AppEnvironment.makeActions(
+            systemModel: systemModel, shell: shell,
+            cliUpdateModel: makeCLIUpdateModel(taskCenter: TaskCenter()))
         actions.recover(.retryInTerminal(command: ["container", "kill", "c1"]))
         XCTAssertEqual(shell.terminalSession?.request.argv, ["container", "kill", "c1"])
         XCTAssertEqual(shell.terminalSession?.request.kind, .retry)
@@ -26,7 +41,9 @@ final class AppEnvironmentActionsTests: XCTestCase {
     func testGrantAdministratorAppendsNetworkingGuidance() {
         let shell = ShellState()
         let systemModel = SystemStatusModel(backend: MockBackend())
-        let actions = AppEnvironment.makeActions(systemModel: systemModel, shell: shell)
+        let actions = AppEnvironment.makeActions(
+            systemModel: systemModel, shell: shell,
+            cliUpdateModel: makeCLIUpdateModel(taskCenter: TaskCenter()))
 
         actions.recover(.grantPermission(.administrator))
 
@@ -36,10 +53,30 @@ final class AppEnvironmentActionsTests: XCTestCase {
             "the admin safety net points the user at the Networking pane that performs the handoff")
     }
 
+    func testInstallContainerCLIRecoveryRegistersInstallTask() async {
+        let shell = ShellState()
+        let systemModel = SystemStatusModel(backend: MockBackend())
+        let taskCenter = TaskCenter()
+        let actions = AppEnvironment.makeActions(
+            systemModel: systemModel, shell: shell,
+            cliUpdateModel: makeCLIUpdateModel(taskCenter: taskCenter))
+
+        actions.recover(.installContainerCLI)
+        // recover dispatches into a Task; give the MainActor queue a beat.
+        await Task.yield()
+        try? await Task.sleep(for: .milliseconds(50))
+
+        XCTAssertTrue(
+            taskCenter.tasks.contains { $0.kind == .cliInstall },
+            "recover(.installContainerCLI) should start the installer download task")
+    }
+
     func testGrantFileAccessStaysInTheNotAvailableBranch() {
         let shell = ShellState()
         let systemModel = SystemStatusModel(backend: MockBackend())
-        let actions = AppEnvironment.makeActions(systemModel: systemModel, shell: shell)
+        let actions = AppEnvironment.makeActions(
+            systemModel: systemModel, shell: shell,
+            cliUpdateModel: makeCLIUpdateModel(taskCenter: TaskCenter()))
 
         actions.recover(.grantPermission(.fileAccess))
 
