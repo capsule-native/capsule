@@ -72,7 +72,8 @@ Project subagents live in [`.claude/agents/`](.claude/agents/):
 
 `CapsuleBackend` (the ports + `MockBackend`/`MockImageRegistry` + argv factories),
 `CapsuleDomain` (models/actions), `CapsuleCLIBackend` (the `Process` adapter),
-`CapsuleRegistryClient` (the `URLSession` Docker Hub search adapter), `CapsuleUI` (SwiftUI
-views), `CapsuleTerminal` (SwiftTerm/PTY), `CapsuleAutomation` (App Intents/AppleScript),
-`CapsuleDiagnostics` (logging, diagnostics, redaction), `CapsuleApp` (composition root). The dependency graph lives in
+`CapsuleRegistryClient` (the `URLSession` adapters: Docker Hub search + apple/container
+GitHub releases), `CapsuleUI` (SwiftUI views), `CapsuleTerminal` (SwiftTerm/PTY),
+`CapsuleAutomation` (App Intents/AppleScript), `CapsuleDiagnostics` (logging, diagnostics,
+redaction), `CapsuleApp` (composition root). The dependency graph lives in
 [README.md → Architecture](README.md#architecture).
