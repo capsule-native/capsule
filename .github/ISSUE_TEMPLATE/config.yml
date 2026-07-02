@@ -2,8 +2,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question or discussion
-    url: https://github.com/capsule-app/capsule/discussions
+    url: https://github.com/capsule-native/capsule/discussions
     about: For usage questions and open-ended discussion, please use Discussions.
   - name: Security vulnerability
-    url: https://github.com/capsule-app/capsule/security/advisories/new
+    url: https://github.com/capsule-native/capsule/security/advisories/new
     about: Report security issues privately via a GitHub Security Advisory — do not open a public issue.
