@@ -427,7 +427,7 @@ public struct AppEnvironment {
                         "Administrator access is required. Open Settings > Networking to add or "
                             + "remove a DNS domain \u{2014} Capsule opens Terminal with sudo to finish it."
                     )
-                case .editConfiguration, .grantPermission:
+                case .editConfiguration, .grantPermission, .installContainerCLI:
                     shell.appendActivity("Action “\(action.title)” is not available yet.")
                 }
             },

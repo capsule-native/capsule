@@ -47,6 +47,13 @@ extension CapsuleError {
                 recoveryActions: recovery.isEmpty ? [.startServices, .openLogs] : recovery
             )
 
+        case let .cliNotInstalled(message, recovery):
+            return ErrorDetail(
+                title: "Container CLI not installed",
+                explanation: message,
+                recoveryActions: recovery.isEmpty ? [.installContainerCLI, .openLogs] : recovery
+            )
+
         case let .commandFailed(command, exitCode, stderr):
             if let code = exitCode, ProcessSignal.isUserInterruption(exitCode: code) {
                 return ErrorDetail(
@@ -107,7 +114,7 @@ extension CapsuleError {
     /// The normalized `OperationStatus` this error resolves to.
     public var status: OperationStatus {
         switch self {
-        case .daemonUnavailable:
+        case .daemonUnavailable, .cliNotInstalled:
             return .backendUnavailable
         case let .commandFailed(_, exitCode, _):
             if let code = exitCode, ProcessSignal.isUserInterruption(exitCode: code) {

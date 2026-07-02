@@ -112,6 +112,7 @@ extension RecoveryAction {
         case .retry: return uiString("Try Again")
         case .retryInTerminal: return uiString("Retry in Terminal")
         case .startServices: return uiString("Start Services")
+        case .installContainerCLI: return uiString("Install container…")
         case .openLogs: return uiString("Open Logs")
         case .editConfiguration: return uiString("Edit Configuration")
         case .exportDiagnostics: return uiString("Export Diagnostics")
