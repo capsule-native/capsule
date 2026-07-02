@@ -19,7 +19,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Select newest available Xcode
         run: |
@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: dist/coverage/
@@ -66,7 +66,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Select newest available Xcode
         run: |
@@ -98,7 +98,7 @@ jobs:
 
       - name: Upload UI test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ui-test-results
           path: TestResults.xcresult
