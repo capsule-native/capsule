@@ -110,6 +110,50 @@ final class CapsuleUITests: XCTestCase {
         app.typeKey(.escape, modifierFlags: [])
     }
 
+    @MainActor
+    func testPullSheetBrowseFlowComposesReference() {
+        let app = launchApp()
+        // ⇧⌘P → "Pull Image…". The sheet must open in Reference mode (the default).
+        app.typeKey("p", modifierFlags: [.shift, .command])
+        let referenceField = app.textFields.firstMatch
+        XCTAssertTrue(
+            referenceField.waitForExistence(timeout: 15),
+            "the Pull sheet should open showing the Reference form by default")
+
+        // Flip to Browse and search the seeded catalog (MockImageRegistry.sample).
+        let browseSegment = labeled("Browse", in: app)
+        XCTAssertTrue(
+            browseSegment.waitForExistence(timeout: 10),
+            "the Pull sheet should offer a Browse segment")
+        browseSegment.click()
+        let searchField = element("pull-browse-search-field", in: app)
+        XCTAssertTrue(
+            searchField.waitForExistence(timeout: 10), "the browse search field should focus")
+        searchField.typeText("nginx")
+
+        // Results appear after the debounce; pick the official nginx repository.
+        let nginxRow = app.staticTexts["nginx"]
+        XCTAssertTrue(
+            nginxRow.waitForExistence(timeout: 15),
+            "searching the seeded catalog should list the official nginx repository")
+        nginxRow.click()
+
+        // Pick the seeded "latest" tag; the sheet must return to the Reference form
+        // with the fully-qualified reference composed for the existing pull path.
+        let latestTag = app.staticTexts["latest"]
+        XCTAssertTrue(
+            latestTag.waitForExistence(timeout: 15),
+            "selecting a repository should list its seeded tags")
+        latestTag.click()
+        XCTAssertTrue(
+            referenceField.waitForExistence(timeout: 10),
+            "picking a tag should land back in the Reference form")
+        XCTAssertEqual(
+            referenceField.value as? String, "docker.io/library/nginx:latest",
+            "the composed reference should fill the existing Reference field")
+        app.typeKey(.escape, modifierFlags: [])
+    }
+
     // MARK: - Settings
 
     @MainActor
