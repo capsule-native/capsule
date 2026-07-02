@@ -68,8 +68,10 @@ struct StorageDashboardView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ForEach(StorageCategory.allCases) { category in
-                categoryCard(for: category)
+            HStack(alignment: .top, spacing: 16) {
+                ForEach(StorageCategory.allCases) { category in
+                    categoryCard(for: category)
+                }
             }
             LabeledContent("Total reclaimable") {
                 Text(Int64(model.totalReclaimableBytes), format: .byteCount(style: .file))
@@ -139,9 +141,11 @@ private struct StorageCategoryCard: View {
                     Button(label, action: onReclaim)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(6)
         } label: {
             Text(category.localizedTitle)
         }
+        .frame(maxWidth: .infinity)
     }
 }
