@@ -46,9 +46,10 @@ XCUITests run via `xcodebuild` against the built `.app` (CI job `app-ui-tests`),
 
 ## Non-negotiable boundaries
 
-- `CapsuleUI` never imports a Backend module (`CapsuleBackend`, `CapsuleCLIBackend`) nor
-  `CapsuleTerminal`. `CapsuleDomain` never imports `CapsuleUI`, `CapsuleCLIBackend`, or
-  `CapsuleTerminal`, and never uses `Foundation.Process`.
+- `CapsuleUI` never imports a Backend module (`CapsuleBackend`, `CapsuleCLIBackend`,
+  `CapsuleRegistryClient`) nor `CapsuleTerminal`. `CapsuleDomain` never imports `CapsuleUI`,
+  `CapsuleCLIBackend`, `CapsuleRegistryClient`, or `CapsuleTerminal`, and never uses
+  `Foundation.Process`.
 - Enforced by `Scripts/check-architecture.sh` **and**
   `Tests/CapsuleUnitTests/ArchitectureGuardTests.swift`; a deliberate new edge means updating
   **both**. The authoritative rule lives in
@@ -63,14 +64,15 @@ Project subagents live in [`.claude/agents/`](.claude/agents/):
 | If the task is… | Use subagent | Because it knows… |
 | --- | --- | --- |
 | Add/extend a `container` command end-to-end (domain case → port → adapter → mock → argv tests) | `command-adder` | the recipe + the `CLICommand`/`CLIContainerBackend`/`MockBackend` seam |
-| Review a diff for layering/secret/boundary violations (read-only) | `architecture-guardian` | the eight forbidden edges + guard test/script + stdin-secret rule |
+| Review a diff for layering/secret/boundary violations (read-only) | `architecture-guardian` | the eleven forbidden edges + guard test/script + stdin-secret rule |
 | Build or change a SwiftUI view/inspector/sheet | `swiftui-view-builder` | `@Observable` injection, `bundle: .module`, `CapsuleColors`, accessibility idioms |
 | Add or update tests (standalone) | `test-author` | tiers 1/2/3, `StubProcessRunner`, `MockBackend`, `CAPSULE_UITEST` mode |
 
 ## Module map
 
-`CapsuleBackend` (the port + `MockBackend` + argv factories), `CapsuleDomain` (models/actions),
-`CapsuleCLIBackend` (the `Process` adapter), `CapsuleUI` (SwiftUI views), `CapsuleTerminal`
-(SwiftTerm/PTY), `CapsuleAutomation` (App Intents/AppleScript), `CapsuleDiagnostics` (logging,
-diagnostics, redaction), `CapsuleApp` (composition root). The dependency graph lives in
+`CapsuleBackend` (the ports + `MockBackend`/`MockImageRegistry` + argv factories),
+`CapsuleDomain` (models/actions), `CapsuleCLIBackend` (the `Process` adapter),
+`CapsuleRegistryClient` (the `URLSession` Docker Hub search adapter), `CapsuleUI` (SwiftUI
+views), `CapsuleTerminal` (SwiftTerm/PTY), `CapsuleAutomation` (App Intents/AppleScript),
+`CapsuleDiagnostics` (logging, diagnostics, redaction), `CapsuleApp` (composition root). The dependency graph lives in
 [README.md → Architecture](README.md#architecture).

@@ -22,6 +22,7 @@ public struct AppShellView: View {
     let statsModel: ContainerStatsModel
     @Bindable var imageBrowserModel: ImageBrowserModel
     @Bindable var imageActionsModel: ImageActionsModel
+    let registrySearchModel: RegistrySearchModel
     @Bindable var networkBrowserModel: NetworkBrowserModel
     @Bindable var networkActionsModel: NetworkActionsModel
     @Bindable var machineBrowserModel: MachineBrowserModel
@@ -49,6 +50,7 @@ public struct AppShellView: View {
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
+        registrySearchModel: RegistrySearchModel,
         networkBrowserModel: NetworkBrowserModel,
         networkActionsModel: NetworkActionsModel,
         machineBrowserModel: MachineBrowserModel,
@@ -75,6 +77,7 @@ public struct AppShellView: View {
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
+        self.registrySearchModel = registrySearchModel
         self.networkBrowserModel = networkBrowserModel
         self.networkActionsModel = networkActionsModel
         self.machineBrowserModel = machineBrowserModel
@@ -201,6 +204,7 @@ public struct AppShellView: View {
                 statsModel: statsModel,
                 imageBrowserModel: imageBrowserModel,
                 imageActionsModel: imageActionsModel,
+                registrySearchModel: registrySearchModel,
                 networkBrowserModel: networkBrowserModel,
                 networkActionsModel: networkActionsModel,
                 machineBrowserModel: machineBrowserModel,
@@ -383,6 +387,7 @@ public struct AppShellView: View {
         case .pull:
             PullImageSheet(
                 initialReference: "",
+                searchModel: registrySearchModel,
                 onPull: { reference, platform in
                     imageActionsModel.pull(reference: reference, platform: platform)
                 },

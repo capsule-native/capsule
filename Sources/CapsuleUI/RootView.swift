@@ -23,6 +23,7 @@ public struct RootView: View {
     private let statsModel: ContainerStatsModel
     private let imageBrowserModel: ImageBrowserModel
     private let imageActionsModel: ImageActionsModel
+    private let registrySearchModel: RegistrySearchModel
     private let networkBrowserModel: NetworkBrowserModel
     private let networkActionsModel: NetworkActionsModel
     private let machineBrowserModel: MachineBrowserModel
@@ -52,6 +53,7 @@ public struct RootView: View {
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
+        registrySearchModel: RegistrySearchModel,
         networkBrowserModel: NetworkBrowserModel,
         networkActionsModel: NetworkActionsModel,
         machineBrowserModel: MachineBrowserModel,
@@ -78,6 +80,7 @@ public struct RootView: View {
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
+        self.registrySearchModel = registrySearchModel
         self.networkBrowserModel = networkBrowserModel
         self.networkActionsModel = networkActionsModel
         self.machineBrowserModel = machineBrowserModel
@@ -107,6 +110,7 @@ public struct RootView: View {
             statsModel: statsModel,
             imageBrowserModel: imageBrowserModel,
             imageActionsModel: imageActionsModel,
+            registrySearchModel: registrySearchModel,
             networkBrowserModel: networkBrowserModel,
             networkActionsModel: networkActionsModel,
             machineBrowserModel: machineBrowserModel,

@@ -36,6 +36,12 @@ forbid_import CapsuleDomain CapsuleTerminal
 forbid_import CapsuleTerminal CapsuleBackend
 forbid_import CapsuleTerminal CapsuleCLIBackend
 
+# Registry-search adapter boundaries: UI/Domain/Terminal never import the HTTP adapter;
+# they see only the search port in CapsuleBackend (and the Domain's own models).
+forbid_import CapsuleUI CapsuleRegistryClient
+forbid_import CapsuleDomain CapsuleRegistryClient
+forbid_import CapsuleTerminal CapsuleRegistryClient
+
 # Domain must not touch Foundation.Process.
 if grep -rnE "\bProcess[[:space:]]*\(" Sources/CapsuleDomain 2>/dev/null; then
   echo "❌ CapsuleDomain must not use Foundation.Process"

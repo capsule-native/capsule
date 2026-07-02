@@ -41,13 +41,15 @@ macOS app bundle (Info.plist, entitlements, asset catalog, UI tests) is a thin X
 target under `App/`, generated from [`App/project.yml`](App/project.yml) by XcodeGen.
 
 ```
-CapsuleApp         ──▶ CapsuleUI, CapsuleTerminal, CapsuleCLIBackend, CapsuleAutomation,
-                       CapsuleDiagnostics, CapsuleDomain, CapsuleBackend  (+ Sparkle)
+CapsuleApp         ──▶ CapsuleUI, CapsuleTerminal, CapsuleCLIBackend, CapsuleRegistryClient,
+                       CapsuleAutomation, CapsuleDiagnostics, CapsuleDomain, CapsuleBackend
+                       (+ Sparkle)
 CapsuleTerminal    ──▶ CapsuleUI, CapsuleDomain, SwiftTerm   (terminal engine adapter)
 CapsuleUI          ──▶ CapsuleDomain
 CapsuleAutomation  ──▶ CapsuleBackend                        (leaf / side; drives the port)
 CapsuleDiagnostics ──▶ CapsuleDomain, CapsuleBackend         (leaf / side)
 CapsuleCLIBackend  ──▶ CapsuleBackend, CapsuleDiagnostics    (adapter; conforms to port)
+CapsuleRegistryClient ──▶ CapsuleBackend                     (adapter; conforms to the search port)
 CapsuleDomain      ──▶ CapsuleBackend                        (the port)
 CapsuleBackend     ──▶ (no Capsule dependencies)             (port; bottom of the graph)
 ```
@@ -58,8 +60,9 @@ CapsuleBackend     ──▶ (no Capsule dependencies)             (port; bottom
 | --- | --- |
 | `CapsuleApp` | App lifecycle, `Scene`, menu commands, window management, the Sparkle-backed updater, composition root. |
 | `CapsuleDomain` | Resource models, actions, task state, outcome/diagnostics types, privacy disclosure. No UI, no `Process`. |
-| `CapsuleBackend` | `ContainerBackend` protocol + shared value types (the port) + `MockBackend`. |
+| `CapsuleBackend` | `ContainerBackend` + `ImageRegistrySearching` protocols, shared value types (the ports), `MockBackend` + `MockImageRegistry`. |
 | `CapsuleCLIBackend` | `Process` plumbing, argument building, output parsing. Conforms to `ContainerBackend`. |
+| `CapsuleRegistryClient` | Unauthenticated Docker Hub search/tags over `URLSession`. Conforms to `ImageRegistrySearching`. |
 | `CapsuleAutomation` | App Intents + AppleScript vocabulary over the backend port. |
 | `CapsuleDiagnostics` | `OSLog` wrappers, diagnostic-bundle export, error normalization, secret redaction. |
 | `CapsuleUI` | SwiftUI views, inspectors, sheets, the updater/privacy settings surfaces. |

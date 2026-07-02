@@ -1,0 +1,43 @@
+{
+  "count": 288701,
+  "next": "https://hub.docker.com/v2/search/repositories/?page=2&page_size=25&query=nginx",
+  "previous": "",
+  "results": [
+    {
+      "repo_name": "nginx",
+      "short_description": "Official build of Nginx.",
+      "star_count": 21318,
+      "pull_count": 13114222271,
+      "repo_owner": "",
+      "is_automated": false,
+      "is_official": true
+    },
+    {
+      "repo_name": "nginx/nginx-ingress",
+      "short_description": "NGINX and  NGINX Plus Ingress Controllers for Kubernetes",
+      "star_count": 121,
+      "pull_count": 1085932916,
+      "repo_owner": "",
+      "is_automated": false,
+      "is_official": false
+    },
+    {
+      "repo_name": "nginx/nginx-prometheus-exporter",
+      "short_description": "NGINX Prometheus Exporter for NGINX and NGINX Plus",
+      "star_count": 52,
+      "pull_count": 88790489,
+      "repo_owner": "",
+      "is_automated": false,
+      "is_official": false
+    },
+    {
+      "repo_name": "nginx/nginx-ingress-operator",
+      "short_description": "NGINX Ingress Operator for NGINX and NGINX Plus Ingress Controllers. Based on the Helm chart for NGI",
+      "star_count": 4,
+      "pull_count": 1229188,
+      "repo_owner": "",
+      "is_automated": false,
+      "is_official": false
+    }
+  ]
+}

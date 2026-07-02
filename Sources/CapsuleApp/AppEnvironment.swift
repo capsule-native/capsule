@@ -10,6 +10,7 @@ import CapsuleBackend
 import CapsuleCLIBackend
 import CapsuleDiagnostics
 import CapsuleDomain
+import CapsuleRegistryClient
 import CapsuleTerminal
 import CapsuleUI
 import Foundation
@@ -31,6 +32,7 @@ public struct AppEnvironment {
     public var statsModel: ContainerStatsModel
     public var imageBrowserModel: ImageBrowserModel
     public var imageActionsModel: ImageActionsModel
+    public var registrySearchModel: RegistrySearchModel
     public var networkBrowserModel: NetworkBrowserModel
     public var networkActionsModel: NetworkActionsModel
     public var machineBrowserModel: MachineBrowserModel
@@ -63,6 +65,7 @@ public struct AppEnvironment {
         statsModel: ContainerStatsModel,
         imageBrowserModel: ImageBrowserModel,
         imageActionsModel: ImageActionsModel,
+        registrySearchModel: RegistrySearchModel,
         networkBrowserModel: NetworkBrowserModel,
         networkActionsModel: NetworkActionsModel,
         machineBrowserModel: MachineBrowserModel,
@@ -94,6 +97,7 @@ public struct AppEnvironment {
         self.statsModel = statsModel
         self.imageBrowserModel = imageBrowserModel
         self.imageActionsModel = imageActionsModel
+        self.registrySearchModel = registrySearchModel
         self.networkBrowserModel = networkBrowserModel
         self.networkActionsModel = networkActionsModel
         self.machineBrowserModel = machineBrowserModel
@@ -135,6 +139,7 @@ public struct AppEnvironment {
         let cliBackend = CLIContainerBackend()
         return make(
             backend: cliBackend,
+            registry: DockerHubClient(),
             containerExecutablePath: cliBackend.executableURL.path,
             updater: updater)
     }
@@ -153,6 +158,7 @@ public struct AppEnvironment {
             : MockBackend()
         return make(
             backend: backend,
+            registry: MockImageRegistry.sample(),
             containerExecutablePath: "container",
             updater: NoopUpdaterController())
     }
@@ -162,6 +168,7 @@ public struct AppEnvironment {
     /// handoffs — unused in mock mode.
     static func make(
         backend: any ContainerBackend,
+        registry: any ImageRegistrySearching,
         containerExecutablePath: String,
         updater: any UpdaterController
     ) -> AppEnvironment {
@@ -198,6 +205,7 @@ public struct AppEnvironment {
             reloadList: { await imageBrowserModel.refresh() },
             taskCenter: taskCenter
         )
+        let registrySearchModel = RegistrySearchModel(client: registry)
         let networkBrowserModel = NetworkBrowserModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },
@@ -362,6 +370,7 @@ public struct AppEnvironment {
             statsModel: statsModel,
             imageBrowserModel: imageBrowserModel,
             imageActionsModel: imageActionsModel,
+            registrySearchModel: registrySearchModel,
             networkBrowserModel: networkBrowserModel,
             networkActionsModel: networkActionsModel,
             machineBrowserModel: machineBrowserModel,
