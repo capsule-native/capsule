@@ -104,9 +104,7 @@ public struct AppShellView: View {
         NavigationSplitView {
             SidebarView(
                 shell: shell,
-                availableFeatures: systemModel.health.availableFeatures,
-                bannerKind: systemModel.health.bannerKind,
-                statusLabel: systemModel.health.localizedStatusLabel
+                availableFeatures: systemModel.health.availableFeatures
             )
         } detail: {
             detailColumn
