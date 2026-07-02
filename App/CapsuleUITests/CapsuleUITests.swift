@@ -17,12 +17,21 @@ final class CapsuleUITests: XCTestCase {
     }
 
     /// Launches the app in deterministic UI-test mode. `scenario` picks the seeded backend
-    /// state: nil/"healthy" (default) or "serviceDown".
+    /// state: nil/"healthy" (default) or "serviceDown". `onboarding`, when non-nil, forces the
+    /// first-launch onboarding sheet's `@AppStorage("capsule.hasCompletedOnboarding")` gate via
+    /// a volatile `NSArgumentDomain` override (`UserDefaults.standard` layers argument-domain
+    /// values on top of anything persisted from a prior launch on this machine/CI job): `true`
+    /// forces the sheet to SHOW (`hasCompletedOnboarding = NO`), `false` forces it HIDDEN
+    /// (`hasCompletedOnboarding = YES`). Leaving it nil preserves today's state-dependent
+    /// behavior.
     @MainActor
-    private func launchApp(scenario: String? = nil) -> XCUIApplication {
+    private func launchApp(scenario: String? = nil, onboarding: Bool? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["CAPSULE_UITEST"] = "1"
         if let scenario { app.launchEnvironment["CAPSULE_UITEST_SCENARIO"] = scenario }
+        if let onboarding {
+            app.launchArguments += ["-capsule.hasCompletedOnboarding", onboarding ? "NO" : "YES"]
+        }
         app.launch()
         XCTAssertTrue(
             app.wait(for: .runningForeground, timeout: 20),
@@ -40,25 +49,6 @@ final class CapsuleUITests: XCTestCase {
         app.descendants(matching: .any)
             .matching(NSPredicate(format: "label == %@", label))
             .firstMatch
-    }
-
-    /// Dismisses the first-launch onboarding sheet if it happens to be showing. Its
-    /// `@AppStorage` gate persists in `UserDefaults` across launches on a given machine/CI
-    /// job, so whether onboarding appears for a given test is state-dependent — tests that
-    /// need to interact with the shell behind it must clear it first. "Get Started" shows
-    /// when the seeded service is running; "Continue" is the always-enabled fallback for the
-    /// stopped/not-installed scenarios.
-    @MainActor
-    private func dismissOnboardingIfPresent(_ app: XCUIApplication) {
-        let getStarted = labeled("Get Started", in: app)
-        if getStarted.waitForExistence(timeout: 3) {
-            getStarted.click()
-            return
-        }
-        let cont = labeled("Continue", in: app)
-        if cont.waitForExistence(timeout: 2) {
-            cont.click()
-        }
     }
 
     // MARK: - Launch & shell
@@ -218,7 +208,7 @@ final class CapsuleUITests: XCTestCase {
 
     @MainActor
     func testCLIMissingShowsNotInstalledBannerWithInstall() {
-        let app = launchApp(scenario: "cliMissing")
+        let app = launchApp(scenario: "cliMissing", onboarding: true)
         let banner = element("system-health-banner", in: app)
         XCTAssertTrue(
             banner.waitForExistence(timeout: 15), "the system-health banner should be present")
@@ -229,24 +219,21 @@ final class CapsuleUITests: XCTestCase {
         // container…"/"Open Logs" recovery buttons are folded into the single combined banner
         // element (confirmed via an Accessibility-Inspector-style probe: the banner reports
         // zero AX children), so they are not independently queryable by label or by scoping
-        // into the banner. Onboarding (state-dependent: its `@AppStorage` gate persists across
-        // launches, so it may or may not be showing) offers the same recovery as a standalone,
-        // identified button — assert on that when it is showing; the banner-label assertion
-        // above already covers the not-installed signal deterministically either way.
+        // into the banner. Onboarding offers the same recovery as a standalone, identified
+        // button; the launch above forces its `@AppStorage` gate open via the NSArgumentDomain
+        // override so the assertion is deterministic regardless of any state persisted in
+        // UserDefaults from a prior launch on this machine/CI job.
         let onboardingInstall = element("onboarding-install-cli", in: app)
-        if onboardingInstall.waitForExistence(timeout: 5) {
-            XCTAssertTrue(
-                onboardingInstall.exists,
-                "onboarding should offer an Install container… recovery control")
-        }
+        XCTAssertTrue(
+            onboardingInstall.waitForExistence(timeout: 5),
+            "onboarding should offer an Install container… recovery control")
     }
 
     // MARK: - System ▸ About
 
     @MainActor
     func testSystemAboutOffersUpdateContainer() {
-        let app = launchApp()
-        dismissOnboardingIfPresent(app)
+        let app = launchApp(onboarding: false)
         let sidebarSystem = element("sidebar-system", in: app)
         XCTAssertTrue(sidebarSystem.waitForExistence(timeout: 15))
         sidebarSystem.click()
