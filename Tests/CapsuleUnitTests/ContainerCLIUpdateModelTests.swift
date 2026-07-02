@@ -88,6 +88,14 @@ final class ContainerCLIUpdateModelTests: XCTestCase {
         XCTAssertTrue(openedInstallers.isEmpty)
     }
 
+    func testInstallLatestIgnoresOverlappingCalls() async {
+        let model = makeModel()
+        model.installLatest()
+        model.installLatest()
+        XCTAssertEqual(taskCenter.tasks.count, 1)
+        await taskCenter.tasks[0].wait()
+    }
+
     func testRunUpdaterHandsExactScriptToTerminal() {
         let model = makeModel(scriptExists: true)
         model.runUpdater()

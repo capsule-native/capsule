@@ -13,6 +13,7 @@ import SwiftUI
 struct AboutDiagnosticsView: View {
     @Bindable var model: AboutModel
     let cliUpdate: ContainerCLIUpdateModel
+    let updateDisabled: Bool
     let onExportDiagnostics: () -> Void
 
     @State private var showUpdateSheet = false
@@ -43,6 +44,7 @@ struct AboutDiagnosticsView: View {
                         HStack {
                             Button("Update container…") { showUpdateSheet = true }
                                 .accessibilityIdentifier("about-update-container-button")
+                                .disabled(updateDisabled)
                             Spacer()
                         }
                     }

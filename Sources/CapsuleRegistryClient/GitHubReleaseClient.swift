@@ -90,6 +90,10 @@ public struct GitHubReleaseClient: ContainerReleaseSource {
                         throw ContainerReleaseError.network(
                             message: "Invalid download URL for \(asset.name).")
                     }
+                    guard url.scheme == "https" else {
+                        throw ContainerReleaseError.network(
+                            message: "Refusing non-HTTPS download URL for \(asset.name).")
+                    }
                     var request = URLRequest(url: url)
                     request.setValue("Capsule (macOS)", forHTTPHeaderField: "User-Agent")
                     let (bytes, response) = try await session.bytes(for: request)

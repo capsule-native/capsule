@@ -89,4 +89,20 @@ final class GitHubReleaseClientTests: XCTestCase {
             }
         } catch { XCTFail("unexpected error \(error)") }
     }
+
+    func testDownloadPackageRefusesNonHTTPSURL() async throws {
+        let asset = ContainerCLIReleaseAsset(
+            name: "container-installer-signed.pkg", downloadURL: "http://example.com/installer.pkg")
+        let destination = FileManager.default.temporaryDirectory.appendingPathComponent(
+            UUID().uuidString)
+
+        do {
+            for try await _ in client.downloadPackage(asset, to: destination) {}
+            XCTFail("expected a throw")
+        } catch let error as ContainerReleaseError {
+            guard case .network = error else {
+                return XCTFail("expected .network, got \(error)")
+            }
+        } catch { XCTFail("unexpected error \(error)") }
+    }
 }

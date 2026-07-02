@@ -87,6 +87,10 @@ public final class ContainerCLIUpdateModel {
     /// opens it in Installer on success. The user completes installation there (native
     /// administrator prompt + package signature validation).
     public func installLatest() {
+        guard !taskCenter.activeTasks.contains(where: { $0.kind == .cliInstall }) else {
+            onActivity("An installer download is already running.")
+            return
+        }
         let source = releaseSource
         let directory = FileManager.default.temporaryDirectory
         downloadedInstallerURL = nil
