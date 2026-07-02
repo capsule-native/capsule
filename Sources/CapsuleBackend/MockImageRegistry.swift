@@ -95,11 +95,19 @@ extension MockImageRegistry {
             repositories: [
                 RegistryRepositorySummary(
                     name: "nginx", shortDescription: "Official build of Nginx.",
-                    starCount: 21318, pullCount: 13_114_222_271, isOfficial: true),
+                    starCount: 21318, pullCount: 13_114_222_271, isOfficial: true,
+                    logoURL:
+                        "https://djeqr6to3dedg.cloudfront.net/repo-logos/library/nginx/live/logo-1763770349851.png"
+                ),
                 RegistryRepositorySummary(
                     name: "nginx/nginx-ingress",
                     shortDescription: "NGINX Ingress Controllers for Kubernetes",
-                    starCount: 121, pullCount: 1_085_932_916, isOfficial: false),
+                    starCount: 121, pullCount: 1_085_932_916, isOfficial: false,
+                    logoURL:
+                        "https://www.gravatar.com/avatar/6a6c67f4815a0379d3b697174b4f6805?s=80&r=g&d=mm"
+                ),
+                // Deliberately logo-less, so previews and UI-test mode exercise the
+                // default artwork path.
                 RegistryRepositorySummary(
                     name: "redis",
                     shortDescription: "Redis is an open-source in-memory data store.",

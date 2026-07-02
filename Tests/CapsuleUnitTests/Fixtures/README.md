@@ -26,3 +26,4 @@ decoders without ever spawning the CLI in unit tests.
 Decoders read only the subset of fields Capsule renders, so these fixtures
 intentionally carry extra keys the decoders ignore — proving the subset-decode is
 resilient to schema drift in unrelated fields.
+| `hub-v3-catalog-search.json` | **Real capture** — `GET https://hub.docker.com/api/search/v3/catalog/search?query=nginx&from=0&size=25&type=image` (Docker Hub v3 catalog API, 2026-07-02), trimmed to 4 full rows: `dhi/nginx` (unjoinable extras like `rate_plans` prove subset-decode), `library/nginx` (uploaded CDN logo), `nginx/nginx-ingress` (gravatar fallback logo), and `rancher/nginx` (no `logo_url` at all). Used ONLY for the best-effort logo join. |

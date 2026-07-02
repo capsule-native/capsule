@@ -235,6 +235,7 @@ private struct RegistryRepositoryRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            RepositoryAvatarView(url: repository.logoURL)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     Text(verbatim: repository.name)
@@ -292,6 +293,43 @@ private struct RegistryRepositoryRow: View {
         } else {
             Text(verbatim: "—")
         }
+    }
+}
+
+/// A repository's logo/avatar, or the default artwork when the registry has none (or the
+/// image fails to load). Purely decorative — hidden from accessibility; the row's text
+/// carries all the information.
+private struct RepositoryAvatarView: View {
+    let url: URL?
+
+    private static let side: CGFloat = 28
+
+    var body: some View {
+        Group {
+            if let url {
+                AsyncImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFit()
+                    } else {
+                        defaultArtwork
+                    }
+                }
+            } else {
+                defaultArtwork
+            }
+        }
+        .frame(width: Self.side, height: Self.side)
+        .background(CapsuleColors.activitySurface)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .accessibilityHidden(true)
+    }
+
+    private var defaultArtwork: some View {
+        Image(systemName: "shippingbox")
+            .font(.system(size: 14))
+            .foregroundStyle(.secondary)
     }
 }
 

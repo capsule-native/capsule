@@ -1,0 +1,342 @@
+{
+  "total": 285901,
+  "results": [
+    {
+      "id": "dhi/nginx",
+      "name": "Nginx",
+      "slug": "dhi/nginx",
+      "type": "dhi",
+      "publisher": {
+        "id": "b3ca4e261ea244c3a662a24602a90a2a",
+        "name": "dhi"
+      },
+      "created_at": "2025-03-13T08:09:23.111065Z",
+      "updated_at": "2026-07-02T00:38:43.417865Z",
+      "short_description": "nginx (\"engine x\") is an HTTP web server, reverse proxy, content cache, load balancer, TCP/UDP proxy server, and mail proxy server.",
+      "source": "verified_publisher",
+      "star_count": 0,
+      "rate_plans": [
+        {
+          "id": "dhi/nginx",
+          "repositories": [
+            {
+              "name": "nginx",
+              "namespace": "dhi",
+              "description": "A minimal Nginx image",
+              "type": "image",
+              "pull_count": "1M+",
+              "is_automated": false,
+              "is_official": false,
+              "is_trusted": false,
+              "last_pushed_at": "2026-07-02T04:02:15.999376Z",
+              "last_pulled_at": "2026-07-02T04:00:23.879298Z",
+              "archived": false
+            }
+          ],
+          "operating_systems": [
+            {
+              "name": "linux",
+              "label": "Linux"
+            }
+          ],
+          "architectures": [
+            {
+              "name": "amd64",
+              "label": "x86-64"
+            },
+            {
+              "name": "arm64",
+              "label": "ARM 64"
+            }
+          ]
+        }
+      ],
+      "logo_url": {
+        "large": "https://djeqr6to3dedg.cloudfront.net/repo-logos/dhi/nginx/live/logo-1782952723803",
+        "small": "https://djeqr6to3dedg.cloudfront.net/repo-logos/dhi/nginx/live/logo-1782952723803"
+      },
+      "extension_reviewed": false,
+      "categories": [
+        {
+          "slug": "Web servers",
+          "name": "Web servers"
+        }
+      ],
+      "archived": false,
+      "media_types": [
+        "application/vnd.oci.image.index.v1+json"
+      ],
+      "content_types": [
+        "image"
+      ]
+    },
+    {
+      "id": "library/nginx",
+      "name": "nginx",
+      "slug": "nginx",
+      "type": "image",
+      "publisher": {
+        "id": "33ef574274c011e4bea40242ac11001b",
+        "name": "library"
+      },
+      "created_at": "2014-06-05T19:14:45Z",
+      "updated_at": "2026-06-25T22:52:43.280236Z",
+      "short_description": "Official build of Nginx.",
+      "source": "store",
+      "star_count": 21318,
+      "rate_plans": [
+        {
+          "id": "library/nginx",
+          "repositories": [
+            {
+              "name": "nginx",
+              "namespace": "library",
+              "description": "Official build of Nginx.",
+              "type": "image",
+              "pull_count": "1B+",
+              "is_automated": false,
+              "is_official": true,
+              "is_trusted": false,
+              "last_pushed_at": "2026-06-25T22:52:43.280236Z",
+              "last_pulled_at": "2026-06-27T23:59:35.036126Z",
+              "archived": false
+            }
+          ],
+          "operating_systems": [
+            {
+              "name": "linux",
+              "label": "Linux"
+            },
+            {
+              "name": "unknown",
+              "label": "unknown"
+            }
+          ],
+          "architectures": [
+            {
+              "name": "386",
+              "label": "386"
+            },
+            {
+              "name": "arm64",
+              "label": "ARM 64"
+            },
+            {
+              "name": "ppc64le",
+              "label": "ppc64le"
+            },
+            {
+              "name": "s390x",
+              "label": "IBM Z"
+            },
+            {
+              "name": "amd64",
+              "label": "x86-64"
+            },
+            {
+              "name": "arm",
+              "label": "arm"
+            },
+            {
+              "name": "mips64le",
+              "label": "mips64le"
+            },
+            {
+              "name": "riscv64",
+              "label": "riscv64"
+            },
+            {
+              "name": "unknown",
+              "label": "unknown"
+            }
+          ]
+        }
+      ],
+      "logo_url": {
+        "large": "https://djeqr6to3dedg.cloudfront.net/repo-logos/library/nginx/live/logo-1763770349851.png",
+        "small": "https://djeqr6to3dedg.cloudfront.net/repo-logos/library/nginx/live/logo-1763770349851.png"
+      },
+      "extension_reviewed": false,
+      "categories": [
+        {
+          "slug": "web-servers",
+          "name": "Web servers"
+        }
+      ],
+      "archived": false,
+      "media_types": [
+        "application/octet-stream",
+        "application/vnd.docker.container.image.v1+json",
+        "application/vnd.docker.distribution.manifest.list.v2+json",
+        "application/vnd.docker.distribution.manifest.v1+prettyjws",
+        "application/vnd.oci.image.index.v1+json"
+      ],
+      "content_types": [
+        "unrecognized",
+        "image"
+      ]
+    },
+    {
+      "id": "nginx/nginx-ingress",
+      "name": "nginx/nginx-ingress",
+      "slug": "nginx/nginx-ingress",
+      "type": "image",
+      "publisher": {
+        "id": "4fc42e3e74c011e4bea40242ac11001b",
+        "name": "NGINX Inc."
+      },
+      "created_at": "2018-04-13T14:35:20.051378Z",
+      "updated_at": "2026-07-01T17:10:55.99809Z",
+      "short_description": "NGINX and  NGINX Plus Ingress Controllers for Kubernetes",
+      "source": "verified_publisher",
+      "star_count": 121,
+      "rate_plans": [
+        {
+          "id": "nginx/nginx-ingress",
+          "repositories": [
+            {
+              "name": "nginx-ingress",
+              "namespace": "nginx",
+              "description": "NGINX and  NGINX Plus Ingress Controllers for Kubernetes",
+              "type": "image",
+              "pull_count": "1B+",
+              "is_automated": false,
+              "is_official": false,
+              "is_trusted": false,
+              "last_pushed_at": "2026-07-01T17:10:55.99809Z",
+              "last_pulled_at": "2026-07-01T17:10:25.369977Z",
+              "archived": false
+            }
+          ],
+          "operating_systems": [
+            {
+              "name": "linux",
+              "label": "Linux"
+            },
+            {
+              "name": "unknown",
+              "label": "unknown"
+            }
+          ],
+          "architectures": [
+            {
+              "name": "amd64",
+              "label": "x86-64"
+            },
+            {
+              "name": "arm",
+              "label": "arm"
+            },
+            {
+              "name": "arm64",
+              "label": "ARM 64"
+            },
+            {
+              "name": "ppc64le",
+              "label": "ppc64le"
+            },
+            {
+              "name": "s390x",
+              "label": "IBM Z"
+            },
+            {
+              "name": "unknown",
+              "label": "unknown"
+            }
+          ]
+        }
+      ],
+      "logo_url": {
+        "large": "https://www.gravatar.com/avatar/6a6c67f4815a0379d3b697174b4f6805?s=80&r=g&d=mm",
+        "small": "https://www.gravatar.com/avatar/6a6c67f4815a0379d3b697174b4f6805?s=80&r=g&d=mm"
+      },
+      "extension_reviewed": false,
+      "categories": [],
+      "archived": false,
+      "media_types": [
+        "application/vnd.docker.container.image.v1+json",
+        "application/vnd.docker.distribution.manifest.list.v2+json",
+        "application/vnd.oci.image.index.v1+json"
+      ],
+      "content_types": [
+        "image"
+      ]
+    },
+    {
+      "id": "rancher/nginx",
+      "name": "rancher/nginx",
+      "slug": "rancher/nginx",
+      "type": "image",
+      "publisher": {
+        "id": "2180c25274c111e4bea40242ac11001b",
+        "name": "Rancher by SUSE"
+      },
+      "created_at": "2015-09-16T07:05:52.46385Z",
+      "updated_at": "2026-05-27T17:47:36.146401Z",
+      "short_description": "",
+      "source": "verified_publisher",
+      "star_count": 4,
+      "rate_plans": [
+        {
+          "id": "rancher/nginx",
+          "repositories": [
+            {
+              "name": "nginx",
+              "namespace": "rancher",
+              "description": "",
+              "type": "image",
+              "pull_count": "10M+",
+              "is_automated": false,
+              "is_official": false,
+              "is_trusted": false,
+              "last_pushed_at": "2026-05-27T17:47:36.146401Z",
+              "last_pulled_at": "2026-06-27T23:59:33.769163Z",
+              "archived": false
+            }
+          ],
+          "operating_systems": [
+            {
+              "name": "linux",
+              "label": "Linux"
+            },
+            {
+              "name": "unknown",
+              "label": "unknown"
+            }
+          ],
+          "architectures": [
+            {
+              "name": "amd64",
+              "label": "x86-64"
+            },
+            {
+              "name": "arm64",
+              "label": "ARM 64"
+            },
+            {
+              "name": "s390x",
+              "label": "IBM Z"
+            },
+            {
+              "name": "unknown",
+              "label": "unknown"
+            }
+          ]
+        }
+      ],
+      "logo_url": {},
+      "extension_reviewed": false,
+      "categories": [],
+      "archived": false,
+      "media_types": [
+        "application/vnd.docker.container.image.v1+json",
+        "application/vnd.docker.distribution.manifest.list.v2+json",
+        "application/vnd.docker.distribution.manifest.v1+prettyjws",
+        "application/vnd.oci.image.index.v1+json"
+      ],
+      "content_types": [
+        "image"
+      ]
+    }
+  ]
+}
