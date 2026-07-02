@@ -77,6 +77,7 @@ extension SystemHealth {
         case .running: return uiString("Running")
         case .stopped: return uiString("Stopped")
         case .unavailable: return uiString("Unavailable")
+        case .notInstalled: return uiString("Not Installed")
         }
     }
 }

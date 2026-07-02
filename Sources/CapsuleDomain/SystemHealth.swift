@@ -61,6 +61,9 @@ public enum SystemHealth: Sendable, Equatable {
     case stopped
     /// The service is unreachable or errored; carries a presentation-ready detail.
     case unavailable(ErrorDetail)
+    /// The `container` CLI binary itself is not installed; carries a presentation-ready
+    /// detail whose recovery actions offer installation.
+    case notInstalled(ErrorDetail)
 
     /// Whether runtime commands can be issued (the service is up).
     public var isRunning: Bool {
@@ -87,7 +90,7 @@ public enum SystemHealth: Sendable, Equatable {
     public var bannerKind: BannerKind {
         switch self {
         case .running: return .healthy
-        case .stopped, .unavailable: return .unhealthy
+        case .stopped, .unavailable, .notInstalled: return .unhealthy
         case .unknown, .checking: return .info
         }
     }
@@ -100,6 +103,7 @@ public enum SystemHealth: Sendable, Equatable {
         case .running: return "Running"
         case .stopped: return "Stopped"
         case .unavailable: return "Unavailable"
+        case .notInstalled: return "Not Installed"
         }
     }
 }

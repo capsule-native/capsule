@@ -49,6 +49,18 @@ public struct OnboardingView: View {
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
                         .keyboardShortcut(.defaultAction)
+                } else if case .notInstalled = health {
+                    Button("Install container…") { actions.recover(.installContainerCLI) }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .accessibilityIdentifier("onboarding-install-cli")
+                    Button("Check Again") { actions.recover(.retry) }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                    Button("Continue", action: onFinish)
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .keyboardShortcut(.defaultAction)
                 } else {
                     Button("Start Services") { actions.recover(.startServices) }
                         .buttonStyle(.borderedProminent)
@@ -82,12 +94,17 @@ public struct OnboardingView: View {
     }
 
     private var cardTitle: String {
-        health.isRunning ? "Container services are running" : "Container services are not running"
+        if case .notInstalled = health { return "The container CLI is not installed" }
+        return health.isRunning
+            ? "Container services are running" : "Container services are not running"
     }
 
     private var cardMessage: String {
         if case let .running(version, _) = health {
             return "Connected to container \(version.client)."
+        }
+        if case .notInstalled = health {
+            return "Capsule can download and install the latest signed release from GitHub."
         }
         return "Start the service now, or do it later from the System section."
     }

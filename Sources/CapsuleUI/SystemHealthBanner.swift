@@ -111,6 +111,9 @@ public struct SystemHealthBanner: View {
 
         case let .unavailable(detail):
             return BannerText(title: detail.title, message: detail.explanation, kind: .unhealthy)
+
+        case let .notInstalled(detail):
+            return BannerText(title: detail.title, message: detail.explanation, kind: .unhealthy)
         }
     }
 
@@ -122,6 +125,8 @@ public struct SystemHealthBanner: View {
         case .stopped:
             return [.startServices, .openLogs]
         case let .unavailable(detail):
+            return detail.recoveryActions
+        case let .notInstalled(detail):
             return detail.recoveryActions
         }
     }
