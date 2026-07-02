@@ -43,6 +43,11 @@ public struct DockerHubClient: ImageRegistrySearching {
     /// Docker Hub's page size for both endpoints; the domain's pagination assumes it.
     public static let pageSize = 25
 
+    /// How many v3 catalog rows the logo lookup requests per page — double the page size,
+    /// because the v2 and v3 rankings diverge slightly and the join is by id. Rows the
+    /// window misses simply keep the UI's default artwork.
+    public static let logoLookupSize = 50
+
     private let fetcher: any HTTPDataFetching
 
     public init() {
@@ -59,6 +64,11 @@ public struct DockerHubClient: ImageRegistrySearching {
     ) async throws
         -> RegistryRepositoryPage
     {
+        // The v2 search stays the backbone (ranking, numeric pull counts, the official
+        // flag); logos ride along from one concurrent, best-effort v3 catalog request —
+        // losing that request must never fail the page. Together with the upstream
+        // debounce/cache machinery, a search page costs exactly two rate-limit units.
+        async let logoLookup = logoIndex(query: query, page: page)
         var components = Self.baseComponents
         components.path = "/v2/search/repositories/"
         components.queryItems = [
@@ -68,6 +78,7 @@ public struct DockerHubClient: ImageRegistrySearching {
         ]
         let data = try await fetch(components)
         let response = try Self.decode(HubSearchResponse.self, from: data)
+        let logos = await logoLookup
         let items = (response.results ?? []).compactMap(\.value)
             .compactMap { (result: HubSearchResult) -> RegistryRepositorySummary? in
                 guard let name = result.repoName, !name.isEmpty else { return nil }
@@ -78,7 +89,8 @@ public struct DockerHubClient: ImageRegistrySearching {
                     },
                     starCount: result.starCount,
                     pullCount: result.pullCount,
-                    isOfficial: result.isOfficial ?? false
+                    isOfficial: result.isOfficial ?? false,
+                    logoURL: logos[Self.namespacedKey(name)]
                 )
             }
         return RegistryRepositoryPage(
@@ -86,6 +98,36 @@ public struct DockerHubClient: ImageRegistrySearching {
             totalCount: response.count,
             hasNextPage: Self.hasNext(response.next)
         )
+    }
+
+    /// Fetches the v3 catalog's logo URLs for `query`, keyed by namespaced repository id
+    /// ("library/nginx"). Best-effort by design: any failure — throttle, outage, drifted
+    /// schema — yields an empty index and the rows keep the UI's default artwork.
+    private func logoIndex(query: String, page: Int) async -> [String: String] {
+        var components = Self.baseComponents
+        components.path = "/api/search/v3/catalog/search"
+        components.queryItems = [
+            URLQueryItem(name: "query", value: query),
+            URLQueryItem(name: "from", value: String((page - 1) * Self.pageSize)),
+            URLQueryItem(name: "size", value: String(Self.logoLookupSize)),
+            URLQueryItem(name: "type", value: "image"),
+        ]
+        guard let data = try? await fetch(components),
+            let response = try? Self.decode(HubCatalogSearchResponse.self, from: data)
+        else { return [:] }
+        var index: [String: String] = [:]
+        for result in (response.results ?? []).compactMap(\.value) {
+            guard let id = result.id, !id.isEmpty else { continue }
+            guard let logo = result.logoUrl?.small ?? result.logoUrl?.large, !logo.isEmpty
+            else { continue }
+            index[id] = logo
+        }
+        return index
+    }
+
+    /// v3 catalog ids are always namespaced; v2 names for official images are bare.
+    private static func namespacedKey(_ name: String) -> String {
+        name.contains("/") ? name : "library/\(name)"
     }
 
     public func listTags(repository: String, page: Int) async throws -> RegistryTagPage {
@@ -236,4 +278,21 @@ private struct HubTagResult: Decodable {
 
 private struct HubErrorBody: Decodable {
     var message: String?
+}
+
+/// The v3 catalog search (`/api/search/v3/catalog/search`) — used ONLY as a best-effort
+/// logo index; the v2 endpoint stays the search of record (numeric pull counts, official
+/// flags, stable ranking).
+private struct HubCatalogSearchResponse: Decodable {
+    var results: [Lossy<HubCatalogResult>]?
+}
+
+private struct HubCatalogResult: Decodable {
+    var id: String?
+    var logoUrl: HubLogoURL?
+}
+
+private struct HubLogoURL: Decodable {
+    var small: String?
+    var large: String?
 }

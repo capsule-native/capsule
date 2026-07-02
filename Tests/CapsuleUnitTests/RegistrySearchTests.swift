@@ -53,7 +53,8 @@ final class RegistrySearchTests: XCTestCase {
     func testRepositorySummaryMappingCarriesAllFields() {
         let summary = RegistryRepositorySummary(
             name: "nginx", shortDescription: "Official build of Nginx.", starCount: 21318,
-            pullCount: 13_114_222_271, isOfficial: true)
+            pullCount: 13_114_222_271, isOfficial: true,
+            logoURL: "https://example.com/nginx-logo.png")
         let repository = RegistryRepository(summary: summary)
         XCTAssertEqual(repository.name, "nginx", "the wire name maps straight across")
         XCTAssertEqual(
@@ -63,6 +64,19 @@ final class RegistrySearchTests: XCTestCase {
         XCTAssertEqual(
             repository.pullCount, 13_114_222_271, "the pull count maps straight across")
         XCTAssertTrue(repository.isOfficial, "the official flag maps straight across")
+        XCTAssertEqual(
+            repository.logoURL, URL(string: "https://example.com/nginx-logo.png"),
+            "the raw logo string parses into a URL")
+    }
+
+    func testRepositorySummaryMappingTolerantOfMissingOrUnparseableLogo() {
+        XCTAssertNil(
+            RegistryRepository(summary: RegistryRepositorySummary(name: "nginx")).logoURL,
+            "no wire logo means default artwork, not a crash")
+        let garbage = RegistryRepositorySummary(name: "nginx", logoURL: "ht tp://\u{7f}")
+        XCTAssertNil(
+            RegistryRepository(summary: garbage).logoURL,
+            "an unparseable logo string degrades to default artwork")
     }
 
     // MARK: - RegistryTag(summary:)

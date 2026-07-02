@@ -6,9 +6,11 @@
 //
 //  Exercises `DockerHubClient` end-to-end through the `HTTPDataFetching` seam: exact
 //  request construction (URLs, method, headers, percent-encoding), defensive decoding of
-//  real hub.docker.com v2 captures (unknown fields ignored, malformed rows dropped), and
+//  real hub.docker.com captures (unknown fields ignored, malformed rows dropped), and
 //  the mapping of every transport failure into `RegistrySearchError` — with cancellation
-//  deliberately surfacing as `CancellationError` instead.
+//  deliberately surfacing as `CancellationError` instead. A search issues TWO concurrent
+//  requests (v2 backbone + best-effort v3 logo index), so URL assertions go through the
+//  stub's order-independent `request(withURLContaining:)`.
 
 import CapsuleBackend
 import Foundation
@@ -33,7 +35,9 @@ final class DockerHubClientTests: XCTestCase {
 
         _ = try await client.searchRepositories(query: "nginx", page: 1)
 
-        let request = try XCTUnwrap(fetcher.lastRequest, "the client must issue one request")
+        let request = try XCTUnwrap(
+            fetcher.request(withURLContaining: "/v2/search/repositories/"),
+            "the client must issue the v2 search request")
         XCTAssertEqual(
             request.url?.absoluteString,
             "https://hub.docker.com/v2/search/repositories/?query=nginx&page=1&page_size=25",
@@ -42,6 +46,20 @@ final class DockerHubClientTests: XCTestCase {
         XCTAssertEqual(
             request.value(forHTTPHeaderField: "Accept"), "application/json",
             "the client must ask the hub for JSON explicitly")
+        XCTAssertEqual(
+            fetcher.requests.count, 2,
+            "a search costs exactly two requests: the v2 page and the v3 logo index")
+    }
+
+    func testLogoLookupBuildsExactV3URL() async throws {
+        fetcher.seed(Fixture.data("hub-search-repositories-empty"))
+
+        _ = try await client.searchRepositories(query: "nginx", page: 2)
+
+        XCTAssertEqual(
+            fetcher.request(withURLContaining: "/api/search/v3/")?.url?.absoluteString,
+            "https://hub.docker.com/api/search/v3/catalog/search?query=nginx&from=25&size=50&type=image",
+            "the logo index pages with from/size and filters to images")
     }
 
     func testSearchPercentEncodesTheQuery() async throws {
@@ -50,7 +68,7 @@ final class DockerHubClientTests: XCTestCase {
         _ = try await client.searchRepositories(query: "hello world", page: 1)
 
         XCTAssertEqual(
-            fetcher.lastRequest?.url?.absoluteString,
+            fetcher.request(withURLContaining: "/v2/search/")?.url?.absoluteString,
             "https://hub.docker.com/v2/search/repositories/?query=hello%20world&page=1&page_size=25",
             "a space in the query must be percent-encoded, not sent raw")
     }
@@ -61,9 +79,13 @@ final class DockerHubClientTests: XCTestCase {
         _ = try await client.searchRepositories(query: "c++", page: 1)
 
         XCTAssertEqual(
-            fetcher.lastRequest?.url?.absoluteString,
+            fetcher.request(withURLContaining: "/v2/search/")?.url?.absoluteString,
             "https://hub.docker.com/v2/search/repositories/?query=c%2B%2B&page=1&page_size=25",
             "a raw '+' would be form-decoded as a space by the hub, silently changing the query")
+        XCTAssertEqual(
+            fetcher.request(withURLContaining: "/api/search/v3/")?.url?.absoluteString,
+            "https://hub.docker.com/api/search/v3/catalog/search?query=c%2B%2B&from=0&size=50&type=image",
+            "the logo lookup shares the '+' re-encoding fixup")
     }
 
     func testTagsBuildsExactURLWithPageSizeBeforePage() async throws {
@@ -144,6 +166,59 @@ final class DockerHubClientTests: XCTestCase {
             "the manifest digest must carry through untouched")
         XCTAssertTrue(page.hasNextPage, "a non-empty next URL means another page exists")
         XCTAssertEqual(page.totalCount, 1231, "count is the hub's total tag count")
+    }
+
+    // MARK: - Logo join (v3 catalog riding along with the v2 backbone)
+
+    func testSearchJoinsV3LogosOntoV2RowsByNamespacedId() async throws {
+        fetcher.seed(
+            Fixture.data("hub-search-repositories"), whenURLContains: "/v2/search/")
+        fetcher.seed(
+            Fixture.data("hub-v3-catalog-search"), whenURLContains: "/api/search/v3/")
+
+        let page = try await client.searchRepositories(query: "nginx", page: 1)
+
+        let official = try XCTUnwrap(page.items.first)
+        XCTAssertEqual(
+            official.logoURL,
+            "https://djeqr6to3dedg.cloudfront.net/repo-logos/library/nginx/live/logo-1763770349851.png",
+            "the bare official name must join the v3 row via the implicit library namespace")
+        let namespaced = try XCTUnwrap(page.items.dropFirst().first)
+        XCTAssertEqual(
+            namespaced.logoURL,
+            "https://www.gravatar.com/avatar/6a6c67f4815a0379d3b697174b4f6805?s=80&r=g&d=mm",
+            "namespaced rows join the v3 catalog id verbatim (gravatar fallbacks included)")
+        let uncovered = try XCTUnwrap(page.items.dropFirst(2).first)
+        XCTAssertNil(
+            uncovered.logoURL,
+            "rows outside the v3 window (or without a logo_url) stay nil for default artwork"
+        )
+    }
+
+    func testSearchSurvivesLogoLookupHTTPFailure() async throws {
+        fetcher.seed(
+            Fixture.data("hub-search-repositories"), whenURLContains: "/v2/search/")
+        fetcher.seed(Data("{}".utf8), status: 500, whenURLContains: "/api/search/v3/")
+
+        let page = try await client.searchRepositories(query: "nginx", page: 1)
+
+        XCTAssertEqual(
+            page.items.count, 4, "a failed logo lookup must never fail the search page")
+        XCTAssertTrue(
+            page.items.allSatisfy { $0.logoURL == nil },
+            "without the logo index every row falls back to default artwork")
+    }
+
+    func testSearchSurvivesLogoLookupGarbageBody() async throws {
+        fetcher.seed(
+            Fixture.data("hub-search-repositories"), whenURLContains: "/v2/search/")
+        fetcher.seed(Data("certainly not json".utf8), whenURLContains: "/api/search/v3/")
+
+        let page = try await client.searchRepositories(query: "nginx", page: 1)
+
+        XCTAssertEqual(
+            page.items.count, 4, "an undecodable logo index must never fail the search page")
+        XCTAssertTrue(page.items.allSatisfy { $0.logoURL == nil })
     }
 
     // MARK: - Defensive decoding

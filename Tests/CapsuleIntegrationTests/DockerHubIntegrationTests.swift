@@ -40,6 +40,9 @@ final class DockerHubIntegrationTests: XCTestCase {
             "the official nginx repository should be on page one")
         XCTAssertTrue(official.isOfficial)
         XCTAssertNotNil(official.pullCount, "the official image carries a pull count")
+        XCTAssertNotNil(
+            official.logoURL,
+            "the live v3 catalog join should attach library/nginx's uploaded logo")
     }
 
     func testLiveTagsForLibraryNginxParseIntoDomainDates() async throws {

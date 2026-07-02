@@ -18,18 +18,22 @@ public struct RegistryRepository: Sendable, Equatable, Identifiable {
     public var starCount: Int?
     public var pullCount: Int64?
     public var isOfficial: Bool
+    /// The repository's logo/avatar, parsed from the registry's raw string; nil (or an
+    /// unparseable string) means the UI shows its default artwork.
+    public var logoURL: URL?
 
     public var id: String { name }
 
     public init(
         name: String, shortDescription: String? = nil, starCount: Int? = nil,
-        pullCount: Int64? = nil, isOfficial: Bool = false
+        pullCount: Int64? = nil, isOfficial: Bool = false, logoURL: URL? = nil
     ) {
         self.name = name
         self.shortDescription = shortDescription
         self.starCount = starCount
         self.pullCount = pullCount
         self.isOfficial = isOfficial
+        self.logoURL = logoURL
     }
 
     /// Maps a backend summary into the domain model.
@@ -39,7 +43,8 @@ public struct RegistryRepository: Sendable, Equatable, Identifiable {
             shortDescription: summary.shortDescription,
             starCount: summary.starCount,
             pullCount: summary.pullCount,
-            isOfficial: summary.isOfficial
+            isOfficial: summary.isOfficial,
+            logoURL: summary.logoURL.flatMap(URL.init(string:))
         )
     }
 

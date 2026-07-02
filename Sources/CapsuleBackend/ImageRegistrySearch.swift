@@ -31,18 +31,23 @@ public struct RegistryRepositorySummary: Sendable, Equatable, Identifiable, Coda
     public var starCount: Int?
     public var pullCount: Int64?
     public var isOfficial: Bool
+    /// The repository's logo/avatar image URL as the registry reports it (raw string;
+    /// the domain parses it into a `URL`). Nil when the registry has none — the UI shows
+    /// its default artwork instead.
+    public var logoURL: String?
 
     public var id: String { name }
 
     public init(
         name: String, shortDescription: String? = nil, starCount: Int? = nil,
-        pullCount: Int64? = nil, isOfficial: Bool = false
+        pullCount: Int64? = nil, isOfficial: Bool = false, logoURL: String? = nil
     ) {
         self.name = name
         self.shortDescription = shortDescription
         self.starCount = starCount
         self.pullCount = pullCount
         self.isOfficial = isOfficial
+        self.logoURL = logoURL
     }
 }
 
