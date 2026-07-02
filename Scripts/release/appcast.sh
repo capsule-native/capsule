@@ -37,15 +37,25 @@ if [ -z "$GEN" ]; then
   fi
 fi
 
+# Optional: prefix the bare enclosure filenames with the public download URL (e.g. the GitHub
+# Release asset base for this tag). Without it, generate_appcast writes filenames relative to
+# the appcast's own location — wrong here, since the appcast is hosted on the Pages repo but the
+# zips live on the code repo's Release. The release workflow sets this to the tag's download URL.
+PREFIX_ARGS=()
+if [ -n "${RELEASE_DOWNLOAD_URL_PREFIX:-}" ]; then
+  PREFIX_ARGS=(--download-url-prefix "$RELEASE_DOWNLOAD_URL_PREFIX")
+  log "Enclosure URL prefix: $RELEASE_DOWNLOAD_URL_PREFIX"
+fi
+
 log "Signing artifacts + generating appcast with: $GEN"
 if [ -n "${SPARKLE_ED_KEY_FILE:-}" ]; then
-  run "$GEN" --ed-key-file "$SPARKLE_ED_KEY_FILE" "$DIST_DIR"
+  run "$GEN" --ed-key-file "$SPARKLE_ED_KEY_FILE" ${PREFIX_ARGS[@]+"${PREFIX_ARGS[@]}"} "$DIST_DIR"
 else
   # No key file → generate_appcast reads the private key from the login keychain.
-  run "$GEN" "$DIST_DIR"
+  run "$GEN" ${PREFIX_ARGS[@]+"${PREFIX_ARGS[@]}"} "$DIST_DIR"
 fi
 
 log "appcast written → $DIST_DIR/appcast.xml"
 if [ "$DRY_RUN" != "1" ] && [ -f "$DIST_DIR/appcast.xml" ]; then
-  log "Host this file at the URL in App/Info.plist's SUFeedURL."
+  log "Attached to the GitHub Release; the Pages repo's sync workflow publishes it at SUFeedURL."
 fi
