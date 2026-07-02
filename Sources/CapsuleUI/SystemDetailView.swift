@@ -17,6 +17,7 @@ struct SystemDetailView: View {
     let storageModel: StorageDashboardModel
     let serviceLogsModel: LogsModel
     let aboutModel: AboutModel
+    let cliUpdateModel: ContainerCLIUpdateModel
 
     var body: some View {
         TabView(selection: $selection) {
@@ -31,11 +32,20 @@ struct SystemDetailView: View {
                 .tag(SystemTab.serviceLogs)
             AboutDiagnosticsView(
                 model: aboutModel,
+                cliUpdate: cliUpdateModel,
+                updateDisabled: updateDisabled,
                 onExportDiagnostics: { actions.recover(.exportDiagnostics) }
             )
             .tabItem { Label("About", systemImage: "info.circle") }
             .tag(SystemTab.about)
         }
+    }
+
+    /// The Update-container button is disabled while a health probe is in flight — mirrors
+    /// the spec's "Disabled while health is `.checking`" rule.
+    private var updateDisabled: Bool {
+        if case .checking = health { return true }
+        return false
     }
 
     private var overview: some View {

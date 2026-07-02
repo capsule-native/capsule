@@ -33,6 +33,7 @@ public struct AppShellView: View {
     @Bindable var storageModel: StorageDashboardModel
     @Bindable var serviceLogsModel: LogsModel
     @Bindable var aboutModel: AboutModel
+    @Bindable var cliUpdateModel: ContainerCLIUpdateModel
     @Bindable var runModel: RunModel
     @Bindable var buildModel: BuildModel
     @Bindable var logsModel: LogsModel
@@ -61,6 +62,7 @@ public struct AppShellView: View {
         storageModel: StorageDashboardModel,
         serviceLogsModel: LogsModel,
         aboutModel: AboutModel,
+        cliUpdateModel: ContainerCLIUpdateModel,
         runModel: RunModel,
         buildModel: BuildModel,
         logsModel: LogsModel,
@@ -88,6 +90,7 @@ public struct AppShellView: View {
         self.storageModel = storageModel
         self.serviceLogsModel = serviceLogsModel
         self.aboutModel = aboutModel
+        self.cliUpdateModel = cliUpdateModel
         self.runModel = runModel
         self.buildModel = buildModel
         self.logsModel = logsModel
@@ -214,6 +217,7 @@ public struct AppShellView: View {
                 storageModel: storageModel,
                 serviceLogsModel: serviceLogsModel,
                 aboutModel: aboutModel,
+                cliUpdateModel: cliUpdateModel,
                 runModel: runModel,
                 buildModel: buildModel,
                 logsModel: logsModel,

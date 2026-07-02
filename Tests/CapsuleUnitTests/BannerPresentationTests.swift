@@ -59,4 +59,17 @@ final class BannerPresentationTests: XCTestCase {
             SystemHealthBanner.recoveryActions(for: .unavailable(detail)),
             [.openLogs, .exportDiagnostics])
     }
+
+    func testNotInstalledBannerOffersInstall() {
+        let detail = ErrorDetail(
+            title: "Container CLI not installed",
+            explanation: "The container CLI could not be found at /usr/local/bin/container.",
+            recoveryActions: [.installContainerCLI, .openLogs])
+        let text = SystemHealthBanner.bannerText(for: .notInstalled(detail), warning: nil)
+        XCTAssertEqual(text.title, "Container CLI not installed")
+        XCTAssertEqual(text.kind, .unhealthy)
+        XCTAssertEqual(
+            SystemHealthBanner.recoveryActions(for: .notInstalled(detail)),
+            [.installContainerCLI, .openLogs])
+    }
 }

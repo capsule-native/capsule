@@ -92,14 +92,14 @@ final class ErrorNormalizerTests: XCTestCase {
         XCTAssertEqual(stderr, "no such image")
     }
 
-    func testExecutableNotFoundBecomesDaemonUnavailable() {
+    func testExecutableNotFoundBecomesCLINotInstalled() {
         let error = BackendError.executableNotFound("/usr/local/bin/container")
-        guard case let .daemonUnavailable(message, recovery) = ErrorNormalizer.normalize(error)
+        guard case let .cliNotInstalled(message, recovery) = ErrorNormalizer.normalize(error)
         else {
-            return XCTFail("expected .daemonUnavailable")
+            return XCTFail("expected .cliNotInstalled")
         }
         XCTAssertTrue(message.contains("/usr/local/bin/container"))
-        XCTAssertTrue(recovery.contains(.exportDiagnostics))
+        XCTAssertEqual(recovery, [.installContainerCLI, .openLogs])
     }
 
     func testDecodingFailedBecomesUnknown() {
@@ -159,5 +159,16 @@ final class ErrorNormalizerTests: XCTestCase {
             return XCTFail("expected .permissionRequired(.administrator) from the command hint")
         }
         XCTAssertEqual(message, "This operation requires administrator privileges.")
+    }
+
+    // MARK: - Release-source error mapping
+
+    func testReleaseErrorsBecomeReadableUnknowns() {
+        guard
+            case let .unknown(message) = ErrorNormalizer.normalize(
+                ContainerReleaseError.noSignedPackage(tag: "1.0.0"))
+        else { return XCTFail("expected .unknown") }
+        XCTAssertTrue(message.contains("1.0.0"))
+        XCTAssertTrue(message.localizedCaseInsensitiveContains("signed"))
     }
 }

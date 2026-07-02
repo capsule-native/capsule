@@ -43,6 +43,18 @@ final class SystemStatusModelTests: XCTestCase {
         }
     }
 
+    func testMissingExecutableProbesToNotInstalled() async {
+        let backend = MockBackend()
+        backend.failure = .executableNotFound("/usr/local/bin/container")
+        let model = SystemStatusModel(
+            backend: backend, normalize: { ErrorNormalizer.normalize($0) })
+        await model.refreshStatus()
+        guard case let .notInstalled(detail) = model.health else {
+            return XCTFail("expected .notInstalled, got \(model.health)")
+        }
+        XCTAssertTrue(detail.recoveryActions.contains(.installContainerCLI))
+    }
+
     func testStartServicesFlipsStoppedToRunning() async {
         let backend = MockBackend(systemRunState: .stopped)
         let model = SystemStatusModel(backend: backend)

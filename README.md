@@ -46,7 +46,7 @@ CapsuleBackend     ──▶ (no Capsule dependencies)             (port; bottom
 | `CapsuleDomain` | Resource models, actions, task state, outcome/diagnostics types, privacy disclosure. No UI, no `Process`. |
 | `CapsuleBackend` | `ContainerBackend` + `ImageRegistrySearching` protocols, shared value types (the ports), `MockBackend` + `MockImageRegistry`. |
 | `CapsuleCLIBackend` | `Process` plumbing, argument building, output parsing. Conforms to `ContainerBackend`. |
-| `CapsuleRegistryClient` | Unauthenticated Docker Hub search/tags over `URLSession`. Conforms to `ImageRegistrySearching`. |
+| `CapsuleRegistryClient` | `URLSession` adapters: unauthenticated Docker Hub search/tags (conforms to `ImageRegistrySearching`) + apple/container GitHub releases (conforms to `ContainerReleaseSource`). |
 | `CapsuleAutomation` | App Intents + AppleScript vocabulary over the backend port. |
 | `CapsuleDiagnostics` | `OSLog` wrappers, diagnostic-bundle export, error normalization, secret redaction. |
 | `CapsuleUI` | SwiftUI views, inspectors, sheets, the updater/privacy settings surfaces. |

@@ -50,8 +50,9 @@ public final class SystemStatusModel {
     }
 
     /// Probes the service: status → (if running) version + capabilities. Any thrown error
-    /// resolves to `.unavailable` with a presentation-ready detail — never to "stopped"
-    /// or an empty success.
+    /// resolves to `.unavailable` (or, when the normalized error is `.cliNotInstalled`, to
+    /// `.notInstalled`) with a presentation-ready detail — never to "stopped" or an empty
+    /// success.
     public func refreshStatus() async {
         health = .checking
         do {
@@ -75,9 +76,14 @@ public final class SystemStatusModel {
                 onActivity("System running (client \(version.client)).")
             }
         } catch {
-            let detail = normalize(error).detail
+            let normalized = normalize(error)
+            let detail = normalized.detail
             onActivity("System unavailable: \(detail.title)")
-            health = .unavailable(detail)
+            if case .cliNotInstalled = normalized {
+                health = .notInstalled(detail)
+            } else {
+                health = .unavailable(detail)
+            }
         }
     }
 

@@ -40,6 +40,8 @@ public enum RecoveryAction: Sendable, Equatable, Hashable {
     case retryInTerminal(command: [String])
     /// Start the container system services.
     case startServices
+    /// Download and install the container CLI (missing-binary recovery).
+    case installContainerCLI
     /// Open the diagnostic log viewer.
     case openLogs
     /// Open the relevant configuration for editing.
@@ -55,6 +57,7 @@ public enum RecoveryAction: Sendable, Equatable, Hashable {
         case .retry: return "Try Again"
         case .retryInTerminal: return "Retry in Terminal"
         case .startServices: return "Start Services"
+        case .installContainerCLI: return "Install container…"
         case .openLogs: return "Open Logs"
         case .editConfiguration: return "Edit Configuration"
         case .exportDiagnostics: return "Export Diagnostics"
@@ -71,6 +74,9 @@ public enum RecoveryAction: Sendable, Equatable, Hashable {
 public enum CapsuleError: Error, Sendable, Equatable {
     /// The container service / daemon is not reachable.
     case daemonUnavailable(message: String, recovery: [RecoveryAction])
+    /// The `container` CLI binary itself is not installed (distinct from an
+    /// installed-but-unreachable service, so the UI can offer installation).
+    case cliNotInstalled(message: String, recovery: [RecoveryAction])
     /// A CLI command exited non-zero. `exitCode` is optional because a signal kill or a
     /// failure to spawn may leave us without one.
     case commandFailed(command: [String], exitCode: Int32?, stderr: String)

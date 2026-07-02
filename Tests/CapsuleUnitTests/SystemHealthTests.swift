@@ -70,4 +70,13 @@ final class SystemHealthTests: XCTestCase {
         XCTAssertFalse(
             SystemHealth.unavailable(ErrorDetail(title: "x", explanation: "y")).supports(.networks))
     }
+
+    func testNotInstalledPresentation() {
+        let health = SystemHealth.notInstalled(
+            ErrorDetail(title: "Container CLI not installed", explanation: "missing"))
+        XCTAssertFalse(health.isRunning)
+        XCTAssertEqual(health.bannerKind, .unhealthy)
+        XCTAssertEqual(health.statusLabel, "Not Installed")
+        XCTAssertTrue(health.availableFeatures.isEmpty)
+    }
 }

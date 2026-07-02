@@ -154,4 +154,25 @@ final class CapsuleErrorTests: XCTestCase {
             CapsuleError.interrupted(signal: 15)
         )
     }
+
+    func testInstallContainerCLIRecoveryHasTitle() {
+        XCTAssertEqual(RecoveryAction.installContainerCLI.title, "Install container…")
+    }
+
+    func testCLINotInstalledDetailOffersInstall() {
+        let error = CapsuleError.cliNotInstalled(
+            message: "The container CLI could not be found at /usr/local/bin/container.",
+            recovery: [.installContainerCLI, .openLogs])
+        XCTAssertEqual(error.detail.title, "Container CLI not installed")
+        XCTAssertEqual(
+            error.detail.explanation,
+            "The container CLI could not be found at /usr/local/bin/container.")
+        XCTAssertEqual(error.detail.recoveryActions, [.installContainerCLI, .openLogs])
+        XCTAssertEqual(error.status, .backendUnavailable)
+    }
+
+    func testCLINotInstalledDetailDefaultsRecovery() {
+        let error = CapsuleError.cliNotInstalled(message: "missing", recovery: [])
+        XCTAssertEqual(error.detail.recoveryActions, [.installContainerCLI, .openLogs])
+    }
 }
