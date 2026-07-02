@@ -59,7 +59,18 @@ public struct CapsuleScene: Scene {
         if ProcessInfo.processInfo.environment["CAPSULE_UITEST"] == "1" {
             self.init(environment: .uiTest())
         } else {
-            self.init(environment: .live(updater: SparkleUpdaterController()))
+            // Debug builds are ad-hoc ("Sign to Run Locally") signed and run from DerivedData,
+            // so Sparkle's `startUpdater` fails its security checks and pops a developer-facing
+            // "updater failed to start" alert (which Sparkle intentionally leaves unlocalized, so
+            // it shows English even under a forced language). Updates can't work in such a build
+            // anyway, so don't auto-start the updater locally — the shipping Developer-ID Release
+            // build starts it normally.
+            #if DEBUG
+            let sparkle = SparkleUpdaterController(startsUpdater: false)
+            #else
+            let sparkle = SparkleUpdaterController()
+            #endif
+            self.init(environment: .live(updater: sparkle))
         }
     }
 
@@ -129,6 +140,7 @@ public struct CapsuleScene: Scene {
                 terminalSurfaceProvider: terminalSurfaceProvider,
                 commandContext: commandContext
             )
+            .capsuleAppearance()
         }
         .commands {
             CapsuleCommands(
@@ -143,6 +155,7 @@ public struct CapsuleScene: Scene {
 
         Window("Logs", id: LogWindow.id) {
             LogWindowView(model: logsModel)
+                .capsuleAppearance()
         }
 
         Settings {
@@ -152,7 +165,9 @@ public struct CapsuleScene: Scene {
                 kernelModel: kernelManagerModel,
                 propertiesModel: propertiesModel,
                 systemHealth: systemModel.health,
-                updater: updater)
+                updater: updater
+            )
+            .capsuleAppearance()
         }
     }
 }

@@ -36,7 +36,7 @@ public struct PreferencesView: View {
 
     public var body: some View {
         TabView {
-            TerminalPreferenceView()
+            GeneralSettingsView()
                 .tabItem { Label("General", systemImage: "gearshape") }
             UpdatesSettingsView(updater: updater)
                 .tabItem { Label("Updates", systemImage: "arrow.triangle.2.circlepath") }
