@@ -51,7 +51,8 @@ final class ContainerLifecycleModelTests: XCTestCase {
     func testStartBackendUnavailableClassified() async {
         let backend = MockBackend()
         backend.startFailure = .executableNotFound("container")
-        // Use the production normalizer: executableNotFound → daemonUnavailable.
+        // Use the production normalizer: executableNotFound → cliNotInstalled, which is
+        // still classified as .backendUnavailable (see ErrorDetail.status).
         let m = ContainerLifecycleModel(
             backend: backend,
             normalize: { ErrorNormalizer.normalize($0) },

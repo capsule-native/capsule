@@ -71,9 +71,9 @@ public enum ErrorNormalizer {
     private static func normalizeBackendError(_ error: BackendError) -> CapsuleError {
         switch error {
         case let .executableNotFound(path):
-            return .daemonUnavailable(
+            return .cliNotInstalled(
                 message: "The container CLI could not be found at \(path).",
-                recovery: [.openLogs, .exportDiagnostics]
+                recovery: [.installContainerCLI, .openLogs]
             )
 
         case let .nonZeroExit(command, code, stderr):

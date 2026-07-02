@@ -92,14 +92,14 @@ final class ErrorNormalizerTests: XCTestCase {
         XCTAssertEqual(stderr, "no such image")
     }
 
-    func testExecutableNotFoundBecomesDaemonUnavailable() {
+    func testExecutableNotFoundBecomesCLINotInstalled() {
         let error = BackendError.executableNotFound("/usr/local/bin/container")
-        guard case let .daemonUnavailable(message, recovery) = ErrorNormalizer.normalize(error)
+        guard case let .cliNotInstalled(message, recovery) = ErrorNormalizer.normalize(error)
         else {
-            return XCTFail("expected .daemonUnavailable")
+            return XCTFail("expected .cliNotInstalled")
         }
         XCTAssertTrue(message.contains("/usr/local/bin/container"))
-        XCTAssertTrue(recovery.contains(.exportDiagnostics))
+        XCTAssertEqual(recovery, [.installContainerCLI, .openLogs])
     }
 
     func testDecodingFailedBecomesUnknown() {
