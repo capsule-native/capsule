@@ -63,6 +63,9 @@ public enum ErrorNormalizer {
         if let backend = error as? BackendError {
             return normalizeBackendError(backend)
         }
+        if let release = error as? ContainerReleaseError {
+            return normalizeReleaseError(release)
+        }
         let message = (error as? LocalizedError)?.errorDescription ?? String(describing: error)
         return .unknown(message: message)
     }
@@ -104,6 +107,27 @@ public enum ErrorNormalizer {
 
         case let .notImplemented(message):
             return .unsupportedFeature(message: message)
+        }
+    }
+
+    /// Maps release-source failures (GitHub lookup/download) into readable messages. These
+    /// surface on the install task / About pane, so they favor plain language over codes.
+    private static func normalizeReleaseError(_ error: ContainerReleaseError) -> CapsuleError {
+        switch error {
+        case let .rateLimited(retryAfterSeconds):
+            let hint = retryAfterSeconds.map { " Try again in \($0)s." } ?? " Try again later."
+            return .unknown(message: "GitHub is rate-limiting release requests.\(hint)")
+        case let .httpStatus(code, message):
+            return .unknown(
+                message: message ?? "GitHub returned HTTP \(code) for the release request.")
+        case let .network(message):
+            return .unknown(message: "Could not reach GitHub: \(message)")
+        case let .decodingFailed(message):
+            return .unknown(message: "Could not decode the GitHub release: \(message)")
+        case let .noSignedPackage(tag):
+            return .unknown(
+                message: "Release \(tag) does not include a signed installer package yet. "
+                    + "Try again once it is published.")
         }
     }
 

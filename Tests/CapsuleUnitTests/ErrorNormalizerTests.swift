@@ -160,4 +160,15 @@ final class ErrorNormalizerTests: XCTestCase {
         }
         XCTAssertEqual(message, "This operation requires administrator privileges.")
     }
+
+    // MARK: - Release-source error mapping
+
+    func testReleaseErrorsBecomeReadableUnknowns() {
+        guard
+            case let .unknown(message) = ErrorNormalizer.normalize(
+                ContainerReleaseError.noSignedPackage(tag: "1.0.0"))
+        else { return XCTFail("expected .unknown") }
+        XCTAssertTrue(message.contains("1.0.0"))
+        XCTAssertTrue(message.localizedCaseInsensitiveContains("signed"))
+    }
 }
