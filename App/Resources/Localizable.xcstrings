@@ -10303,6 +10303,40 @@
         }
       }
     },
+    "No Running Containers": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有正在运行的容器"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行中のコンテナなし"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay contenedores en ejecución"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun conteneur en cours d'exécution"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çalışan Konteyner Yok"
+          }
+        }
+      }
+    },
     "No Selection": {
       "localizations": {
         "zh-Hans": {
@@ -10809,6 +10843,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gömülü terminalde etkileşimli bir kabuk açın"
+          }
+        }
+      }
+    },
+    "Open Capsule": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 Capsule"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capsuleを開く"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Capsule"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir Capsule"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capsule'ü Aç"
           }
         }
       }
@@ -11931,6 +11999,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kuyrukta"
+          }
+        }
+      }
+    },
+    "Quit Capsule": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 Capsule"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capsuleを終了"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salir de Capsule"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitter Capsule"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capsule'den Çık"
           }
         }
       }
@@ -13563,6 +13665,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tam argv'yi bir terminalde çalıştırır. Serbestçe düzenleyin; gizli bilgiler saklanmaz."
+          }
+        }
+      }
+    },
+    "Running Containers": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行中的容器"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行中のコンテナ"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contenedores en ejecución"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conteneurs en cours d'exécution"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çalışan Konteynerler"
           }
         }
       }
@@ -15297,6 +15433,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hizmet durumu: %@"
+          }
+        }
+      }
+    },
+    "Services: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务：%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サービス: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servicios: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Services : %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hizmetler: %@"
           }
         }
       }

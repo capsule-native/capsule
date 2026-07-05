@@ -110,7 +110,10 @@ public struct CapsuleScene: Scene {
     }
 
     public var body: some Scene {
-        WindowGroup(id: WindowManagement.mainWindowID) {
+        // A single `Window` (not a `WindowGroup`): Capsule has one primary surface, so
+        // `openWindow(id:)` from the menu bar must focus the existing window rather than spawn
+        // a new one each time (a `WindowGroup` is multi-window and would stack duplicates).
+        Window("Capsule", id: WindowManagement.mainWindowID) {
             RootView(
                 shell: shell,
                 systemModel: systemModel,
@@ -168,6 +171,21 @@ public struct CapsuleScene: Scene {
                 updater: updater
             )
             .capsuleAppearance()
+        }
+
+        // Keeps Capsule reachable after the window closes: the app stays resident (see
+        // `CapsuleAppDelegate`) and lives here in the menu bar until the user quits. "Capsule"
+        // is the app name — left untranslated — and doubles as the status item's accessibility
+        // label. `MenuBarIcon` is Capsule's own mark (the three stacked bars) as a monochrome
+        // template glyph, so the menu bar tints it for the active light/dark appearance.
+        MenuBarExtra("Capsule", image: "MenuBarIcon") {
+            CapsuleMenuBarContent(
+                shell: shell,
+                browserModel: browserModel,
+                systemModel: systemModel,
+                actions: actions,
+                updater: updater
+            )
         }
     }
 }
