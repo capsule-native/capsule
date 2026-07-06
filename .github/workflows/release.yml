@@ -46,8 +46,11 @@ jobs:
         id: signing
         env:
           CERT: ${{ secrets.DEVELOPER_ID_CERT_P12_BASE64 }}
+          SPARKLE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
-          if [ -n "$CERT" ] && [ -n "${TEAM_ID}" ]; then
+          # Require the full set (cert + team + Sparkle key) — otherwise the appcast can't be
+          # signed, so drop cleanly to the unsigned build-only path instead of failing late.
+          if [ -n "$CERT" ] && [ -n "${TEAM_ID}" ] && [ -n "$SPARKLE_KEY" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
@@ -78,8 +81,29 @@ jobs:
         env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
-          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | base64 --decode > "$RUNNER_TEMP/sparkle_ed_private_key"
-          echo "SPARKLE_ED_KEY_FILE=$RUNNER_TEMP/sparkle_ed_private_key" >> "$GITHUB_ENV"
+          keyfile="$RUNNER_TEMP/sparkle_ed_private_key"
+          # generate_appcast --ed-key-file wants the base64 private-key STRING verbatim (exactly
+          # what `generate_keys -x` writes: one line of base64). Accept the secret whether it was
+          # stored as that string OR base64-encoded once more: a raw Sparkle key base64-decodes to
+          # ~32 binary bytes, whereas a double-encoded secret decodes back to a printable base64
+          # line. Pick whichever form yields a valid key string, so the release can't fail (or,
+          # worse, silently emit an unsigned appcast) on a secret-encoding mismatch.
+          dec="$RUNNER_TEMP/sparkle_key_decoded"
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | base64 --decode > "$dec" 2>/dev/null || true
+          if LC_ALL=C grep -aEq '^[A-Za-z0-9+/]{40,}={0,2}$' "$dec"; then
+            cp "$dec" "$keyfile"                              # secret was double-base64-encoded
+          else
+            printf '%s' "$SPARKLE_ED_PRIVATE_KEY" > "$keyfile" # secret stored verbatim
+          fi
+          rm -f "$dec"
+          echo "SPARKLE_ED_KEY_FILE=$keyfile" >> "$GITHUB_ENV"
+
+      - name: Warm the SwiftPM cache (resolves Sparkle's generate_appcast into .build/artifacts)
+        if: steps.signing.outputs.enabled == 'true'
+        # Belt-and-suspenders: the archive step also resolves Sparkle into DerivedData (which
+        # appcast.sh searches), so a transient resolve hiccup must not block a shippable release.
+        continue-on-error: true
+        run: swift package resolve
 
       - name: Build, sign, notarize, staple, package, appcast
         if: steps.signing.outputs.enabled == 'true'
