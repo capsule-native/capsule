@@ -13,7 +13,7 @@
 #   TEAM_ID          Apple Developer Team ID
 #   NOTARY_PROFILE   keychain profile for notarytool (xcrun notarytool store-credentials)
 # Optional:
-#   DEVELOPER_ID_APP, SPARKLE_BIN, SPARKLE_ED_KEY_FILE, DIST_DIR
+#   SPARKLE_BIN, SPARKLE_ED_KEY_FILE, SPARKLE_ACCOUNT, DIST_DIR
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 parse_common_flags "$@"

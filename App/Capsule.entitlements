@@ -13,8 +13,10 @@
 	  Sparkle: the UNSANDBOXED updater needs NO extra entitlements. Sparkle's XPC services
 	  (Installer/Downloader) and the com.apple.security.temporary-exception.* keys exist only
 	  for the SANDBOXED case. Because Capsule is unsandboxed, the in-process updater is used and
-	  this file stays empty. The Sparkle framework is built from source via SwiftPM and signed
-	  with the app under the same Developer ID, so no library-validation exception is required.
+	  this file stays empty. Sparkle ships as a prebuilt, Sparkle-signed binary xcframework (a
+	  SwiftPM binaryTarget); `xcodebuild -exportArchive` re-signs it — and its nested
+	  Autoupdate / Updater.app / XPC services — inside-out with Capsule's own Developer ID, so
+	  library validation passes and no com.apple.security.cs.disable-library-validation is required.
 	-->
 </dict>
 </plist>
