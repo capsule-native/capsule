@@ -26,9 +26,14 @@ log "Zipping app for notarization → $SUBMIT_ZIP"
 run ditto -c -k --keepParent "$APP" "$SUBMIT_ZIP"
 
 log "Submitting to the notary service (this can take a few minutes)…"
+# --timeout bounds the --wait poll. A healthy submission clears in minutes, but Apple's notary
+# service can occasionally wedge a submission "In Progress" indefinitely; without a bound, --wait
+# blocks until the CI job itself is killed (a stuck run once burned GitHub's full 6-hour budget).
+# Fail fast at 30m so the release errors loudly instead of idling to the runner's hard ceiling.
 run xcrun notarytool submit "$SUBMIT_ZIP" \
   --keychain-profile "$NOTARY_PROFILE" \
-  --wait
+  --wait \
+  --timeout 30m
 
 log "Stapling the notarization ticket onto the app"
 run xcrun stapler staple "$APP"
