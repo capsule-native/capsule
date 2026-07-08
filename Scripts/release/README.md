@@ -18,6 +18,13 @@ unsandboxed to drive the `container` CLI).
    **<https://capsule-native.github.io/appcast.xml>** — the app's `SUFeedURL`. It runs on a
    schedule (~15 min) and on demand (Actions ▸ Sync appcast ▸ Run workflow) for an instant
    publish right after a release.
+4. The release job also **bumps the Homebrew cask**: it recomputes the DMG's SHA-256, renders
+   `Casks/capsule.rb` via [`update-homebrew-cask.sh`](update-homebrew-cask.sh), and pushes it to
+   [`capsule-native/homebrew-tap`](https://github.com/capsule-native/homebrew-tap) so that
+   `brew install --cask capsule-native/tap/capsule` serves the new version. Gated on the
+   `HOMEBREW_TAP_TOKEN` secret (a fine-grained PAT with **Contents: read+write** on the tap);
+   absent on forks, it's skipped with a warning. `auto_updates true` means *existing* installs are
+   updated in place by Sparkle regardless — the bump keeps **fresh** installs current.
 
 > The code repo stays **public** so Sparkle can download the update zip from the release assets
 > without authentication.
